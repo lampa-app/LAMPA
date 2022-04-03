@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import android.speech.RecognizerIntent;
 
 import top.rootu.lampa.net.Http;
 
@@ -252,17 +253,36 @@ public final class AndroidJS {
 
     @JavascriptInterface
     public final void voiceStart() {
-        // todo Голосовой ввод с последующей передачей результата через JS
-        Toast.makeText(
-                mainActivity,
-                R.string.no_working,
-                Toast.LENGTH_SHORT
-        ).show();
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+
+        if (mainActivity != null) {
+            mainActivity.runOnUiThread(() -> {
+                try {
+                    mainActivity.startActivityForResult(intent, MainActivity.REQUEST_SPEECH);
+                } catch (Exception e) {
+                    Log.d(TAG, e.getMessage(), e);
+                    Toast.makeText(
+                            mainActivity,
+                            R.string.not_found_speech,
+                            Toast.LENGTH_SHORT
+                    ).show();
+                    // Очищаем поле ввода
+                    mainActivity.runVoidJsFunc("voiceResult", "''");
+                }
+            });
+        }
     }
 
     @JavascriptInterface
     public final void showInput(String inputText) {
         // todo Ввод с андройд клавиатуры с последующей передачей результата через JS
+        // где конкретно используется пока не понял, пример возврата ниже:
+//      mainActivity.runOnUiThread(() -> {
+//          String example = "Возвращ'аемый' текст";
+//          mainActivity.runVoidJsFunc("androidInput", "'" + example.replace("'", "\\'") + "'");
+//      });
     }
 
     @JavascriptInterface

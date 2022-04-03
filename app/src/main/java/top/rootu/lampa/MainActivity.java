@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.net.http.SslError;
+import android.speech.RecognizerIntent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
@@ -55,8 +57,9 @@ public class MainActivity extends AppCompatActivity implements
     private static final Pattern URL_PATTERN = Pattern.compile(URL_REGEX);
     public static final Integer REQUEST_PLAYER_SELECT = 1;
     public static final Integer REQUEST_PLAYER_OTHER = 2;
-    public static final Integer REQUEST_PLAYER_MX = 222;
+    public static final Integer REQUEST_PLAYER_MX = 3;
     public static final Integer REQUEST_PLAYER_VLC = 4;
+    public static final Integer REQUEST_SPEECH = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -416,6 +419,11 @@ public class MainActivity extends AppCompatActivity implements
                     "MX or VLC returned",
                     Toast.LENGTH_LONG
             ).show();
+        } else if (requestCode == REQUEST_SPEECH && resultCode == RESULT_OK) {
+            ArrayList <String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+
+            String speech = result.isEmpty() ? "" : result.get(0);
+            runVoidJsFunc("voiceResult", "'" + speech.replace("'", "\\'") + "'");
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }
@@ -487,5 +495,17 @@ public class MainActivity extends AppCompatActivity implements
         }
         else
             sb.append(object);
+    }
+
+    public void runVoidJsFunc(@NonNull String funcName, String params) {
+        String js = "(function(w,u){"
+                + "if(typeof w." + funcName.replace(".", "?.") + "===u) return u;"
+                + "w." + funcName + "(" + params + ");"
+                + "return 'runned';"
+                + "})(window,'undefined');";
+        browser.evaluateJavascript(
+                js,
+                r -> Log.i("runVoidJsFunc", funcName + "(" + params + ") " + r)
+        );
     }
 }
