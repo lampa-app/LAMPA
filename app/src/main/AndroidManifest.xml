@@ -10,6 +10,7 @@
         tools:ignore="ScopedStorage" />
 
     <application
+        android:name=".App"
         android:screenOrientation="landscape"
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"

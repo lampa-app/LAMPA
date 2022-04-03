@@ -1,30 +1,20 @@
 package top.rootu.lampa;
 
-import android.annotation.SuppressLint;
-import org.json.JSONException;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ResolveInfo;
-import android.text.TextUtils;
-import android.webkit.ValueCallback;
-
-import org.xwalk.core.JavascriptInterface;
-import org.xwalk.core.XWalkView;
-import org.json.JSONObject;
-
-import android.os.AsyncTask;
-import android.util.Log;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.text.TextUtils;
+import android.util.Log;
+import android.webkit.ValueCallback;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.xwalk.core.JavascriptInterface;
+import org.xwalk.core.XWalkView;
+
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import top.rootu.lampa.net.Http;
@@ -35,7 +25,7 @@ public final class AndroidJS {
     public XWalkView XWalkView;
     public static Map<String, String> reqResponse = new HashMap<>();
 
-    public AndroidJS(MainActivity mainActivity, XWalkView XWalkView){
+    public AndroidJS(MainActivity mainActivity, XWalkView XWalkView) {
         this.mainActivity = mainActivity;
         this.XWalkView = XWalkView;
     }
@@ -241,7 +231,8 @@ public final class AndroidJS {
         if (!jsonObject.has("url")) {
             try {
                 jsonObject.put("url", link);
-            } catch (JSONException ignored) {}
+            } catch (JSONException ignored) {
+            }
         }
 
         JSONObject finalJsonObject = jsonObject;

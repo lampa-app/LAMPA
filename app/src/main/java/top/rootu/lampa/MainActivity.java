@@ -5,17 +5,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.net.http.SslError;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.AppCompatDelegate;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.webkit.ValueCallback;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -120,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements
             browser.setLayerType(View.LAYER_TYPE_NONE, null);
             ProgressBar progressBar = findViewById(R.id.progressBar_cyclic);
             browser.setResourceClient(new XWalkResourceClient(browser) {
-                //                @Override
+//                @Override
 //                public void onReceivedSslError(XWalkView view, ValueCallback<Boolean> callback, SslError error) {
 //
 //                    Log.i("SSL", "XWalkResourceClient.onReceivedSslError is invoked. Event: " + error.toString());
