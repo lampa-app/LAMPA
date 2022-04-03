@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <domain-config>
+        <domain includeSubdomains="true">cub.watch</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user" />
+            <certificates src="@raw/cub_watch"/>
+            <certificates src="@raw/cub_watch2"/>
+            <certificates src="@raw/cub_watch3"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
