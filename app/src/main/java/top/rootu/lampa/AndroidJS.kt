@@ -195,13 +195,13 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun voiceStart() {
         // todo Голосовой ввод с последующей передачей результата через JS
-        // App.toast(R.string.no_working, false)
-        // check permissions
         mainActivity?.runOnUiThread {
             try {
                 mainActivity?.displaySpeechRecognizer()
             } catch (e: Exception) {
                 e.printStackTrace()
+                // Очищаем поле ввода
+                mainActivity?.runVoidJsFunc("voiceResult", "''")
             }
         }
     }

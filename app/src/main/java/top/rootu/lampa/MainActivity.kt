@@ -324,7 +324,27 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             )
         }
         // This starts the activity and populates the intent with the speech text.
-        startActivityForResult(intent, SPEECH_REQUEST_CODE)
+        try {
+            startActivityForResult(intent, SPEECH_REQUEST_CODE)
+        } catch (e: Exception) {
+            App.toast(R.string.not_found_speech, false)
+        }
+    }
+
+    fun runVoidJsFunc(funcName: String, params: String) {
+        val js = ("(function(w,u){"
+                + "if(typeof w." + funcName.replace(".", "?.") + "===u) return u;"
+                + "w." + funcName + "(" + params + ");"
+                + "return 'runned';"
+                + "})(window,'undefined');")
+        browser?.evaluateJavascript(
+            js
+        ) { r: String ->
+            Log.i(
+                "runVoidJsFunc",
+                "$funcName($params) $r"
+            )
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -358,7 +378,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             // Do something with spokenText.
             if (spokenText != null) {
-                App.toast(spokenText)
+                //App.toast(spokenText)
+                runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'");
             }
         } else {
             super.onActivityResult(requestCode, resultCode, data)
@@ -377,9 +398,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         const val REQUEST_PLAYER_SELECT = 1
         const val REQUEST_PLAYER_OTHER = 2
-        const val REQUEST_PLAYER_MX = 222
+        const val REQUEST_PLAYER_MX = 3
         const val REQUEST_PLAYER_VLC = 4
-        const val SPEECH_REQUEST_CODE = 777
+        const val SPEECH_REQUEST_CODE = 5
+
         private fun dumpParams(intent: Intent) {
             val sb = StringBuilder()
             val extras = intent.extras
