@@ -1,21 +1,23 @@
 package top.rootu.lampa
 
+import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.text.InputType
-import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.Toast
+import android.widget.FrameLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
@@ -23,8 +25,7 @@ import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
 import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.collections.ArrayList
-import kotlin.system.exitProcess
+
 
 class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener {
     private var browser: XWalkView? = null
@@ -46,7 +47,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         // API, including invoking setContentView() with the layout which
         // holds the XWalkView object.
         mXWalkInitializer = XWalkInitializer(this, this)
-        mXWalkInitializer!!.initAsync()
+        mXWalkInitializer?.initAsync()
 
         // Until onXWalkInitCompleted() is invoked, you should do nothing with the
         // embedding API except the following:
@@ -72,7 +73,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         if (mXWalkUpdater == null) {
             mXWalkUpdater = XWalkUpdater(this, this)
         }
-        mXWalkUpdater!!.updateXWalkRuntime()
+        mXWalkUpdater?.updateXWalkRuntime()
     }
 
     override fun onXWalkInitCompleted() {
@@ -81,7 +82,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         if (browser == null) {
             browser = findViewById(R.id.xwalkview)
             browser?.setLayerType(View.LAYER_TYPE_NONE, null)
-            val progressBar = findViewById<ProgressBar>(R.id.progressBar_cyclic)
+            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
             browser?.setResourceClient(object : XWalkResourceClient(browser) {
                 override fun onLoadFinished(view: XWalkView, url: String) {
                     super.onLoadFinished(view, url)
@@ -111,11 +112,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 
         // Set up the input
         val input = EditText(this)
+        input.setSingleLine()
         // Specify the type of input expected; this, for example, sets the input as a password,
         // and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(if (LAMPA_URL.isNullOrEmpty()) "http://" else LAMPA_URL)
-        builder.setView(input)
+        val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        val container = FrameLayout(this)
+        val params = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        params.leftMargin = margin
+        params.rightMargin = margin
+        input.layoutParams = params
+        container.addView(input)
+        builder.setView(container)
+//        builder.setView(input, margin, 0, margin, 0)
 
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { dialog: DialogInterface?, which: Int ->
@@ -127,24 +140,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     editor?.putString(APP_URL, LAMPA_URL)
                     editor?.apply()
                     browser?.loadUrl(LAMPA_URL)
-                    Toast.makeText(mainActivity, R.string.change_url_press_back, Toast.LENGTH_LONG)
-                        .show()
+                    App.toast(R.string.change_url_press_back)
                 }
             } else {
                 println("URL '$LAMPA_URL' is invalid")
-                Toast.makeText(mainActivity, R.string.invalid_url, Toast.LENGTH_LONG).show()
+                App.toast(R.string.invalid_url)
                 showUrlInputDialog()
             }
             hideSystemUI()
         }
         builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, which: Int ->
             dialog.cancel()
-            if (LAMPA_URL!!.isEmpty() && mSettings!!.getString(APP_URL, LAMPA_URL)!!
-                    .isEmpty()
+            if (LAMPA_URL.isNullOrEmpty() && mSettings?.getString(APP_URL, LAMPA_URL)
+                    .isNullOrEmpty()
             ) {
                 appExit()
             } else {
-                LAMPA_URL = mSettings!!.getString(APP_URL, LAMPA_URL)
+                LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
                 hideSystemUI()
             }
         }
@@ -173,7 +185,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         super.onPause()
         if (browserInit && browser != null) {
             browser?.pauseTimers()
-            //            browser.onHide();
+//            browser?.onHide()
         }
     }
 
@@ -194,7 +206,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         mXWalkInitializer?.initAsync()
         if (browserInit && browser != null) {
             browser?.resumeTimers()
-            //            browser.onShow();
+//            browser?.onShow()
         }
     }
 
@@ -212,7 +224,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             it.clearCache(true)
             it.onDestroy()
         }
-        exitProcess(1)
+        finishAffinity()
+//        exitProcess(1)
     }
 
     fun runPlayer(jsonObject: JSONObject) {
@@ -224,11 +237,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         )
         val resInfo = packageManager.queryIntentActivities(intent, 0)
         if (resInfo.isEmpty()) {
-            Toast.makeText(
-                this,
-                R.string.no_activity_found,
-                Toast.LENGTH_SHORT
-            ).show()
+            App.toast(R.string.no_activity_found, false)
             return
         }
         var playerPackageExist = false
@@ -268,6 +277,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             if (jsonObject.has("title")) {
                 intent.putExtra("title", jsonObject.optString("title"))
             }
+            if (jsonObject.has("playlist")) {
+                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
+            }
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> {
                     //                case "com.mxtech.videoplayer.beta":
@@ -298,23 +310,19 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 startActivityForResult(intent, requestCode)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
-                Toast.makeText(
-                    this,
-                    R.string.no_activity_found,
-                    Toast.LENGTH_SHORT
-                ).show()
+                App.toast(R.string.no_activity_found, false)
             }
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_PLAYER_SELECT) {
-            if (data != null && data.component != null && !TextUtils.isEmpty(data.component!!.flattenToShortString())) {
+            if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
                 SELECTED_PLAYER =
                     data.component!!.flattenToShortString().split("/".toRegex()).toTypedArray()[0]
-                val editor = mSettings!!.edit()
-                editor.putString(APP_PLAYER, SELECTED_PLAYER)
-                editor.apply()
+                val editor = mSettings?.edit()
+                editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+                editor?.apply()
 
                 // Now you know the app being picked.
                 // data is a copy of your launchIntent with this important extra info added.

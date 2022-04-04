@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.AsyncTask
 import android.text.TextUtils
 import android.util.Log
-import android.widget.Toast
 import org.json.JSONException
 import org.json.JSONObject
 import org.xwalk.core.JavascriptInterface
@@ -17,7 +16,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun appVersion(): String {
         // версия AndroidJS для сайта указывается через тире, например 1.0.1-16 - 16 версия
-        return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE // todo последния версия от Немирова 7.7.7-77
+        return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE // todo последняя версия от Немирова 7.7.7-77
     }
 
     @JavascriptInterface
@@ -65,9 +64,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                 mainActivity?.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
-                Toast.makeText(
-                    mainActivity, R.string.no_activity_found, Toast.LENGTH_SHORT
-                ).show()
+                App.toast(R.string.no_activity_found, false)
             }
         }
         return true
@@ -84,11 +81,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                 mainActivity?.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
-                Toast.makeText(
-                    mainActivity,
-                    R.string.no_activity_found,
-                    Toast.LENGTH_SHORT
-                ).show()
+                App.toast(R.string.no_activity_found, false)
             }
         }
     }
@@ -99,11 +92,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
         val editor = mainActivity?.mSettings?.edit()
         editor?.putString(MainActivity.APP_PLAYER, MainActivity.SELECTED_PLAYER)
         editor?.apply()
-        Toast.makeText(
-            mainActivity,
-            R.string.select_player_reseted,
-            Toast.LENGTH_LONG
-        ).show()
+        App.toast(R.string.select_player_reseted)
     }
 
     @JavascriptInterface
