@@ -315,6 +315,18 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
     }
 
+    // Create an intent that can start the Speech Recognizer activity
+    fun displaySpeechRecognizer() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+        }
+        // This starts the activity and populates the intent with the speech text.
+        startActivityForResult(intent, SPEECH_REQUEST_CODE)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_PLAYER_SELECT) {
             if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
@@ -338,11 +350,16 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
             }
             if (data != null) dumpParams(data)
-            Toast.makeText(
-                this,
-                "MX or VLC returned",
-                Toast.LENGTH_LONG
-            ).show()
+            App.toast("MX or VLC")
+        } else if (requestCode == SPEECH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val spokenText: String? =
+                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+                    results[0]
+                }
+            // Do something with spokenText.
+            if (spokenText != null) {
+                App.toast(spokenText)
+            }
         } else {
             super.onActivityResult(requestCode, resultCode, data)
         }
@@ -362,6 +379,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         const val REQUEST_PLAYER_OTHER = 2
         const val REQUEST_PLAYER_MX = 222
         const val REQUEST_PLAYER_VLC = 4
+        const val SPEECH_REQUEST_CODE = 777
         private fun dumpParams(intent: Intent) {
             val sb = StringBuilder()
             val extras = intent.extras
