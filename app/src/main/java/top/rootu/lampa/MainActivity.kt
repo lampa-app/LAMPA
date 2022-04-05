@@ -1,6 +1,7 @@
 package top.rootu.lampa
 
 import android.app.Activity
+import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
@@ -14,15 +15,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
-import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
 
@@ -34,6 +37,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     private var mDecorView: View? = null
     private var browserInit = false
     var mSettings: SharedPreferences? = null
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
+    private lateinit var selectLauncher: ActivityResultLauncher<Intent?>
+    private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
@@ -42,6 +49,59 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
+
+        selectLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // There are no request codes
+                val data: Intent? = result.data
+                if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
+                    SELECTED_PLAYER =
+                        data.component!!.flattenToShortString().split("/".toRegex())
+                            .toTypedArray()[0]
+                    val editor = mSettings?.edit()
+                    editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+                    editor?.apply()
+                    // Now you know the app being picked.
+                    // data is a copy of your launchIntent with this important extra info added.
+                    // Start the selected activity
+                    startActivity(data)
+                }
+            }
+        }
+
+        resultLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val data: Intent? = result.data
+            when (result.resultCode) {
+                RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}")
+                RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}")
+                RESULT_ERROR -> Log.e(TAG, "Error occurred: ${data?.toUri(0)}")
+                else -> Log.w(
+                    TAG,
+                    "Undefined result code (${result.resultCode}): ${data?.toUri(0)}"
+                )
+            }
+        }
+
+        speechLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // There are no request codes
+                val data: Intent? = result.data
+                val spokenText: String? =
+                    data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+                        results[0]
+                    }
+                // Do something with spokenText.
+                if (spokenText != null) {
+                    runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
+                }
+            }
+        }
 
         // Must call initAsync() before anything that involves the embedding
         // API, including invoking setContentView() with the layout which
@@ -96,7 +156,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
         val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
         browser?.userAgentString = ua
-        browser?.setBackgroundColor(resources.getColor(R.color.lampa_background))
+        browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
@@ -131,9 +191,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //        builder.setView(input, margin, 0, margin, 0)
 
         // Set up the buttons
-        builder.setPositiveButton(R.string.save) { dialog: DialogInterface?, which: Int ->
+        builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             LAMPA_URL = input.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
+            if (URL_PATTERN.matcher(LAMPA_URL!!).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (mSettings?.getString(APP_URL, "") != LAMPA_URL) {
                     val editor = mSettings?.edit()
@@ -149,7 +209,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             }
             hideSystemUI()
         }
-        builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, which: Int ->
+        builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
             dialog.cancel()
             if (LAMPA_URL.isNullOrEmpty() && mSettings?.getString(APP_URL, LAMPA_URL)
                     .isNullOrEmpty()
@@ -160,7 +220,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 hideSystemUI()
             }
         }
-        builder.setNeutralButton(R.string.exit) { dialog: DialogInterface, which: Int ->
+        builder.setNeutralButton(R.string.exit) { dialog: DialogInterface, _: Int ->
             dialog.cancel()
             appExit()
         }
@@ -210,6 +270,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun hideSystemUI() {
         mDecorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -231,9 +292,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     fun runPlayer(jsonObject: JSONObject) {
         val link = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(
+        intent.setDataAndTypeAndNormalize(
             Uri.parse(link),
-            if (link.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+            if (link.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
         )
         val resInfo = packageManager.queryIntentActivities(intent, 0)
         if (resInfo.isEmpty()) {
@@ -253,9 +314,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             val targetedShareIntents: MutableList<Intent> = ArrayList()
             for (info in resInfo) {
                 val targetedShare = Intent(Intent.ACTION_VIEW)
-                targetedShare.setDataAndType(
+                targetedShare.setDataAndTypeAndNormalize(
                     Uri.parse(link),
-                    if (link.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+                    if (link.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
                 )
                 if (jsonObject.has("title")) {
                     targetedShare.putExtra("title", jsonObject.optString("title"))
@@ -271,31 +332,54 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             intentPick.putExtra(Intent.EXTRA_INTENT, intent)
             intentPick.putExtra(Intent.EXTRA_INITIAL_INTENTS, targetedShareIntents.toTypedArray())
             // Call StartActivityForResult so we can get the app name selected by the user
-            startActivityForResult(intentPick, REQUEST_PLAYER_SELECT)
+            selectLauncher.launch(intentPick)
         } else {
             val requestCode: Int
             if (jsonObject.has("title")) {
                 intent.putExtra("title", jsonObject.optString("title"))
             }
-            if (jsonObject.has("playlist")) {
-                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
-            }
             when (SELECTED_PLAYER) {
-                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> {
-                    //                case "com.mxtech.videoplayer.beta":
+                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
                     requestCode = REQUEST_PLAYER_MX
+                    //intent.setPackage(SELECTED_PLAYER)
+                    //intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
+                    intent.component = ComponentName(
+                        SELECTED_PLAYER!!,
+                        "$SELECTED_PLAYER.ActivityScreen"
+                    )
                     intent.putExtra("sticky", false)
                     intent.putExtra("return_result", true)
-                    intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
                 }
                 "org.videolan.vlc" -> {
                     requestCode = REQUEST_PLAYER_VLC
-                    intent.setPackage(SELECTED_PLAYER)
+                    //intent.setPackage(SELECTED_PLAYER)
+                    intent.component = ComponentName(
+                        SELECTED_PLAYER!!,
+                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
+                    )
                 }
                 else -> {
                     requestCode = REQUEST_PLAYER_OTHER
                     intent.setPackage(SELECTED_PLAYER)
                 }
+            }
+            if (jsonObject.has("playlist")) {
+                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
+                val playJSONArray = jsonObject.getJSONArray("playlist")
+                val titles = ArrayList<String>()
+                val urls = ArrayList<String>()
+                for (i in 0 until playJSONArray.length()) {
+                    val io = playJSONArray.getJSONObject(i)
+                    Log.d(TAG, "item: $io")
+                    if (io.has("title"))
+                        titles.add(io.optString("title"))
+                    if (io.has("url"))
+                        urls.add(io.optString("url"))
+                }
+//                val ta = titles.toTypedArray()
+//                intent.putExtra("video_list", up)
+//                intent.putExtra("video_list.name", ta)
+//                intent.putExtra("video_list.filename", ta)
             }
             if (requestCode != REQUEST_PLAYER_OTHER) {
                 if (jsonObject.has("timeline")) {
@@ -307,9 +391,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             }
             try {
-                startActivityForResult(intent, requestCode)
+                resultLauncher.launch(intent)
             } catch (e: Exception) {
-                Log.d(TAG, e.message, e)
                 App.toast(R.string.no_activity_found, false)
             }
         }
@@ -325,7 +408,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
         // This starts the activity and populates the intent with the speech text.
         try {
-            startActivityForResult(intent, SPEECH_REQUEST_CODE)
+            speechLauncher.launch(intent)
         } catch (e: Exception) {
             App.toast(R.string.not_found_speech, false)
         }
@@ -347,48 +430,61 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_PLAYER_SELECT) {
-            if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
-                SELECTED_PLAYER =
-                    data.component!!.flattenToShortString().split("/".toRegex()).toTypedArray()[0]
-                val editor = mSettings?.edit()
-                editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-                editor?.apply()
-
-                // Now you know the app being picked.
-                // data is a copy of your launchIntent with this important extra info added.
-
-                // Start the selected activity
-                startActivity(data)
-            }
-        } else if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
-            when (resultCode) {
-                RESULT_OK -> Log.i(TAG, "Ok: $data")
-                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
-                RESULT_ERROR -> Log.e(TAG, "Error occurred: $data")
-                else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
-            }
-            if (data != null) dumpParams(data)
-            App.toast("MX or VLC")
-        } else if (requestCode == SPEECH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val spokenText: String? =
-                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-                    results[0]
-                }
-            // Do something with spokenText.
-            if (spokenText != null) {
-                //App.toast(spokenText)
-                runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'");
-            }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data)
-        }
-    }
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        Log.d(TAG, "onActivityResult req: $requestCode code: $resultCode data: ${data?.toUri(0)}")
+//        if (data?.action.equals("com.mxtech.intent.result.VIEW")) {
+//            val pos = data?.getIntExtra(
+//                "position",
+//                -1
+//            ); // Last playback position in milliseconds. This extra will not exist if playback is completed.
+//            val dur = data?.getIntExtra(
+//                "duration",
+//                -1
+//            ); // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
+//            val cause = data?.getStringExtra("end_by"); //  Indicates reason of activity closure.
+//        }
+//        if (requestCode == REQUEST_PLAYER_SELECT) {
+//            if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
+//                SELECTED_PLAYER =
+//                    data.component!!.flattenToShortString().split("/".toRegex()).toTypedArray()[0]
+//                val editor = mSettings?.edit()
+//                editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+//                editor?.apply()
+//
+//                // Now you know the app being picked.
+//                // data is a copy of your launchIntent with this important extra info added.
+//
+//                // Start the selected activity
+//                startActivity(data)
+//            }
+//        } else if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
+//            when (resultCode) {
+//                RESULT_OK -> Log.i(TAG, "Ok: $data")
+//                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
+//                RESULT_ERROR -> Log.e(TAG, "Error occurred: $data")
+//                else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
+//            }
+//            if (data != null)
+//                dumpParams(data)
+//            App.toast("MX or VLC")
+//        } else if (requestCode == SPEECH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+//            val spokenText: String? =
+//                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+//                    results[0]
+//                }
+//            // Do something with spokenText.
+//            if (spokenText != null) {
+//                //App.toast(spokenText)
+//                runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'");
+//            }
+//        } else {
+//            super.onActivityResult(requestCode, resultCode, data)
+//        }
+//    }
 
     companion object {
         private const val TAG = "APP_MAIN"
-        const val RESULT_ERROR = RESULT_FIRST_USER + 0
+        const val RESULT_ERROR = 1
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
@@ -396,51 +492,50 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         var SELECTED_PLAYER: String? = ""
         private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
-        const val REQUEST_PLAYER_SELECT = 1
-        const val REQUEST_PLAYER_OTHER = 2
-        const val REQUEST_PLAYER_MX = 3
-        const val REQUEST_PLAYER_VLC = 4
-        const val SPEECH_REQUEST_CODE = 5
 
-        private fun dumpParams(intent: Intent) {
-            val sb = StringBuilder()
-            val extras = intent.extras
-            sb.setLength(0)
-            sb.append("* dat=").append(intent.data)
-            Log.v(TAG, sb.toString())
-            sb.setLength(0)
-            sb.append("* typ=").append(intent.type)
-            Log.v(TAG, sb.toString())
-            if (extras != null && extras.size() > 0) {
-                sb.setLength(0)
-                sb.append("    << Extra >>\n")
-                for ((i, key) in extras.keySet().withIndex()) {
-                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
-                    appendDetails(sb, extras[key])
-                    sb.append('\n')
-                }
-                Log.v(TAG, sb.toString())
-            }
-        }
+        const val REQUEST_PLAYER_MX = 1
+        const val REQUEST_PLAYER_VLC = 2
+        const val REQUEST_PLAYER_OTHER = 3
 
-        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
-            if (`object` != null && `object`.javaClass.isArray) {
-                sb.append('[')
-                val length = Array.getLength(`object`)
-                for (i in 0 until length) {
-                    if (i > 0) sb.append(", ")
-                    appendDetails(sb, Array.get(`object`, i))
-                }
-                sb.append(']')
-            } else if (`object` is Collection<*>) {
-                sb.append('[')
-                var first = true
-                for (element in `object`) {
-                    if (first) first = false else sb.append(", ")
-                    appendDetails(sb, element)
-                }
-                sb.append(']')
-            } else sb.append(`object`)
-        }
+//        private fun dumpParams(intent: Intent) {
+//            val sb = StringBuilder()
+//            val extras = intent.extras
+//            sb.setLength(0)
+//            sb.append("* dat=").append(intent.data)
+//            Log.v(TAG, sb.toString())
+//            sb.setLength(0)
+//            sb.append("* typ=").append(intent.type)
+//            Log.v(TAG, sb.toString())
+//            if (extras != null && extras.size() > 0) {
+//                sb.setLength(0)
+//                sb.append("    << Extra >>\n")
+//                for ((i, key) in extras.keySet().withIndex()) {
+//                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
+//                    appendDetails(sb, extras[key])
+//                    sb.append('\n')
+//                }
+//                Log.v(TAG, sb.toString())
+//            }
+//        }
+//
+//        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
+//            if (`object` != null && `object`.javaClass.isArray) {
+//                sb.append('[')
+//                val length = Array.getLength(`object`)
+//                for (i in 0 until length) {
+//                    if (i > 0) sb.append(", ")
+//                    appendDetails(sb, Array.get(`object`, i))
+//                }
+//                sb.append(']')
+//            } else if (`object` is Collection<*>) {
+//                sb.append('[')
+//                var first = true
+//                for (element in `object`) {
+//                    if (first) first = false else sb.append(", ")
+//                    appendDetails(sb, element)
+//                }
+//                sb.append(']')
+//            } else sb.append(`object`)
+//        }
     }
 }

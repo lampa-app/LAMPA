@@ -122,7 +122,9 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             val finalRequestContent = requestContent
             val finalContentType = contentType
 
+            @Suppress("DEPRECATION")
             class LampaAsyncTask : AsyncTask<Void?, String?, String>() {
+                @Deprecated("Deprecated in Java")
                 override fun doInBackground(vararg voids: Void?): String {
                     var s: String
                     var action = "complite"
@@ -150,6 +152,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     return action
                 }
 
+                @Deprecated("Deprecated in Java")
                 override fun onPostExecute(result: String) {
                     mainActivity?.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
