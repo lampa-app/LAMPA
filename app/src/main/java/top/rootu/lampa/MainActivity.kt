@@ -188,7 +188,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         input.layoutParams = params
         container.addView(input)
         builder.setView(container)
-//        builder.setView(input, margin, 0, margin, 0)
 
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
@@ -259,7 +258,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     override fun onResume() {
         super.onResume()
         hideSystemUI()
-
         // Try to initialize again when the user completed updating and
         // returned to current activity. The initAsync() will do nothing if
         // the initialization is proceeding or has already been completed.
@@ -364,13 +362,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             }
             if (jsonObject.has("playlist")) {
-                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
                 val playJSONArray = jsonObject.getJSONArray("playlist")
                 val titles = ArrayList<String>()
                 val urls = ArrayList<String>()
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
-                    Log.d(TAG, "item: $io")
                     if (io.has("title"))
                         titles.add(io.optString("title"))
                     if (io.has("url"))
@@ -430,58 +426,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
     }
 
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        Log.d(TAG, "onActivityResult req: $requestCode code: $resultCode data: ${data?.toUri(0)}")
-//        if (data?.action.equals("com.mxtech.intent.result.VIEW")) {
-//            val pos = data?.getIntExtra(
-//                "position",
-//                -1
-//            ); // Last playback position in milliseconds. This extra will not exist if playback is completed.
-//            val dur = data?.getIntExtra(
-//                "duration",
-//                -1
-//            ); // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
-//            val cause = data?.getStringExtra("end_by"); //  Indicates reason of activity closure.
-//        }
-//        if (requestCode == REQUEST_PLAYER_SELECT) {
-//            if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
-//                SELECTED_PLAYER =
-//                    data.component!!.flattenToShortString().split("/".toRegex()).toTypedArray()[0]
-//                val editor = mSettings?.edit()
-//                editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-//                editor?.apply()
-//
-//                // Now you know the app being picked.
-//                // data is a copy of your launchIntent with this important extra info added.
-//
-//                // Start the selected activity
-//                startActivity(data)
-//            }
-//        } else if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
-//            when (resultCode) {
-//                RESULT_OK -> Log.i(TAG, "Ok: $data")
-//                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
-//                RESULT_ERROR -> Log.e(TAG, "Error occurred: $data")
-//                else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
-//            }
-//            if (data != null)
-//                dumpParams(data)
-//            App.toast("MX or VLC")
-//        } else if (requestCode == SPEECH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-//            val spokenText: String? =
-//                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-//                    results[0]
-//                }
-//            // Do something with spokenText.
-//            if (spokenText != null) {
-//                //App.toast(spokenText)
-//                runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'");
-//            }
-//        } else {
-//            super.onActivityResult(requestCode, resultCode, data)
-//        }
-//    }
-
     companion object {
         private const val TAG = "APP_MAIN"
         const val RESULT_ERROR = 1
@@ -496,46 +440,5 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         const val REQUEST_PLAYER_MX = 1
         const val REQUEST_PLAYER_VLC = 2
         const val REQUEST_PLAYER_OTHER = 3
-
-//        private fun dumpParams(intent: Intent) {
-//            val sb = StringBuilder()
-//            val extras = intent.extras
-//            sb.setLength(0)
-//            sb.append("* dat=").append(intent.data)
-//            Log.v(TAG, sb.toString())
-//            sb.setLength(0)
-//            sb.append("* typ=").append(intent.type)
-//            Log.v(TAG, sb.toString())
-//            if (extras != null && extras.size() > 0) {
-//                sb.setLength(0)
-//                sb.append("    << Extra >>\n")
-//                for ((i, key) in extras.keySet().withIndex()) {
-//                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
-//                    appendDetails(sb, extras[key])
-//                    sb.append('\n')
-//                }
-//                Log.v(TAG, sb.toString())
-//            }
-//        }
-//
-//        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
-//            if (`object` != null && `object`.javaClass.isArray) {
-//                sb.append('[')
-//                val length = Array.getLength(`object`)
-//                for (i in 0 until length) {
-//                    if (i > 0) sb.append(", ")
-//                    appendDetails(sb, Array.get(`object`, i))
-//                }
-//                sb.append(']')
-//            } else if (`object` is Collection<*>) {
-//                sb.append('[')
-//                var first = true
-//                for (element in `object`) {
-//                    if (first) first = false else sb.append(", ")
-//                    appendDetails(sb, element)
-//                }
-//                sb.append(']')
-//            } else sb.append(`object`)
-//        }
     }
 }
