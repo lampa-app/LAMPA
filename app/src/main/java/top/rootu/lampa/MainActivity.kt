@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.os.Parcelable
 import android.speech.RecognizerIntent
 import android.text.InputType
 import android.util.Log
@@ -370,16 +371,22 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 val urls = ArrayList<String>()
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
-                    Log.d(TAG, "item: $io")
                     if (io.has("title"))
                         titles.add(io.optString("title"))
                     if (io.has("url"))
                         urls.add(io.optString("url"))
                 }
-//                val ta = titles.toTypedArray()
-//                intent.putExtra("video_list", up)
-//                intent.putExtra("video_list.name", ta)
-//                intent.putExtra("video_list.filename", ta)
+                val parcelableArr = arrayOfNulls<Parcelable>(urls.size)
+                for (i in 0 until urls.size) {
+                    parcelableArr[i] = Uri.parse(urls[i])
+                }
+                val ta = titles.toTypedArray()
+                if (requestCode == REQUEST_PLAYER_MX) {
+                    intent.putExtra("video_list", parcelableArr)
+                    intent.putExtra("video_list.name", ta)
+                    intent.putExtra("video_list.filename", ta)
+                    intent.putExtra("video_list_is_explicit", true)
+                }
             }
             if (requestCode != REQUEST_PLAYER_OTHER) {
                 if (jsonObject.has("timeline")) {
