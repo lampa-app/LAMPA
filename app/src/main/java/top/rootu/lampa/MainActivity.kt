@@ -1,7 +1,6 @@
 package top.rootu.lampa
 
 import android.app.Activity
-import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
@@ -27,6 +26,7 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
+import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
 
@@ -343,21 +343,25 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
                     requestCode = REQUEST_PLAYER_MX
                     //intent.setPackage(SELECTED_PLAYER)
-                    //intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
-                    intent.component = ComponentName(
-                        SELECTED_PLAYER!!,
-                        "$SELECTED_PLAYER.ActivityScreen"
-                    )
+                    intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
+//                    intent.component = ComponentName(
+//                        SELECTED_PLAYER!!,
+//                        "$SELECTED_PLAYER.ActivityScreen"
+//                    )
                     intent.putExtra("sticky", false)
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
                     requestCode = REQUEST_PLAYER_VLC
                     //intent.setPackage(SELECTED_PLAYER)
-                    intent.component = ComponentName(
+                    intent.setClassName(
                         SELECTED_PLAYER!!,
                         "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                     )
+//                    intent.component = ComponentName(
+//                        SELECTED_PLAYER!!,
+//                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
+//                    )
                 }
                 else -> {
                     requestCode = REQUEST_PLAYER_OTHER
@@ -365,7 +369,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             }
             if (jsonObject.has("playlist")) {
-                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
+//                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
                 val playJSONArray = jsonObject.getJSONArray("playlist")
                 val titles = ArrayList<String>()
                 val urls = ArrayList<String>()
@@ -443,28 +447,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //            val pos = data?.getIntExtra(
 //                "position",
 //                -1
-//            ); // Last playback position in milliseconds. This extra will not exist if playback is completed.
+//            ) // Last playback position in milliseconds. This extra will not exist if playback is completed.
 //            val dur = data?.getIntExtra(
 //                "duration",
 //                -1
-//            ); // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
-//            val cause = data?.getStringExtra("end_by"); //  Indicates reason of activity closure.
+//            ) // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
+//            val cause = data?.getStringExtra("end_by") //  Indicates reason of activity closure.
 //        }
-//        if (requestCode == REQUEST_PLAYER_SELECT) {
-//            if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
-//                SELECTED_PLAYER =
-//                    data.component!!.flattenToShortString().split("/".toRegex()).toTypedArray()[0]
-//                val editor = mSettings?.edit()
-//                editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-//                editor?.apply()
-//
-//                // Now you know the app being picked.
-//                // data is a copy of your launchIntent with this important extra info added.
-//
-//                // Start the selected activity
-//                startActivity(data)
-//            }
-//        } else if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
+//        if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
 //            when (resultCode) {
 //                RESULT_OK -> Log.i(TAG, "Ok: $data")
 //                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
@@ -474,16 +464,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //            if (data != null)
 //                dumpParams(data)
 //            App.toast("MX or VLC")
-//        } else if (requestCode == SPEECH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-//            val spokenText: String? =
-//                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-//                    results[0]
-//                }
-//            // Do something with spokenText.
-//            if (spokenText != null) {
-//                //App.toast(spokenText)
-//                runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'");
-//            }
 //        } else {
 //            super.onActivityResult(requestCode, resultCode, data)
 //        }
@@ -504,45 +484,45 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         const val REQUEST_PLAYER_VLC = 2
         const val REQUEST_PLAYER_OTHER = 3
 
-//        private fun dumpParams(intent: Intent) {
-//            val sb = StringBuilder()
-//            val extras = intent.extras
-//            sb.setLength(0)
-//            sb.append("* dat=").append(intent.data)
-//            Log.v(TAG, sb.toString())
-//            sb.setLength(0)
-//            sb.append("* typ=").append(intent.type)
-//            Log.v(TAG, sb.toString())
-//            if (extras != null && extras.size() > 0) {
-//                sb.setLength(0)
-//                sb.append("    << Extra >>\n")
-//                for ((i, key) in extras.keySet().withIndex()) {
-//                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
-//                    appendDetails(sb, extras[key])
-//                    sb.append('\n')
-//                }
-//                Log.v(TAG, sb.toString())
-//            }
-//        }
-//
-//        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
-//            if (`object` != null && `object`.javaClass.isArray) {
-//                sb.append('[')
-//                val length = Array.getLength(`object`)
-//                for (i in 0 until length) {
-//                    if (i > 0) sb.append(", ")
-//                    appendDetails(sb, Array.get(`object`, i))
-//                }
-//                sb.append(']')
-//            } else if (`object` is Collection<*>) {
-//                sb.append('[')
-//                var first = true
-//                for (element in `object`) {
-//                    if (first) first = false else sb.append(", ")
-//                    appendDetails(sb, element)
-//                }
-//                sb.append(']')
-//            } else sb.append(`object`)
-//        }
+        private fun dumpParams(intent: Intent) {
+            val sb = StringBuilder()
+            val extras = intent.extras
+            sb.setLength(0)
+            sb.append("* dat=").append(intent.data)
+            Log.v(TAG, sb.toString())
+            sb.setLength(0)
+            sb.append("* typ=").append(intent.type)
+            Log.v(TAG, sb.toString())
+            if (extras != null && extras.size() > 0) {
+                sb.setLength(0)
+                sb.append("    << Extra >>\n")
+                for ((i, key) in extras.keySet().withIndex()) {
+                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
+                    appendDetails(sb, extras[key])
+                    sb.append('\n')
+                }
+                Log.v(TAG, sb.toString())
+            }
+        }
+
+        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
+            if (`object` != null && `object`.javaClass.isArray) {
+                sb.append('[')
+                val length = Array.getLength(`object`)
+                for (i in 0 until length) {
+                    if (i > 0) sb.append(", ")
+                    appendDetails(sb, Array.get(`object`, i))
+                }
+                sb.append(']')
+            } else if (`object` is Collection<*>) {
+                sb.append('[')
+                var first = true
+                for (element in `object`) {
+                    if (first) first = false else sb.append(", ")
+                    appendDetails(sb, element)
+                }
+                sb.append(']')
+            } else sb.append(`object`)
+        }
     }
 }
