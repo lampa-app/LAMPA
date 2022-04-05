@@ -2,7 +2,6 @@ package top.rootu.lampa
 
 import android.content.Intent
 import android.net.Uri
-import android.os.AsyncTask
 import android.text.TextUtils
 import android.util.Log
 import org.json.JSONException
@@ -122,12 +121,11 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             val finalRequestContent = requestContent
             val finalContentType = contentType
 
-            @Suppress("DEPRECATION")
-            class LampaAsyncTask : AsyncTask<Void?, String?, String>() {
-                @Deprecated("Deprecated in Java")
-                override fun doInBackground(vararg voids: Void?): String {
+            class LampaAsyncTask : CSyncTask<Void?, String?, String>("LampaAsyncTask") {
+                override fun doInBackground(vararg params: Void?): String {
                     var s: String
                     var action = "complite"
+                    val json: JSONObject?
                     try {
                         s = if (TextUtils.isEmpty(finalContentType)) {
                             // GET
@@ -137,14 +135,14 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                             Http.Post(url, finalRequestContent, finalContentType)
                         }
                     } catch (e: Exception) {
-                        val jSONObject = JSONObject()
+                        json = JSONObject()
                         try {
-                            jSONObject.put("status", Http.lastErrorCode)
-                            jSONObject.put("message", "request error: " + e.message)
+                            json.put("status", Http.lastErrorCode)
+                            json.put("message", "request error: " + e.message)
                         } catch (jsonException: JSONException) {
                             jsonException.printStackTrace()
                         }
-                        s = jSONObject.toString()
+                        s = json.toString()
                         action = "error"
                         e.printStackTrace()
                     }
@@ -152,8 +150,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     return action
                 }
 
-                @Deprecated("Deprecated in Java")
-                override fun onPostExecute(result: String) {
+                override fun onPostExecute(result: String?) {
                     mainActivity?.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '" + result + "')")
