@@ -26,7 +26,7 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
-import java.lang.reflect.Array
+//import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
 
@@ -335,7 +335,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             // Call StartActivityForResult so we can get the app name selected by the user
             selectLauncher.launch(intentPick)
         } else {
-            val requestCode: Int
+//            val requestCode: Int
             var videoPosition:Long = 0
             val videoTitle = if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
@@ -362,8 +362,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
-                    requestCode = REQUEST_PLAYER_MX
-                    //intent.setPackage(SELECTED_PLAYER)
+//                    requestCode = REQUEST_PLAYER_MX
                     intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
 //                    intent.component = ComponentName(
 //                        SELECTED_PLAYER!!,
@@ -386,7 +385,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
-                    requestCode = REQUEST_PLAYER_VLC
+//                    requestCode = REQUEST_PLAYER_VLC
                     intent.putExtra("title", videoTitle)
                     //intent.setPackage(SELECTED_PLAYER)
                     intent.setClassName(
@@ -401,7 +400,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
                 "net.gtvbox.videoplayer" -> {
                     // see https://vimu.tv/player-api
-                    requestCode = REQUEST_PLAYER_VIMU
+//                    requestCode = REQUEST_PLAYER_VIMU
                     if (listUrls.size <= 1) {
                         intent.setClassName(
                             SELECTED_PLAYER!!,
@@ -414,7 +413,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //                        ))
                         intent.putExtra("forcename", videoTitle)
                     } else {
-                        intent.setDataAndType(Uri.parse(videoUrl), "application/vnd.gtvbox.filelist");
+                        intent.setDataAndType(Uri.parse(videoUrl), "application/vnd.gtvbox.filelist")
                         intent.setPackage(SELECTED_PLAYER)
                         intent.putStringArrayListExtra("asusfilelist", listUrls)
                         intent.putStringArrayListExtra("asusnamelist", listTitles)
@@ -427,7 +426,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     intent.putExtra("forceresume", true)
                 }
                 else -> {
-                    requestCode = REQUEST_PLAYER_OTHER
+//                    requestCode = REQUEST_PLAYER_OTHER
                     intent.setPackage(SELECTED_PLAYER)
                 }
             }
@@ -510,50 +509,50 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
-        const val REQUEST_PLAYER_OTHER = 1
-        const val REQUEST_PLAYER_MX = 2
-        const val REQUEST_PLAYER_VLC = 3
-        const val REQUEST_PLAYER_VIMU = 4
+//        const val REQUEST_PLAYER_OTHER = 1
+//        const val REQUEST_PLAYER_MX = 2
+//        const val REQUEST_PLAYER_VLC = 3
+//        const val REQUEST_PLAYER_VIMU = 4
 
-        private fun dumpParams(intent: Intent) {
-            val sb = StringBuilder()
-            val extras = intent.extras
-            sb.setLength(0)
-            sb.append("* dat=").append(intent.data)
-            Log.v(TAG, sb.toString())
-            sb.setLength(0)
-            sb.append("* typ=").append(intent.type)
-            Log.v(TAG, sb.toString())
-            if (extras != null && extras.size() > 0) {
-                sb.setLength(0)
-                sb.append("    << Extra >>\n")
-                for ((i, key) in extras.keySet().withIndex()) {
-                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
-                    appendDetails(sb, extras[key])
-                    sb.append('\n')
-                }
-                Log.v(TAG, sb.toString())
-            }
-        }
-
-        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
-            if (`object` != null && `object`.javaClass.isArray) {
-                sb.append('[')
-                val length = Array.getLength(`object`)
-                for (i in 0 until length) {
-                    if (i > 0) sb.append(", ")
-                    appendDetails(sb, Array.get(`object`, i))
-                }
-                sb.append(']')
-            } else if (`object` is Collection<*>) {
-                sb.append('[')
-                var first = true
-                for (element in `object`) {
-                    if (first) first = false else sb.append(", ")
-                    appendDetails(sb, element)
-                }
-                sb.append(']')
-            } else sb.append(`object`)
-        }
+//        private fun dumpParams(intent: Intent) {
+//            val sb = StringBuilder()
+//            val extras = intent.extras
+//            sb.setLength(0)
+//            sb.append("* dat=").append(intent.data)
+//            Log.v(TAG, sb.toString())
+//            sb.setLength(0)
+//            sb.append("* typ=").append(intent.type)
+//            Log.v(TAG, sb.toString())
+//            if (extras != null && extras.size() > 0) {
+//                sb.setLength(0)
+//                sb.append("    << Extra >>\n")
+//                for ((i, key) in extras.keySet().withIndex()) {
+//                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
+//                    appendDetails(sb, extras[key])
+//                    sb.append('\n')
+//                }
+//                Log.v(TAG, sb.toString())
+//            }
+//        }
+//
+//        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
+//            if (`object` != null && `object`.javaClass.isArray) {
+//                sb.append('[')
+//                val length = Array.getLength(`object`)
+//                for (i in 0 until length) {
+//                    if (i > 0) sb.append(", ")
+//                    appendDetails(sb, Array.get(`object`, i))
+//                }
+//                sb.append(']')
+//            } else if (`object` is Collection<*>) {
+//                sb.append('[')
+//                var first = true
+//                for (element in `object`) {
+//                    if (first) first = false else sb.append(", ")
+//                    appendDetails(sb, element)
+//                }
+//                sb.append(']')
+//            } else sb.append(`object`)
+//        }
     }
 }
