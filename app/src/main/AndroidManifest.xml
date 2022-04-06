@@ -6,30 +6,59 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    <!--uses-permission android:name="android.permission.RECORD_AUDIO" /-->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <queries>
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <package android:name="com.google.android.katniss" />
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+
     <application
-        android:screenOrientation="landscape"
-        android:networkSecurityConfig="@xml/network_security_config"
+        android:name=".App"
         android:allowBackup="true"
-        android:icon="@drawable/lampa_logo"
-        android:roundIcon="@drawable/lampa_logo"
-        android:label="@string/app_name"
-        android:supportsRtl="true"
-        android:largeHeap="true"
+        android:banner="@drawable/lampa_banner"
         android:hardwareAccelerated="true"
-        android:theme="@style/Theme.LAMPA" >
+        android:icon="@drawable/lampa_logo"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@drawable/lampa_logo"
+        android:screenOrientation="landscape"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LAMPA">
         <activity
             android:name=".MainActivity"
-            android:exported="true" >
+            android:exported="true"
+            android:screenOrientation="sensorLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
-        <meta-data android:name="xwalk_apk_url" android:value="http://download.rootu.top/xwalk_apk/" />
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+        <meta-data
+            android:name="xwalk_apk_url"
+            android:value="http://download.rootu.top/xwalk_apk/" />
     </application>
 
 </manifest>

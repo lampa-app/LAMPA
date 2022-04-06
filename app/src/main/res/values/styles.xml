@@ -1,0 +1,23 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--Theme.AppCompat.Dialog-->
+    <style name="AlertDialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <!-- Used for the title -->
+        <item name="android:windowTitleStyle">@style/AlertTitleStyle</item>
+        <!-- Used for the text -->
+        <item name="android:textColorPrimary">@color/tv_white</item>
+        <!-- Set min width -->
+        <item name="windowMinWidthMajor">50%</item><!--landscape -->
+        <item name="windowMinWidthMinor">70%</item><!--portrait -->
+        <!-- Used for the buttons -->
+        <item name="colorPrimary">@color/purple_200</item>
+        <item name="colorAccent">@color/teal_200</item>
+    </style>
+    <style name="AlertTitleStyle">
+        <item name="android:textSize">18dp</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:textColor">@color/tv_white</item>
+        <item name="android:textAppearance">@style/TextAppearance.AppCompat.Title</item>
+    </style>
+</resources>
