@@ -291,11 +291,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     }
 
     fun runPlayer(jsonObject: JSONObject) {
-        val link = jsonObject.optString("url")
+        val videoUrl = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
-            Uri.parse(link),
-            if (link.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
+            Uri.parse(videoUrl),
+            if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
         )
         val resInfo = packageManager.queryIntentActivities(intent, 0)
         if (resInfo.isEmpty()) {
@@ -316,8 +316,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             for (info in resInfo) {
                 val targetedShare = Intent(Intent.ACTION_VIEW)
                 targetedShare.setDataAndTypeAndNormalize(
-                    Uri.parse(link),
-                    if (link.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
+                    Uri.parse(videoUrl),
+                    if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
                 )
                 if (jsonObject.has("title")) {
                     targetedShare.putExtra("title", jsonObject.optString("title"))
@@ -336,9 +336,30 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             selectLauncher.launch(intentPick)
         } else {
             val requestCode: Int
-            if (jsonObject.has("title")) {
-                intent.putExtra("title", jsonObject.optString("title"))
+            var videoPosition:Long = 0
+            val videoTitle = if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
+            val listTitles = ArrayList<String>()
+            val listUrls = ArrayList<String>()
+
+            if (jsonObject.has("timeline")) {
+                val timeline = jsonObject.optJSONObject("timeline")
+                if (timeline?.has("time") == true)
+                    videoPosition = (jsonObject.optDouble("time") * 1000).toLong()
             }
+
+            if (jsonObject.has("playlist")) {
+                val playJSONArray = jsonObject.getJSONArray("playlist")
+                for (i in 0 until playJSONArray.length()) {
+                    val io = playJSONArray.getJSONObject(i)
+                    if (io.has("url")) {
+                        listUrls.add(io.optString("url"))
+                        listTitles.add(
+                            if (io.has("title")) io.optString("title") else (i + 1).toString()
+                        )
+                    }
+                }
+            }
+
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
                     requestCode = REQUEST_PLAYER_MX
@@ -348,11 +369,25 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //                        SELECTED_PLAYER!!,
 //                        "$SELECTED_PLAYER.ActivityScreen"
 //                    )
+                    intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
+                    if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
+                    if (listUrls.size > 1) {
+                        val parcelableArr = arrayOfNulls<Parcelable>(listUrls.size)
+                        for (i in 0 until listUrls.size) {
+                            parcelableArr[i] = Uri.parse(listUrls[i])
+                        }
+                        val ta = listTitles.toTypedArray()
+                        intent.putExtra("video_list", parcelableArr)
+                        intent.putExtra("video_list.name", ta)
+                        intent.putExtra("video_list.filename", ta) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
+                        intent.putExtra("video_list_is_explicit", true)
+                    }
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
                     requestCode = REQUEST_PLAYER_VLC
+                    intent.putExtra("title", videoTitle)
                     //intent.setPackage(SELECTED_PLAYER)
                     intent.setClassName(
                         SELECTED_PLAYER!!,
@@ -362,43 +397,38 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //                        SELECTED_PLAYER!!,
 //                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
 //                    )
+                    if (videoPosition > 0) intent.putExtra("position", videoPosition)
+                }
+                "net.gtvbox.videoplayer" -> {
+                    // see https://vimu.tv/player-api
+                    requestCode = REQUEST_PLAYER_VIMU
+                    if (listUrls.size <= 1) {
+                        intent.setClassName(
+                            SELECTED_PLAYER!!,
+                            "$SELECTED_PLAYER.PlayerActivity"
+                        )
+                        // todo или setComponent?
+//                        intent.setComponent(ComponentName(
+//                            SELECTED_PLAYER!!,
+//                            "$SELECTED_PLAYER.PlayerActivity"
+//                        ))
+                        intent.putExtra("forcename", videoTitle)
+                    } else {
+                        intent.setDataAndType(Uri.parse(videoUrl), "application/vnd.gtvbox.filelist");
+                        intent.setPackage(SELECTED_PLAYER)
+                        intent.putStringArrayListExtra("asusfilelist", listUrls)
+                        intent.putStringArrayListExtra("asusnamelist", listTitles)
+                    }
+                    if (videoPosition > 0) {
+                        intent.putExtra("position", videoPosition.toInt())
+                        intent.putExtra("startfrom", videoPosition.toInt())
+                    }
+                    intent.putExtra("forcedirect", true)
+                    intent.putExtra("forceresume", true)
                 }
                 else -> {
                     requestCode = REQUEST_PLAYER_OTHER
                     intent.setPackage(SELECTED_PLAYER)
-                }
-            }
-            if (jsonObject.has("playlist")) {
-//                intent.putExtra("playlist", jsonObject.getJSONArray("playlist").toString())
-                val playJSONArray = jsonObject.getJSONArray("playlist")
-                val titles = ArrayList<String>()
-                val urls = ArrayList<String>()
-                for (i in 0 until playJSONArray.length()) {
-                    val io = playJSONArray.getJSONObject(i)
-                    if (io.has("title"))
-                        titles.add(io.optString("title"))
-                    if (io.has("url"))
-                        urls.add(io.optString("url"))
-                }
-                val parcelableArr = arrayOfNulls<Parcelable>(urls.size)
-                for (i in 0 until urls.size) {
-                    parcelableArr[i] = Uri.parse(urls[i])
-                }
-                val ta = titles.toTypedArray()
-                if (requestCode == REQUEST_PLAYER_MX) {
-                    intent.putExtra("video_list", parcelableArr)
-                    intent.putExtra("video_list.name", ta)
-                    intent.putExtra("video_list.filename", ta)
-                    intent.putExtra("video_list_is_explicit", true)
-                }
-            }
-            if (requestCode != REQUEST_PLAYER_OTHER) {
-                if (jsonObject.has("timeline")) {
-                    val timeline = jsonObject.optJSONObject("timeline")
-                    if (timeline?.has("time") == true) {
-                        val position = (jsonObject.optDouble("time") * 1000).toLong()
-                        if (position > 0) intent.putExtra("position", position)
-                    }
                 }
             }
             try {
@@ -480,9 +510,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
-        const val REQUEST_PLAYER_MX = 1
-        const val REQUEST_PLAYER_VLC = 2
-        const val REQUEST_PLAYER_OTHER = 3
+        const val REQUEST_PLAYER_OTHER = 1
+        const val REQUEST_PLAYER_MX = 2
+        const val REQUEST_PLAYER_VLC = 3
+        const val REQUEST_PLAYER_VIMU = 4
 
         private fun dumpParams(intent: Intent) {
             val sb = StringBuilder()
