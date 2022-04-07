@@ -1,9 +1,12 @@
 package top.rootu.lampa
 
+//import java.lang.reflect.Array
+
 import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -26,7 +29,6 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
-//import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
 
@@ -290,6 +292,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //        exitProcess(1)
     }
 
+    fun isIntentAvailable(intent: Intent?): Boolean {
+        val list = packageManager.queryIntentActivities(
+            intent!!,
+            PackageManager.MATCH_DEFAULT_ONLY
+        )
+        return list.size > 0
+    }
+
     fun runPlayer(jsonObject: JSONObject) {
         val videoUrl = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
@@ -333,7 +343,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             intentPick.putExtra(Intent.EXTRA_INTENT, intent)
             intentPick.putExtra(Intent.EXTRA_INITIAL_INTENTS, targetedShareIntents.toTypedArray())
             // Call StartActivityForResult so we can get the app name selected by the user
-            selectLauncher.launch(intentPick)
+            try {
+                selectLauncher.launch(intentPick)
+            } catch (e: Exception) { // no chooser
+                //Intent.createChooser(intent, "")
+                if (isIntentAvailable(intent))
+                    resultLauncher.launch(intent)
+            }
         } else {
 //            val requestCode: Int
             var videoPosition:Long = 0
