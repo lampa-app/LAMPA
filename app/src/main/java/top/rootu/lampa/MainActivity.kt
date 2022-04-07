@@ -228,8 +228,20 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         builder.show()
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU
+            || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
+            || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
+        ) {
+            println("Menu key pressed")
+            showUrlInputDialog()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_SETTINGS) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
             println("Back button long pressed")
             showUrlInputDialog()
             return true

@@ -4,7 +4,7 @@
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
-    <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»</string>
+    <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»\nили нажмите кнопку «Меню»</string>
     <string name="exit">Выйти из приложения</string>
     <string name="input_url_title">Укажите адрес сайта</string>
     <string name="select_player">Выбирите плеер</string>
