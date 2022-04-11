@@ -26,7 +26,6 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
-//import java.lang.reflect.Array
 import java.util.*
 import java.util.regex.Pattern
 
