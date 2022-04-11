@@ -87,10 +87,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
 
     @JavascriptInterface
     fun clearDefaultPlayer() {
-        MainActivity.SELECTED_PLAYER = ""
-        val editor = mainActivity?.mSettings?.edit()
-        editor?.putString(MainActivity.APP_PLAYER, MainActivity.SELECTED_PLAYER)
-        editor?.apply()
+        mainActivity?.setPlayerPackage("")
         App.toast(R.string.select_player_reseted)
     }
 

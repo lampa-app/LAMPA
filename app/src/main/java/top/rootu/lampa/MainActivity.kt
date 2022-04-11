@@ -39,7 +39,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     private var browserInit = false
     var mSettings: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
-    private lateinit var selectLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,27 +49,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
-
-        selectLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // There are no request codes
-                val data: Intent? = result.data
-                if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
-                    SELECTED_PLAYER =
-                        data.component!!.flattenToShortString().split("/".toRegex())
-                            .toTypedArray()[0]
-                    val editor = mSettings?.edit()
-                    editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-                    editor?.apply()
-                    // Now you know the app being picked.
-                    // data is a copy of your launchIntent with this important extra info added.
-                    // Start the selected activity
-                    startActivity(data)
-                }
-            }
-        }
 
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -302,6 +280,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //        exitProcess(1)
     }
 
+    fun setPlayerPackage(packageName: String) {
+        SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
+        val editor = mSettings?.edit()
+        editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+        editor?.apply()
+    }
+
     fun runPlayer(jsonObject: JSONObject) {
         val videoUrl = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
@@ -324,28 +309,26 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             }
         }
         if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
-            val targetedShareIntents: MutableList<Intent> = ArrayList()
-            for (info in resInfo) {
-                val targetedShare = Intent(Intent.ACTION_VIEW)
-                targetedShare.setDataAndTypeAndNormalize(
-                    Uri.parse(videoUrl),
-                    if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
-                )
-                if (jsonObject.has("title")) {
-                    targetedShare.putExtra("title", jsonObject.optString("title"))
-                }
-                targetedShare.setPackage(info.activityInfo.packageName.lowercase(Locale.getDefault()))
-                targetedShareIntents.add(targetedShare)
+            val mainActivity = this
+            val playerChooser = AlertDialog.Builder(mainActivity)
+            val playersTitle = arrayOfNulls<CharSequence>(resInfo.size)
+            val playersPackage = arrayOfNulls<String>(resInfo.size)
+
+            for ((i, info) in resInfo.withIndex()) {
+                playersPackage[i] = info.activityInfo.packageName
+                playersTitle[i] = info.activityInfo.loadLabel(packageManager)
+                if (playersTitle[i].isNullOrEmpty())
+                    playersTitle[i] = playersPackage[i]
             }
-            // Then show the ACTION_PICK_ACTIVITY to let the user select it
-            val intentPick = Intent()
-            intentPick.action = Intent.ACTION_PICK_ACTIVITY
-            // Set the title of the dialog
-            intentPick.putExtra(Intent.EXTRA_TITLE, "Выберите плеер для просмотра")
-            intentPick.putExtra(Intent.EXTRA_INTENT, intent)
-            intentPick.putExtra(Intent.EXTRA_INITIAL_INTENTS, targetedShareIntents.toTypedArray())
-            // Call StartActivityForResult so we can get the app name selected by the user
-            selectLauncher.launch(intentPick)
+
+            playerChooser.setTitle(R.string.select_player)
+            playerChooser.setItems(playersTitle) { dialog, which ->
+                setPlayerPackage(playersPackage[which].toString())
+                dialog.dismiss()
+                runPlayer(jsonObject)
+            }
+            val playerChooserDialog = playerChooser.create()
+            playerChooserDialog.show()
         } else {
 //            val requestCode: Int
             var videoPosition:Long = 0
