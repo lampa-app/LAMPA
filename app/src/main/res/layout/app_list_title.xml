@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="10dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/appListTitleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        android:text="@string/select_player"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:layout_gravity="left"
+        tools:ignore="RtlHardcoded"
+        />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/useDefault"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right|bottom"
+        android:focusable="true"
+        android:minWidth="250dp"
+        android:text="@string/use_as_default"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        tools:ignore="RtlHardcoded" />
+</LinearLayout>

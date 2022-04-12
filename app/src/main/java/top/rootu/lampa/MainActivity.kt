@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -11,6 +12,7 @@ import android.speech.RecognizerIntent
 import android.text.InputType
 import android.util.Log
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -20,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
@@ -291,9 +294,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
-            if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
+            if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
         )
-        val resInfo = packageManager.queryIntentActivities(intent, 0)
+        val resInfo = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
         if (resInfo.isEmpty()) {
             App.toast(R.string.no_activity_found, false)
             return
@@ -309,22 +312,19 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         }
         if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
             val mainActivity = this
+            val listAdapter = AppListAdapter(mainActivity, resInfo)
             val playerChooser = AlertDialog.Builder(mainActivity)
-            val playersTitle = arrayOfNulls<CharSequence>(resInfo.size)
-            val playersPackage = arrayOfNulls<String>(resInfo.size)
+            val appTitleView = LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
+            val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
+            playerChooser.setCustomTitle(appTitleView)
 
-            for ((i, info) in resInfo.withIndex()) {
-                playersPackage[i] = info.activityInfo.packageName
-                playersTitle[i] = info.activityInfo.loadLabel(packageManager)
-                if (playersTitle[i].isNullOrEmpty())
-                    playersTitle[i] = playersPackage[i]
-            }
-
-            playerChooser.setTitle(R.string.select_player)
-            playerChooser.setItems(playersTitle) { dialog, which ->
-                setPlayerPackage(playersPackage[which].toString())
+            playerChooser.setAdapter(listAdapter) {dialog, which ->
+                val setDefaultPlayer = switch.isChecked
+                SELECTED_PLAYER = listAdapter.getItemPackage(which)
+                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString())
                 dialog.dismiss()
                 runPlayer(jsonObject)
+                if (!setDefaultPlayer) SELECTED_PLAYER = ""
             }
             val playerChooserDialog = playerChooser.create()
             playerChooserDialog.show()
@@ -427,7 +427,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             try {
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
-                App.toast(R.string.no_activity_found, false)
+                App.toast(R.string.no_launch_player, false)
             }
         }
     }
