@@ -11,11 +11,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
+        android:includeFontPadding="false"
         android:text="@string/select_player"
         android:textSize="30sp"
         android:textStyle="bold"
-        android:layout_gravity="left"
-        tools:ignore="RtlHardcoded"
+        android:textColor="@color/tv_white"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="6dp"
+        android:layout_marginLeft="6dp"
         />
 
     <Space
@@ -27,11 +30,14 @@
         android:id="@+id/useDefault"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="right|bottom"
+        android:layout_gravity="end|center_vertical"
         android:focusable="true"
+        android:gravity="right|center_vertical|end"
         android:minWidth="250dp"
         android:text="@string/use_as_default"
-        android:textSize="14sp"
+        android:textAllCaps="true"
+        android:textColor="@color/tv_white"
+        android:textSize="12sp"
         android:textStyle="bold"
         tools:ignore="RtlHardcoded" />
 </LinearLayout>

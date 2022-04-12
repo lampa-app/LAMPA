@@ -328,6 +328,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             }
             val playerChooserDialog = playerChooser.create()
             playerChooserDialog.show()
+            playerChooserDialog.listView.requestFocus()
         } else {
 //            val requestCode: Int
             var videoPosition:Long = 0

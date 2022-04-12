@@ -11,5 +11,5 @@
     <string name="select_player">Выбор плеера</string>
     <string name="select_player_reseted">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
-    <string name="use_as_default">Использовать по умолчанию</string>
+    <string name="use_as_default">Запомнить выбор</string>
 </resources>
