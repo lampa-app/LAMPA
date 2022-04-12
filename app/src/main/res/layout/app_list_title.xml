@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="10dp"
     android:orientation="horizontal">
 
@@ -29,15 +30,17 @@
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/useDefault"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_gravity="end|center_vertical"
         android:focusable="true"
         android:gravity="right|center_vertical|end"
-        android:minWidth="250dp"
+        android:minWidth="200dp"
         android:text="@string/use_as_default"
         android:textAllCaps="true"
         android:textColor="@color/tv_white"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textStyle="bold"
+        android:switchPadding="5dp"
+        app:switchPadding="10dp"
         tools:ignore="RtlHardcoded" />
 </LinearLayout>
