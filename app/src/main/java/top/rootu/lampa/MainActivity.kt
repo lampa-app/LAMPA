@@ -135,8 +135,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             })
         }
-        val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
-        browser?.userAgentString = ua
+        //val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
+        browser?.userAgentString = "lampa_client"
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
