@@ -5,6 +5,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -39,7 +40,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
     private var mXWalkUpdater: XWalkUpdater? = null
     private var mDecorView: View? = null
     private var browserInit = false
-    var mSettings: SharedPreferences? = null
+    private var mSettings: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         super.onCreate(savedInstanceState)
         mDecorView = window.decorView
         hideSystemUI()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
@@ -296,7 +298,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             Uri.parse(videoUrl),
             if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
         )
-        val resInfo = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        val resInfo =
+            packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
         if (resInfo.isEmpty()) {
             App.toast(R.string.no_activity_found, false)
             return
@@ -311,14 +314,34 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             }
         }
         if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
+            val excludedAppsPackageNames = hashSetOf(
+                "com.android.gallery3d",
+                "com.lonelycatgames.xplore",
+                "com.android.tv.frameworkpackagestubs",
+                "com.google.android.tv.frameworkpackagestubs",
+                "com.instantbits.cast.webvideo",
+                "com.ghisler.android.totalcommander",
+                "com.google.android.apps.photos",
+                "com.mixplorer.silver",
+                "com.estrongs.android.pop",
+                "pl.solidexplorer2"
+            )
+            val filteredList: MutableList<ResolveInfo> = mutableListOf()
+            for (info in resInfo) {
+                if (excludedAppsPackageNames.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
+                    continue
+                }
+                filteredList.add(info)
+            }
             val mainActivity = this
-            val listAdapter = AppListAdapter(mainActivity, resInfo)
+            val listAdapter = AppListAdapter(mainActivity, filteredList)
             val playerChooser = AlertDialog.Builder(mainActivity)
-            val appTitleView = LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
+            val appTitleView =
+                LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
             val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
             playerChooser.setCustomTitle(appTitleView)
 
-            playerChooser.setAdapter(listAdapter) {dialog, which ->
+            playerChooser.setAdapter(listAdapter) { dialog, which ->
                 val setDefaultPlayer = switch.isChecked
                 SELECTED_PLAYER = listAdapter.getItemPackage(which)
                 if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString())
@@ -330,9 +353,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             playerChooserDialog.show()
             playerChooserDialog.listView.requestFocus()
         } else {
-//            val requestCode: Int
-            var videoPosition:Long = 0
-            val videoTitle = if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
+            var videoPosition: Long = 0
+            val videoTitle =
+                if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
 
@@ -357,12 +380,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
-//                    requestCode = REQUEST_PLAYER_MX
                     intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
-//                    intent.component = ComponentName(
-//                        SELECTED_PLAYER!!,
-//                        "$SELECTED_PLAYER.ActivityScreen"
-//                    )
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
@@ -374,41 +392,41 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                         val ta = listTitles.toTypedArray()
                         intent.putExtra("video_list", parcelableArr)
                         intent.putExtra("video_list.name", ta)
-                        intent.putExtra("video_list.filename", ta) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
+                        intent.putExtra(
+                            "video_list.filename",
+                            ta
+                        ) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
                         intent.putExtra("video_list_is_explicit", true)
                     }
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
-//                    requestCode = REQUEST_PLAYER_VLC
                     intent.putExtra("title", videoTitle)
-                    //intent.setPackage(SELECTED_PLAYER)
                     intent.setClassName(
                         SELECTED_PLAYER!!,
                         "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                     )
-//                    intent.component = ComponentName(
-//                        SELECTED_PLAYER!!,
-//                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
-//                    )
+                    if (videoPosition > 0) intent.putExtra("position", videoPosition)
+                }
+                "com.brouken.player" -> {
+                    intent.putExtra("title", videoTitle)
+                    intent.putExtra("name", videoTitle)
+                    intent.setPackage(SELECTED_PLAYER)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition)
                 }
                 "net.gtvbox.videoplayer" -> {
                     // see https://vimu.tv/player-api
-//                    requestCode = REQUEST_PLAYER_VIMU
                     if (listUrls.size <= 1) {
                         intent.setClassName(
                             SELECTED_PLAYER!!,
                             "$SELECTED_PLAYER.PlayerActivity"
                         )
-                        // todo или setComponent?
-//                        intent.setComponent(ComponentName(
-//                            SELECTED_PLAYER!!,
-//                            "$SELECTED_PLAYER.PlayerActivity"
-//                        ))
                         intent.putExtra("forcename", videoTitle)
                     } else {
-                        intent.setDataAndType(Uri.parse(videoUrl), "application/vnd.gtvbox.filelist")
+                        intent.setDataAndType(
+                            Uri.parse(videoUrl),
+                            "application/vnd.gtvbox.filelist"
+                        )
                         intent.setPackage(SELECTED_PLAYER)
                         intent.putStringArrayListExtra("asusfilelist", listUrls)
                         intent.putStringArrayListExtra("asusnamelist", listTitles)
@@ -421,7 +439,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     intent.putExtra("forceresume", true)
                 }
                 else -> {
-//                    requestCode = REQUEST_PLAYER_OTHER
                     intent.setPackage(SELECTED_PLAYER)
                 }
             }

@@ -18,7 +18,7 @@
         android:includeFontPadding="false"
         android:text="@string/select_player"
         android:textColor="@color/tv_white"
-        android:textSize="30sp"
+        android:textSize="24sp"
         android:textStyle="bold" />
 
     <Space
