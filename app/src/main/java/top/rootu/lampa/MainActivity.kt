@@ -358,6 +358,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
+            var startIndex = 0
 
             if (jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
@@ -370,6 +371,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
+                        if (io.optString("url") == videoUrl)
+                            startIndex = i
                         listUrls.add(io.optString("url"))
                         listTitles.add(
                             if (io.has("title")) io.optString("title") else (i + 1).toString()
@@ -377,9 +380,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     }
                 }
             }
-
             when (SELECTED_PLAYER) {
-                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
+                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
@@ -428,8 +430,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                             "application/vnd.gtvbox.filelist"
                         )
                         intent.setPackage(SELECTED_PLAYER)
-                        intent.putStringArrayListExtra("asusfilelist", listUrls)
-                        intent.putStringArrayListExtra("asusnamelist", listTitles)
+                        intent.putStringArrayListExtra(
+                            "asusfilelist",
+                            ArrayList(listUrls.subList(startIndex, listUrls.size))
+                        )
+                        intent.putStringArrayListExtra(
+                            "asusnamelist",
+                            ArrayList(listTitles.subList(startIndex, listUrls.size))
+                        )
                     }
                     if (videoPosition > 0) {
                         intent.putExtra("position", videoPosition.toInt())
