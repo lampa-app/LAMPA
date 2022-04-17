@@ -29,16 +29,15 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
 import top.rootu.lampa.custom.XWalkEnvironment
 import java.util.*
 import java.util.regex.Pattern
 
 
-class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener {
+class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
     private var browser: XWalkView? = null
     private var mXWalkInitializer: XWalkInitializer? = null
-    private var mXWalkUpdater: XWalkUpdater? = null
+    private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mDecorView: View? = null
     private var browserInit = false
     private var mSettings: SharedPreferences? = null
@@ -115,7 +114,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 
     override fun onXWalkInitFailed() {
         if (mXWalkUpdater == null) {
-            mXWalkUpdater = XWalkUpdater(this, this)
+            mXWalkUpdater = MyXWalkUpdater(this, this)
         }
         setUpdateApkUrl()
         mXWalkUpdater?.updateXWalkRuntime()
