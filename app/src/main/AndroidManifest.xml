@@ -49,6 +49,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -60,9 +61,6 @@
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
-        <meta-data
-            android:name="xwalk_apk_url"
-            android:value="http://download.rootu.top/xwalk_apk/" />
     </application>
 
 </manifest>

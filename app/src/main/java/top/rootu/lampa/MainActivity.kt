@@ -30,6 +30,7 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
+import top.rootu.lampa.custom.XWalkEnvironment
 import java.util.*
 import java.util.regex.Pattern
 
@@ -116,7 +117,45 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         if (mXWalkUpdater == null) {
             mXWalkUpdater = XWalkUpdater(this, this)
         }
+        setUpdateApkUrl()
         mXWalkUpdater?.updateXWalkRuntime()
+    }
+
+    private fun setUpdateApkUrl() {
+        if (isUnsupportedArch()) {
+            setupXWalkApkUrl()
+            return
+        }
+
+        if (!isGooglePlayInstalled()) {
+            setupXWalkApkUrl()
+            return
+        }
+    }
+
+    private fun isUnsupportedArch(): Boolean {
+        val arch = System.getProperty("os.arch")?.lowercase(Locale.getDefault())
+        val unsupportedArch = hashSetOf("armv8l")
+        return unsupportedArch.contains(arch)
+    }
+
+    private fun isGooglePlayInstalled(): Boolean {
+        val context: Activity = this
+        val pm = context.packageManager
+        val appInstalled: Boolean = try {
+            val info = pm.getPackageInfo("com.android.vending", PackageManager.GET_ACTIVITIES)
+            val label = info.applicationInfo.loadLabel(pm) as String
+            label != "Market"
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+        return appInstalled
+    }
+
+    private fun setupXWalkApkUrl() {
+        val abi = XWalkEnvironment.getRuntimeAbi()
+        val apkUrl = "http://download.rootu.top/xwalk_apk/?arch=$abi"
+        mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
     override fun onXWalkInitCompleted() {
@@ -363,7 +402,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             if (jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
                 if (timeline?.has("time") == true)
-                    videoPosition = (jsonObject.optDouble("time") * 1000).toLong()
+                    videoPosition = (timeline.optDouble("time") * 1000).toLong()
             }
 
             if (jsonObject.has("playlist")) {
