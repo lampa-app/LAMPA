@@ -12,9 +12,6 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
-import android.content.DialogInterface.OnShowListener;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 
 import java.util.ArrayList;
@@ -504,11 +501,19 @@ public class MyXWalkDialogManager {
     }
 
     void dismissDialog() {
-        mActiveDialog.dismiss();
+        if (mActiveDialog == null) {
+            return;
+        }
+        if (mActiveDialog.isShowing()) {
+            mActiveDialog.dismiss();
+        }
         mActiveDialog = null;
     }
 
     void setProgress(int progress, int max) {
+        if (mActiveDialog == null) {
+            return;
+        }
         ProgressDialog dialog = (ProgressDialog) mActiveDialog;
         dialog.setIndeterminate(false);
         dialog.setMax(max);
@@ -562,29 +567,23 @@ public class MyXWalkDialogManager {
     }
 
     private void showDialog(final AlertDialog dialog, final ArrayList<ButtonAction> actions) {
-        dialog.setOnShowListener(new OnShowListener() {
-            @Override
-            public void onShow(DialogInterface d) {
-                for (ButtonAction action : actions) {
-                    Button button = dialog.getButton(action.mWhich);
-                    if (button == null) {
-                        if (action.mMandatory) {
-                            throw new RuntimeException("Button " + action.mWhich + " is mandatory");
-                        } else {
-                            continue;
-                        }
+        dialog.setOnShowListener(d -> {
+            for (ButtonAction action : actions) {
+                Button button = dialog.getButton(action.mWhich);
+                if (button == null) {
+                    if (action.mMandatory) {
+                        throw new RuntimeException("Button " + action.mWhich + " is mandatory");
+                    } else {
+                        continue;
                     }
+                }
 
-                    if (action.mClickAction != null) {
-                        final Runnable command = action.mClickAction;
-                        button.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                dismissDialog();
-                                command.run();
-                            }
-                        });
-                    }
+                if (action.mClickAction != null) {
+                    final Runnable command = action.mClickAction;
+                    button.setOnClickListener(view -> {
+                        dismissDialog();
+                        command.run();
+                    });
                 }
             }
         });

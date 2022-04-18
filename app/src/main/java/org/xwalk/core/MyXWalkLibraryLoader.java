@@ -24,12 +24,12 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.Thread;
 import java.net.HttpURLConnection;
-import java.net.URLConnection;
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
+
+import top.rootu.lampa.helpers.FileHelpers;
 
 /**
  * MyXWalkLibraryLoader is a low level inteface to schedule decompressing, downloading, activating
@@ -124,7 +124,7 @@ class MyXWalkLibraryLoader {
         public void onDownloadFailed(int status, int error);
     }
 
-    private static final String DEFAULT_DOWNLOAD_FILE_NAME = "xwalk_download.tmp";
+    private static final String DEFAULT_DOWNLOAD_FILE_NAME = "xwalk_update.apk";
     private static final String DOWNLOAD_WITHOUT_NOTIFICATION =
             "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION";
     private static final String TAG = "XWalkLib";
@@ -375,16 +375,9 @@ class MyXWalkLibraryLoader {
             sActiveTask = this;
 
             String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
-            try {
-                String name = new File(new URL(mDownloadUrl).getPath()).getName();
-                if (!name.isEmpty()) savedFile = name;
-            } catch (MalformedURLException | NullPointerException e) {
-                Log.e(TAG, "Invalid download URL " + mDownloadUrl);
-                mDownloadUrl = null;
-                return;
-            }
 
-            File downloadDir = mContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+            File downloadDir = FileHelpers.getCacheDir(mContext);
+
             File downloadFile = new File(downloadDir, savedFile);
             if (downloadFile.isFile()) downloadFile.delete();
 
@@ -440,8 +433,10 @@ class MyXWalkLibraryLoader {
         protected void onProgressUpdate(Integer... progress) {
             Log.d(TAG, "DownloadManagerTask updated: " + progress[0] + "/" + progress[1]);
             int percentage = 0;
-            if (progress[1] > 0) percentage = (int) (progress[0] * 100.0 / progress[1]);
-            mListener.onDownloadUpdated(percentage);
+            if (progress[1] > 0) {
+                percentage = (int) (progress[0] * 100.0 / progress[1]);
+                mListener.onDownloadUpdated(percentage);
+            }
         }
 
         @Override
@@ -459,19 +454,25 @@ class MyXWalkLibraryLoader {
             sActiveTask = null;
 
             if (result == DownloadManager.STATUS_SUCCESSFUL) {
-                Uri uri = mDownloadManager.getUriForDownloadedFile(mDownloadId);
-                Log.d(TAG, "Uri for downloaded file:" + uri.toString());
+                try {
+                    Uri uri = mDownloadManager.getUriForDownloadedFile(mDownloadId);
+                    Log.d(TAG, "Uri for downloaded file: " + uri);
 
-                if (uri.getScheme().equals("content")) {
-                    Query query = new Query().setFilterById(mDownloadId);
-                    Cursor cursor = mDownloadManager.query(query);
-                    if (cursor != null && cursor.moveToFirst()) {
-                        int index = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME);
-                        uri = Uri.parse("file://" + cursor.getString(index));
+                    if (uri != null) {
+                        if (uri.getScheme().equals("content")) {
+                            Query query = new Query().setFilterById(mDownloadId);
+                            Cursor cursor = mDownloadManager.query(query);
+                            if (cursor != null && cursor.moveToFirst()) {
+                                int index = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                                uri = Uri.parse(cursor.getString(index));
+                            }
+                        }
+                        mListener.onDownloadCompleted(uri);
                     }
+                } catch (IllegalStateException ex) {
+                    Log.e(TAG, ex.getMessage(), ex);
+                    mListener.onDownloadFailed(result, DownloadManager.ERROR_UNKNOWN);
                 }
-
-                mListener.onDownloadCompleted(uri);
             } else {
                 int error = DownloadManager.ERROR_UNKNOWN;
                 if (result == DownloadManager.STATUS_FAILED) {
@@ -580,7 +581,9 @@ class MyXWalkLibraryLoader {
                 }
                 output.flush();
             } catch (Exception e) {
-                return DOWNLOAD_FAILED;
+                // TODO: modified
+                // return DOWNLOAD_FAILED;
+                throw new IllegalStateException(e);
             } finally {
                 try {
                     if (output != null) output.close();

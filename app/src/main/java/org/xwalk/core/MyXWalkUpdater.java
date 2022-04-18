@@ -18,6 +18,7 @@ import android.util.Log;
 import java.io.File;
 import java.util.List;
 
+import top.rootu.lampa.helpers.Helpers;
 import org.xwalk.core.MyXWalkLibraryLoader.DownloadListener;
 
 /**
@@ -518,10 +519,8 @@ public class MyXWalkUpdater {
             mDialogManager.dismissDialog();
 
             Log.d(TAG, "Install the Crosswalk runtime: " + uri.toString());
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.setDataAndType(uri, "application/vnd.android.package-archive");
-            mContext.startActivity(intent);
+
+            Helpers.installPackage(mContext, uri.getPath());
         }
     }
 
