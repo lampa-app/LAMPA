@@ -1,6 +1,10 @@
 package top.rootu.lampa
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DownloadManager
+import android.app.DownloadManager.Query
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
@@ -30,6 +34,8 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import top.rootu.lampa.custom.XWalkEnvironment
+import top.rootu.lampa.helpers.FileHelpers
+import java.io.File
 import java.util.*
 import java.util.regex.Pattern
 
@@ -157,8 +163,29 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
+    private fun cleanXwalkDownload() {
+        val savedFile = "xwalk_update.apk"
+        val mDownloadManager: DownloadManager? =
+            getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager?
+        val downloadDir = FileHelpers.getDownloadDir(this) // getCacheDir(context)
+        val downloadFile = File(downloadDir, savedFile)
+        if (downloadFile.isFile && downloadFile.canWrite()) downloadFile.delete()
+        val query = Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL)
+        mDownloadManager?.query(query)?.let {
+            while (it.moveToNext()) {
+                @SuppressLint("Range") val id =
+                    it.getLong(it.getColumnIndex(DownloadManager.COLUMN_ID))
+                @SuppressLint("Range") val localFilename =
+                    it.getString(it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                if (localFilename.contains(savedFile)) mDownloadManager.remove(id)
+            }
+        }
+    }
+
     override fun onXWalkInitCompleted() {
-        // Do anyting with the embedding API
+        // Clean downloads
+        cleanXwalkDownload()
+        // Do anything with the embedding API
         browserInit = true
         if (browser == null) {
             browser = findViewById(R.id.xwalkview)
