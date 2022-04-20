@@ -431,7 +431,7 @@ class MyXWalkLibraryLoader {
         @Override
         protected void onProgressUpdate(Integer... progress) {
             Log.d(TAG, "DownloadManagerTask updated: " + progress[0] + "/" + progress[1]);
-            int percentage = 0;
+            int percentage;
             if (progress[1] > 0) {
                 percentage = (int) (progress[0] * 100.0 / progress[1]);
                 mListener.onDownloadUpdated(percentage);

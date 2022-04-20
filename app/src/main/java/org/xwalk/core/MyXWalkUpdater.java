@@ -4,6 +4,7 @@
 
 package org.xwalk.core;
 
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -15,11 +16,12 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.xwalk.core.MyXWalkLibraryLoader.DownloadListener;
+
 import java.io.File;
 import java.util.List;
 
 import top.rootu.lampa.helpers.Helpers;
-import org.xwalk.core.MyXWalkLibraryLoader.DownloadListener;
 
 /**
  * <p><code>MyXWalkUpdater</code> is a follow-up solution for {@link XWalkInitializer} in case the
@@ -235,7 +237,6 @@ import org.xwalk.core.MyXWalkLibraryLoader.DownloadListener;
  * &lt;application&gt;
  *     &lt;meta-data android:name="xwalk_download_mode_update" android:value="disable"/&gt;
  * </pre>
- *
  */
 
 public class MyXWalkUpdater {
@@ -247,7 +248,7 @@ public class MyXWalkUpdater {
          * Run on the UI thread to notify the update is cancelled. It could be the user refused to
          * update or the download (from the specified URL) is cancelled
          */
-        public void onXWalkUpdateCancelled();
+        void onXWalkUpdateCancelled();
     }
 
     /**
@@ -257,28 +258,29 @@ public class MyXWalkUpdater {
         /**
          * Run on the UI thread to notify the update is started.
          */
-        public void onXWalkUpdateStarted();
+        void onXWalkUpdateStarted();
 
         /**
          * Run on the UI thread to notify the update progress.
+         *
          * @param percentage Shows the update progress in percentage.
          */
-        public void onXWalkUpdateProgress(int percentage);
+        void onXWalkUpdateProgress(int percentage);
 
         /**
          * Run on the UI thread to notify the update is cancelled.
          */
-        public void onXWalkUpdateCancelled();
+        void onXWalkUpdateCancelled();
 
         /**
          * Run on the UI thread to notify the update failed.
          */
-        public void onXWalkUpdateFailed();
+        void onXWalkUpdateFailed();
 
         /**
          * Run on the UI thread to notify the update is completed.
          */
-        public void onXWalkUpdateCompleted();
+        void onXWalkUpdateCompleted();
     }
 
     private static final String ANDROID_MARKET_DETAILS = "market://details?id=";
@@ -288,7 +290,7 @@ public class MyXWalkUpdater {
 
     private XWalkUpdateListener mUpdateListener;
     private XWalkBackgroundUpdateListener mBackgroundUpdateListener;
-    private Context mContext;
+    private final Context mContext;
     private MyXWalkDialogManager mDialogManager;
     private Runnable mDownloadCommand;
     private Runnable mCancelCommand;
@@ -297,7 +299,7 @@ public class MyXWalkUpdater {
      * Create MyXWalkUpdater
      *
      * @param listener The {@link XWalkUpdateListener} to use
-     * @param context The context which initiate the update
+     * @param context  The context which initiate the update
      */
     public MyXWalkUpdater(XWalkUpdateListener listener, Context context) {
         mUpdateListener = listener;
@@ -308,12 +310,12 @@ public class MyXWalkUpdater {
     /**
      * Create MyXWalkUpdater
      *
-     * @param listener The {@link XWalkUpdateListener} to use
-     * @param context The context which initiate the update
+     * @param listener      The {@link XWalkUpdateListener} to use
+     * @param context       The context which initiate the update
      * @param dialogManager The {@link MyXWalkDialogManager} to use
      */
     public MyXWalkUpdater(XWalkUpdateListener listener, Context context,
-                        MyXWalkDialogManager dialogManager) {
+                          MyXWalkDialogManager dialogManager) {
         mUpdateListener = listener;
         mContext = context;
         mDialogManager = dialogManager;
@@ -323,7 +325,7 @@ public class MyXWalkUpdater {
      * Create MyXWalkUpdater. This updater will download silently.
      *
      * @param listener The {@link XWalkBackgroundUpdateListener} to use
-     * @param context The context which initiate the update
+     * @param context  The context which initiate the update
      */
     public MyXWalkUpdater(XWalkBackgroundUpdateListener listener, Context context) {
         mBackgroundUpdateListener = listener;
@@ -340,7 +342,7 @@ public class MyXWalkUpdater {
      * when the initialization failed. This method must be invoked on the UI thread.
      *
      * @return true if the updater is launched, false if current or another updater is already
-     *         in updating, or the Crosswalk runtime doesn't need to be updated
+     * in updating, or the Crosswalk runtime doesn't need to be updated
      */
     public boolean updateXWalkRuntime() {
         if (MyXWalkLibraryLoader.isInitializing() || MyXWalkLibraryLoader.isDownloading()) {
@@ -360,18 +362,10 @@ public class MyXWalkUpdater {
         }
 
         if (mUpdateListener != null) {
-            mDownloadCommand = new Runnable() {
-                @Override
-                public void run() {
-                    downloadXWalkApk();
-                }
-            };
-            mCancelCommand = new Runnable() {
-                @Override
-                public void run() {
-                    Log.d(TAG, "MyXWalkUpdater cancelled");
-                    mUpdateListener.onXWalkUpdateCancelled();
-                }
+            mDownloadCommand = this::downloadXWalkApk;
+            mCancelCommand = () -> {
+                Log.d(TAG, "MyXWalkUpdater cancelled");
+                mUpdateListener.onXWalkUpdateCancelled();
             };
 
             mDialogManager.showInitializationError(status, mCancelCommand, mDownloadCommand);
@@ -475,14 +469,11 @@ public class MyXWalkUpdater {
                 getStoreName(GOOGLE_PLAY_PACKAGE) : supportedStores.toString();
         Log.d(TAG, "Supported Stores: " + storeName);
 
-        mDialogManager.showSelectStore(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    mContext.startActivity(storeIntent);
-                } catch (ActivityNotFoundException e) {
-                    mDialogManager.showUnsupportedStore(mCancelCommand);
-                }
+        mDialogManager.showSelectStore(() -> {
+            try {
+                mContext.startActivity(storeIntent);
+            } catch (ActivityNotFoundException e) {
+                mDialogManager.showUnsupportedStore(mCancelCommand);
             }
         }, storeName);
     }
@@ -490,12 +481,7 @@ public class MyXWalkUpdater {
     private class ForegroundListener implements DownloadListener {
         @Override
         public void onDownloadStarted() {
-            mDialogManager.showDownloadProgress(new Runnable() {
-                @Override
-                public void run() {
-                    MyXWalkLibraryLoader.cancelDownloadManager();
-                }
-            });
+            mDialogManager.showDownloadProgress(MyXWalkLibraryLoader::cancelDownloadManager);
         }
 
         @Override
@@ -545,6 +531,7 @@ public class MyXWalkUpdater {
             mBackgroundUpdateListener.onXWalkUpdateFailed();
         }
 
+        @SuppressLint("StaticFieldLeak")
         @Override
         public void onDownloadCompleted(Uri uri) {
             final String libFile = uri.getPath();
@@ -559,17 +546,11 @@ public class MyXWalkUpdater {
                             return false;
                         }
                     }
-
                     if (XWalkDecompressor.isResourceCompressed(libFile)) {
-                        if (!XWalkDecompressor.decompressResource(libFile, destDir)) {
-                            return false;
-                        }
+                        return XWalkDecompressor.decompressResource(libFile, destDir);
                     } else {
-                        if (!XWalkDecompressor.extractResource(libFile, destDir)) {
-                            return false;
-                        }
+                        return XWalkDecompressor.extractResource(libFile, destDir);
                     }
-                    return true;
                 }
 
                 @Override
@@ -596,7 +577,7 @@ public class MyXWalkUpdater {
             return false;
         }
 
-        PackageInfo appPkgInfo = null;
+        PackageInfo appPkgInfo;
         try {
             appPkgInfo = mContext.getPackageManager().getPackageInfo(
                     mContext.getPackageName(), PackageManager.GET_SIGNATURES);
