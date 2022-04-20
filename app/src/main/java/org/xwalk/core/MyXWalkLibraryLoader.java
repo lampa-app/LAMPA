@@ -54,17 +54,17 @@ class MyXWalkLibraryLoader {
          * <p> This method will not be invoked if the Crosswalk runtime is not compressed or has
          * already been decompressed.
          */
-        public void onDecompressStarted();
+        void onDecompressStarted();
 
         /**
          * Run on the UI thread to notify decompression is cancelled.
          */
-        public void onDecompressCancelled();
+        void onDecompressCancelled();
 
         /**
          * Run on the UI thread to notify decompression is completed successfully.
          */
-        public void onDecompressCompleted();
+        void onDecompressCompleted();
     }
 
     /**
@@ -74,17 +74,17 @@ class MyXWalkLibraryLoader {
         /**
          * Run on the UI thread to notify activation is started
          */
-        public void onActivateStarted();
+        void onActivateStarted();
 
         /**
          * Run on the UI thread to notify activation failed
          */
-        public void onActivateFailed();
+        void onActivateFailed();
 
         /**
          * Run on the UI thread to notify activation is completed successfully
          */
-        public void onActivateCompleted();
+        void onActivateCompleted();
     }
 
     /**
@@ -94,24 +94,24 @@ class MyXWalkLibraryLoader {
         /**
          * Run on the UI thread to notify download is started
          */
-        public void onDownloadStarted();
+        void onDownloadStarted();
 
         /**
          * Run on the UI thread to notify the download progress
          * @param percentage Shows the download progress in percentage
          */
-        public void onDownloadUpdated(int percentage);
+        void onDownloadUpdated(int percentage);
 
         /**
          * Run on the UI thread to notify download is cancelled
          */
-        public void onDownloadCancelled();
+        void onDownloadCancelled();
 
         /**
          * Run on the UI thread to notify download is completed successfully
          * @param uri The Uri where the downloaded file is stored
          */
-        public void onDownloadCompleted(Uri uri);
+        void onDownloadCompleted(Uri uri);
 
         /**
          * Run on the UI thread to notify download failed
@@ -121,7 +121,7 @@ class MyXWalkLibraryLoader {
          * @param error The download error defined in android.app.DownloadManager.
          *              This parameter only makes sense when the status is STATUS_FAILED
          */
-        public void onDownloadFailed(int status, int error);
+        void onDownloadFailed(int status, int error);
     }
 
     private static final String DEFAULT_DOWNLOAD_FILE_NAME = "xwalk_update.apk";
@@ -306,7 +306,7 @@ class MyXWalkLibraryLoader {
         @Override
         protected void onPostExecute(Integer result) {
             Log.d(TAG, "DecompressTask finished, " + result);
-            if (result.intValue() != 0) {
+            if (result != 0) {
                 throw new RuntimeException("Decompression Failed");
             }
             sActiveTask = null;
@@ -355,10 +355,10 @@ class MyXWalkLibraryLoader {
         private static final int QUERY_INTERVAL_MS = 100;
         private static final int MAX_PAUSED_COUNT = 6000; // 10 minutes
 
-        private DownloadListener mListener;
-        private Context mContext;
-        private String mDownloadUrl;
-        private DownloadManager mDownloadManager;
+        private final DownloadListener mListener;
+        private final Context mContext;
+        private final String mDownloadUrl;
+        private final DownloadManager mDownloadManager;
         private long mDownloadId;
 
         DownloadManagerTask(DownloadListener listener, Context context, String url) {
@@ -379,6 +379,8 @@ class MyXWalkLibraryLoader {
             File downloadDir = FileHelpers.getCacheDir(mContext);
 
             File downloadFile = new File(downloadDir, savedFile);
+            downloadFile.mkdirs();
+            downloadFile.deleteOnExit();
             if (downloadFile.isFile()) downloadFile.delete();
 
             Request request = new Request(Uri.parse(mDownloadUrl));
@@ -494,7 +496,7 @@ class MyXWalkLibraryLoader {
                         mContext.getPackageName(), PackageManager.GET_PERMISSIONS);
                 return Arrays.asList(packageInfo.requestedPermissions).contains(
                         DOWNLOAD_WITHOUT_NOTIFICATION);
-            } catch (NameNotFoundException | NullPointerException e) {
+            } catch (NameNotFoundException | NullPointerException ignored) {
             }
             return false;
         }
@@ -508,8 +510,8 @@ class MyXWalkLibraryLoader {
         private static final int DOWNLOAD_SUCCESS = 0;
         private static final int DOWNLOAD_FAILED = -1;
 
-        private DownloadListener mListener;
-        private Context mContext;
+        private final DownloadListener mListener;
+        private final Context mContext;
         private String mDownloadUrl;
         private File mDownloadedFile;
         private long mProgressUpdateTime;
@@ -537,6 +539,8 @@ class MyXWalkLibraryLoader {
             }
             mDownloadedFile = new File(mContext.getDir(XWALK_DOWNLOAD_DIR, Context.MODE_PRIVATE),
                     savedFile);
+            mDownloadedFile.mkdirs();
+            mDownloadedFile.deleteOnExit();
 
             mListener.onDownloadStarted();
         }
@@ -583,6 +587,7 @@ class MyXWalkLibraryLoader {
             } catch (Exception e) {
                 // TODO: modified
                 // return DOWNLOAD_FAILED;
+                if (mDownloadedFile.isFile()) mDownloadedFile.delete();
                 throw new IllegalStateException(e);
             } finally {
                 try {
