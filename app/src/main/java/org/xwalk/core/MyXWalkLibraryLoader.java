@@ -4,14 +4,15 @@
 
 package org.xwalk.core;
 
+import android.annotation.SuppressLint;
 import android.app.DownloadManager;
-import android.app.DownloadManager.Request;
 import android.app.DownloadManager.Query;
+import android.app.DownloadManager.Request;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -21,8 +22,8 @@ import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -35,7 +36,7 @@ import top.rootu.lampa.helpers.FileHelpers;
  * MyXWalkLibraryLoader is a low level inteface to schedule decompressing, downloading, activating
  * the Crosswalk runtime. Normal user is recommended to use XWalkActivity or XWalkInitializer which
  * is simpler and more user-friendly.
- *
+ * <p>
  * The appropriate invocation order is:
  * prepareToInit() -
  * [ if the Crosswalk runtime is supposed to be compressed - startDecompress() ] -
@@ -44,91 +45,10 @@ import top.rootu.lampa.helpers.FileHelpers;
  */
 
 class MyXWalkLibraryLoader {
-    /**
-     * Interface used to decompress the Crosswalk runtime
-     */
-    public interface DecompressListener {
-        /**
-         * Run on the UI thread to notify decompression is started.
-         *
-         * <p> This method will not be invoked if the Crosswalk runtime is not compressed or has
-         * already been decompressed.
-         */
-        void onDecompressStarted();
-
-        /**
-         * Run on the UI thread to notify decompression is cancelled.
-         */
-        void onDecompressCancelled();
-
-        /**
-         * Run on the UI thread to notify decompression is completed successfully.
-         */
-        void onDecompressCompleted();
-    }
-
-    /**
-     * Interface used to activate the Crosswalk runtime
-     */
-    public interface ActivateListener {
-        /**
-         * Run on the UI thread to notify activation is started
-         */
-        void onActivateStarted();
-
-        /**
-         * Run on the UI thread to notify activation failed
-         */
-        void onActivateFailed();
-
-        /**
-         * Run on the UI thread to notify activation is completed successfully
-         */
-        void onActivateCompleted();
-    }
-
-    /**
-     * Interface used to download the Crosswalk runtime
-     */
-    public interface DownloadListener {
-        /**
-         * Run on the UI thread to notify download is started
-         */
-        void onDownloadStarted();
-
-        /**
-         * Run on the UI thread to notify the download progress
-         * @param percentage Shows the download progress in percentage
-         */
-        void onDownloadUpdated(int percentage);
-
-        /**
-         * Run on the UI thread to notify download is cancelled
-         */
-        void onDownloadCancelled();
-
-        /**
-         * Run on the UI thread to notify download is completed successfully
-         * @param uri The Uri where the downloaded file is stored
-         */
-        void onDownloadCompleted(Uri uri);
-
-        /**
-         * Run on the UI thread to notify download failed
-         *
-         * @param status The download status defined in android.app.DownloadManager.
-         *               The value maybe STATUS_FAILED or STATUS_PAUSED
-         * @param error The download error defined in android.app.DownloadManager.
-         *              This parameter only makes sense when the status is STATUS_FAILED
-         */
-        void onDownloadFailed(int status, int error);
-    }
-
     private static final String DEFAULT_DOWNLOAD_FILE_NAME = "xwalk_update.apk";
     private static final String DOWNLOAD_WITHOUT_NOTIFICATION =
             "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION";
     private static final String TAG = "XWalkLib";
-
     private static AsyncTask<Void, Integer, Integer> sActiveTask;
 
     public static boolean isInitializing() {
@@ -220,8 +140,8 @@ class MyXWalkLibraryLoader {
      * <p>This method must be invoked on the UI thread.
      *
      * @param listener The {@link DownloadListener} to use
-     * @param context The context to get DownloadManager
-     * @param url The URL of the Crosswalk runtime
+     * @param context  The context to get DownloadManager
+     * @param url      The URL of the Crosswalk runtime
      */
     public static void startDownloadManager(DownloadListener listener, Context context,
                                             String url) {
@@ -244,8 +164,8 @@ class MyXWalkLibraryLoader {
      * <p>This method must be invoked on the UI thread.
      *
      * @param listener The {@link DownloadListener} to use
-     * @param context The context to get DownloadManager
-     * @param url The URL of the Crosswalk runtime
+     * @param context  The context to get DownloadManager
+     * @param url      The URL of the Crosswalk runtime
      */
     public static void startHttpDownload(DownloadListener listener, Context context, String url) {
         new HttpDownloadTask(listener, context, url).execute();
@@ -259,6 +179,88 @@ class MyXWalkLibraryLoader {
     public static boolean cancelHttpDownload() {
         return sActiveTask != null && sActiveTask instanceof HttpDownloadTask
                 && sActiveTask.cancel(true);
+    }
+
+    /**
+     * Interface used to decompress the Crosswalk runtime
+     */
+    public interface DecompressListener {
+        /**
+         * Run on the UI thread to notify decompression is started.
+         *
+         * <p> This method will not be invoked if the Crosswalk runtime is not compressed or has
+         * already been decompressed.
+         */
+        void onDecompressStarted();
+
+        /**
+         * Run on the UI thread to notify decompression is cancelled.
+         */
+        void onDecompressCancelled();
+
+        /**
+         * Run on the UI thread to notify decompression is completed successfully.
+         */
+        void onDecompressCompleted();
+    }
+
+    /**
+     * Interface used to activate the Crosswalk runtime
+     */
+    public interface ActivateListener {
+        /**
+         * Run on the UI thread to notify activation is started
+         */
+        void onActivateStarted();
+
+        /**
+         * Run on the UI thread to notify activation failed
+         */
+        void onActivateFailed();
+
+        /**
+         * Run on the UI thread to notify activation is completed successfully
+         */
+        void onActivateCompleted();
+    }
+
+    /**
+     * Interface used to download the Crosswalk runtime
+     */
+    public interface DownloadListener {
+        /**
+         * Run on the UI thread to notify download is started
+         */
+        void onDownloadStarted();
+
+        /**
+         * Run on the UI thread to notify the download progress
+         *
+         * @param percentage Shows the download progress in percentage
+         */
+        void onDownloadUpdated(int percentage);
+
+        /**
+         * Run on the UI thread to notify download is cancelled
+         */
+        void onDownloadCancelled();
+
+        /**
+         * Run on the UI thread to notify download is completed successfully
+         *
+         * @param uri The Uri where the downloaded file is stored
+         */
+        void onDownloadCompleted(Uri uri);
+
+        /**
+         * Run on the UI thread to notify download failed
+         *
+         * @param status The download status defined in android.app.DownloadManager.
+         *               The value maybe STATUS_FAILED or STATUS_PAUSED
+         * @param error  The download error defined in android.app.DownloadManager.
+         *               This parameter only makes sense when the status is STATUS_FAILED
+         */
+        void onDownloadFailed(int status, int error);
     }
 
     private static class DecompressTask extends AsyncTask<Void, Integer, Integer> {
@@ -376,12 +378,7 @@ class MyXWalkLibraryLoader {
 
             String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
 
-            File downloadDir = FileHelpers.getCacheDir(mContext);
-
-            File downloadFile = new File(downloadDir, savedFile);
-            downloadFile.mkdirs();
-            downloadFile.deleteOnExit();
-            if (downloadFile.isFile()) downloadFile.delete();
+            cleanDownload();
 
             Request request = new Request(Uri.parse(mDownloadUrl));
             request.setDestinationInExternalFilesDir(
@@ -500,6 +497,27 @@ class MyXWalkLibraryLoader {
             }
             return false;
         }
+
+        private boolean cleanDownload() {
+            String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
+
+            // cleanup old downloads
+            File downloadDir = FileHelpers.getDownloadDir(mContext); // getCacheDir(mContext)
+            File downloadFile = new File(downloadDir, savedFile);
+            if (downloadFile.isFile() && downloadFile.canWrite()) downloadFile.delete();
+
+            DownloadManager.Query query = new DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL);
+            Cursor cursor = mDownloadManager.query(query);
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    @SuppressLint("Range") long id = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_ID));
+                    @SuppressLint("Range") String localFilename = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
+                    if (localFilename.contains(savedFile))
+                        mDownloadManager.remove(id);
+                }
+            }
+            return true;
+        }
     }
 
     // This is used only in download mode where we want to save the downloaded file to application
@@ -569,7 +587,7 @@ class MyXWalkLibraryLoader {
                 input = connection.getInputStream();
                 output = new FileOutputStream(mDownloadedFile);
 
-                byte data[] = new byte[4096];
+                byte[] data = new byte[4096];
                 long total = 0;
                 int count;
                 while ((count = input.read(data)) != -1) {
@@ -580,7 +598,7 @@ class MyXWalkLibraryLoader {
                     long time = SystemClock.uptimeMillis();
                     if (time - mProgressUpdateTime > UPDATE_INTERVAL_MS) {
                         mProgressUpdateTime = time;
-                        publishProgress((int)total, fileLength);
+                        publishProgress((int) total, fileLength);
                     }
                 }
                 output.flush();
