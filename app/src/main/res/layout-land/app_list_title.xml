@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:padding="10dp">
 
     <TextView
         android:id="@+id/appListTitleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginBottom="6dp"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="6dp"
+        android:layout_marginLeft="6dp"
         android:fitsSystemWindows="true"
         android:includeFontPadding="false"
         android:text="@string/select_player"
@@ -19,13 +21,16 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/useDefault"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
-        android:layout_marginStart="5dp"
-        android:layout_marginLeft="5dp"
+        android:layout_gravity="end|center_vertical"
         android:focusable="true"
         android:gravity="right|center_vertical|end"
         android:minWidth="200dp"
@@ -35,5 +40,6 @@
         android:textColor="@color/tv_white"
         android:textSize="14sp"
         android:textStyle="bold"
-        app:switchPadding="10dp" />
+        app:switchPadding="10dp"
+        tools:ignore="RtlHardcoded" />
 </LinearLayout>
