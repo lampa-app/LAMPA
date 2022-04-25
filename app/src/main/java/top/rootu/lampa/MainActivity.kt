@@ -1,9 +1,15 @@
 package top.rootu.lampa
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DownloadManager
+import android.app.DownloadManager.Query
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
@@ -11,6 +17,7 @@ import android.speech.RecognizerIntent
 import android.text.InputType
 import android.util.Log
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -20,26 +27,27 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import org.xwalk.core.XWalkUpdater.XWalkUpdateListener
-//import java.lang.reflect.Array
+import top.rootu.lampa.custom.XWalkEnvironment
+import top.rootu.lampa.helpers.FileHelpers
+import java.io.File
 import java.util.*
 import java.util.regex.Pattern
 
 
-class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener {
+class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
     private var browser: XWalkView? = null
     private var mXWalkInitializer: XWalkInitializer? = null
-    private var mXWalkUpdater: XWalkUpdater? = null
+    private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mDecorView: View? = null
     private var browserInit = false
-    var mSettings: SharedPreferences? = null
+    private var mSettings: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
-    private lateinit var selectLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,30 +55,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
         super.onCreate(savedInstanceState)
         mDecorView = window.decorView
         hideSystemUI()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
-
-        selectLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // There are no request codes
-                val data: Intent? = result.data
-                if (data != null && !data.component?.flattenToShortString().isNullOrEmpty()) {
-                    SELECTED_PLAYER =
-                        data.component!!.flattenToShortString().split("/".toRegex())
-                            .toTypedArray()[0]
-                    val editor = mSettings?.edit()
-                    editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-                    editor?.apply()
-                    // Now you know the app being picked.
-                    // data is a copy of your launchIntent with this important extra info added.
-                    // Start the selected activity
-                    startActivity(data)
-                }
-            }
-        }
 
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -132,13 +120,72 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 
     override fun onXWalkInitFailed() {
         if (mXWalkUpdater == null) {
-            mXWalkUpdater = XWalkUpdater(this, this)
+            mXWalkUpdater = MyXWalkUpdater(this, this)
         }
+        setUpdateApkUrl()
         mXWalkUpdater?.updateXWalkRuntime()
     }
 
+    private fun setUpdateApkUrl() {
+        if (isUnsupportedArch()) {
+            setupXWalkApkUrl()
+            return
+        }
+
+        if (!isGooglePlayInstalled()) {
+            setupXWalkApkUrl()
+            return
+        }
+    }
+
+    private fun isUnsupportedArch(): Boolean {
+        val arch = System.getProperty("os.arch")?.lowercase(Locale.getDefault())
+        val unsupportedArch = hashSetOf("armv8l")
+        return unsupportedArch.contains(arch)
+    }
+
+    private fun isGooglePlayInstalled(): Boolean {
+        val context: Activity = this
+        val pm = context.packageManager
+        val appInstalled: Boolean = try {
+            val info = pm.getPackageInfo("com.android.vending", PackageManager.GET_ACTIVITIES)
+            val label = info.applicationInfo.loadLabel(pm) as String
+            label != "Market"
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+        return appInstalled
+    }
+
+    private fun setupXWalkApkUrl() {
+        val abi = XWalkEnvironment.getRuntimeAbi()
+        val apkUrl = "http://download.rootu.top/xwalk_apk/?arch=$abi"
+        mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
+    }
+
+    private fun cleanXwalkDownload() {
+        val savedFile = "xwalk_update.apk"
+        val mDownloadManager: DownloadManager? =
+            getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager?
+        val downloadDir = FileHelpers.getDownloadDir(this) // getCacheDir(context)
+        val downloadFile = File(downloadDir, savedFile)
+        if (downloadFile.isFile && downloadFile.canWrite()) downloadFile.delete()
+        val query = Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL)
+        mDownloadManager?.query(query)?.let {
+            while (it.moveToNext()) {
+                @SuppressLint("Range") val id =
+                    it.getLong(it.getColumnIndex(DownloadManager.COLUMN_ID))
+                @SuppressLint("Range") val localFilename =
+                    it.getString(it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                if (localFilename.contains(savedFile)) mDownloadManager.remove(id)
+            }
+        }
+    }
+
     override fun onXWalkInitCompleted() {
-        // Do anyting with the embedding API
+        // Clean downloads
+        cleanXwalkDownload()
+        // Do anything with the embedding API
         browserInit = true
         if (browser == null) {
             browser = findViewById(R.id.xwalkview)
@@ -155,8 +202,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 }
             })
         }
-        val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
-        browser?.userAgentString = ua
+        //val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
+        browser?.userAgentString = "lampa_client"
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
@@ -302,14 +349,22 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
 //        exitProcess(1)
     }
 
+    fun setPlayerPackage(packageName: String) {
+        SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
+        val editor = mSettings?.edit()
+        editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+        editor?.apply()
+    }
+
     fun runPlayer(jsonObject: JSONObject) {
         val videoUrl = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
-            if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
+            if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
         )
-        val resInfo = packageManager.queryIntentActivities(intent, 0)
+        val resInfo =
+            packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
         if (resInfo.isEmpty()) {
             App.toast(R.string.no_activity_found, false)
             return
@@ -324,39 +379,56 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
             }
         }
         if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
-            val targetedShareIntents: MutableList<Intent> = ArrayList()
+            val excludedAppsPackageNames = hashSetOf(
+                "com.android.gallery3d",
+                "com.lonelycatgames.xplore",
+                "com.android.tv.frameworkpackagestubs",
+                "com.google.android.tv.frameworkpackagestubs",
+                "com.instantbits.cast.webvideo",
+                "com.ghisler.android.totalcommander",
+                "com.google.android.apps.photos",
+                "com.mixplorer.silver",
+                "com.estrongs.android.pop",
+                "pl.solidexplorer2"
+            )
+            val filteredList: MutableList<ResolveInfo> = mutableListOf()
             for (info in resInfo) {
-                val targetedShare = Intent(Intent.ACTION_VIEW)
-                targetedShare.setDataAndTypeAndNormalize(
-                    Uri.parse(videoUrl),
-                    if (videoUrl.endsWith(".m3u8")) "application/x-mpegURL" else "video/*"
-                )
-                if (jsonObject.has("title")) {
-                    targetedShare.putExtra("title", jsonObject.optString("title"))
+                if (excludedAppsPackageNames.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
+                    continue
                 }
-                targetedShare.setPackage(info.activityInfo.packageName.lowercase(Locale.getDefault()))
-                targetedShareIntents.add(targetedShare)
+                filteredList.add(info)
             }
-            // Then show the ACTION_PICK_ACTIVITY to let the user select it
-            val intentPick = Intent()
-            intentPick.action = Intent.ACTION_PICK_ACTIVITY
-            // Set the title of the dialog
-            intentPick.putExtra(Intent.EXTRA_TITLE, "Выберите плеер для просмотра")
-            intentPick.putExtra(Intent.EXTRA_INTENT, intent)
-            intentPick.putExtra(Intent.EXTRA_INITIAL_INTENTS, targetedShareIntents.toTypedArray())
-            // Call StartActivityForResult so we can get the app name selected by the user
-            selectLauncher.launch(intentPick)
+            val mainActivity = this
+            val listAdapter = AppListAdapter(mainActivity, filteredList)
+            val playerChooser = AlertDialog.Builder(mainActivity)
+            val appTitleView =
+                LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
+            val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
+            playerChooser.setCustomTitle(appTitleView)
+
+            playerChooser.setAdapter(listAdapter) { dialog, which ->
+                val setDefaultPlayer = switch.isChecked
+                SELECTED_PLAYER = listAdapter.getItemPackage(which)
+                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString())
+                dialog.dismiss()
+                runPlayer(jsonObject)
+                if (!setDefaultPlayer) SELECTED_PLAYER = ""
+            }
+            val playerChooserDialog = playerChooser.create()
+            playerChooserDialog.show()
+            playerChooserDialog.listView.requestFocus()
         } else {
-//            val requestCode: Int
-            var videoPosition:Long = 0
-            val videoTitle = if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
+            var videoPosition: Long = 0
+            val videoTitle =
+                if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
+            var startIndex = 0
 
             if (jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
                 if (timeline?.has("time") == true)
-                    videoPosition = (jsonObject.optDouble("time") * 1000).toLong()
+                    videoPosition = (timeline.optDouble("time") * 1000).toLong()
             }
 
             if (jsonObject.has("playlist")) {
@@ -364,6 +436,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
+                        if (io.optString("url") == videoUrl)
+                            startIndex = i
                         listUrls.add(io.optString("url"))
                         listTitles.add(
                             if (io.has("title")) io.optString("title") else (i + 1).toString()
@@ -371,15 +445,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     }
                 }
             }
-
             when (SELECTED_PLAYER) {
-                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad" -> { // "com.mxtech.videoplayer.beta"
-//                    requestCode = REQUEST_PLAYER_MX
+                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
-//                    intent.component = ComponentName(
-//                        SELECTED_PLAYER!!,
-//                        "$SELECTED_PLAYER.ActivityScreen"
-//                    )
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
@@ -391,44 +459,50 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                         val ta = listTitles.toTypedArray()
                         intent.putExtra("video_list", parcelableArr)
                         intent.putExtra("video_list.name", ta)
-                        intent.putExtra("video_list.filename", ta) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
+                        intent.putExtra(
+                            "video_list.filename",
+                            ta
+                        ) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
                         intent.putExtra("video_list_is_explicit", true)
                     }
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
-//                    requestCode = REQUEST_PLAYER_VLC
                     intent.putExtra("title", videoTitle)
-                    //intent.setPackage(SELECTED_PLAYER)
                     intent.setClassName(
                         SELECTED_PLAYER!!,
                         "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                     )
-//                    intent.component = ComponentName(
-//                        SELECTED_PLAYER!!,
-//                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
-//                    )
+                    if (videoPosition > 0) intent.putExtra("position", videoPosition)
+                }
+                "com.brouken.player" -> {
+                    intent.putExtra("title", videoTitle)
+                    intent.putExtra("name", videoTitle)
+                    intent.setPackage(SELECTED_PLAYER)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition)
                 }
                 "net.gtvbox.videoplayer" -> {
                     // see https://vimu.tv/player-api
-//                    requestCode = REQUEST_PLAYER_VIMU
                     if (listUrls.size <= 1) {
                         intent.setClassName(
                             SELECTED_PLAYER!!,
                             "$SELECTED_PLAYER.PlayerActivity"
                         )
-                        // todo или setComponent?
-//                        intent.setComponent(ComponentName(
-//                            SELECTED_PLAYER!!,
-//                            "$SELECTED_PLAYER.PlayerActivity"
-//                        ))
                         intent.putExtra("forcename", videoTitle)
                     } else {
-                        intent.setDataAndType(Uri.parse(videoUrl), "application/vnd.gtvbox.filelist")
+                        intent.setDataAndType(
+                            Uri.parse(videoUrl),
+                            "application/vnd.gtvbox.filelist"
+                        )
                         intent.setPackage(SELECTED_PLAYER)
-                        intent.putStringArrayListExtra("asusfilelist", listUrls)
-                        intent.putStringArrayListExtra("asusnamelist", listTitles)
+                        intent.putStringArrayListExtra(
+                            "asusfilelist",
+                            ArrayList(listUrls.subList(startIndex, listUrls.size))
+                        )
+                        intent.putStringArrayListExtra(
+                            "asusnamelist",
+                            ArrayList(listTitles.subList(startIndex, listUrls.size))
+                        )
                     }
                     if (videoPosition > 0) {
                         intent.putExtra("position", videoPosition.toInt())
@@ -438,14 +512,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, XWalkUpdateListener
                     intent.putExtra("forceresume", true)
                 }
                 else -> {
-//                    requestCode = REQUEST_PLAYER_OTHER
                     intent.setPackage(SELECTED_PLAYER)
                 }
             }
             try {
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
-                App.toast(R.string.no_activity_found, false)
+                App.toast(R.string.no_launch_player, false)
             }
         }
     }

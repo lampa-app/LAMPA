@@ -1,13 +1,15 @@
 <resources>
     <string name="app_name">LAMPA</string>
     <string name="no_activity_found">Lampa: Нет приложения для открытия ссылки данного типа</string>
+    <string name="no_launch_player">Lampa: Выбранный плеер не поддерживает воспроизведение этого видео</string>
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
     <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»\nили нажмите кнопку «Меню»</string>
     <string name="exit">Выйти из приложения</string>
     <string name="input_url_title">Укажите адрес сайта</string>
-    <string name="select_player">Выбирите плеер</string>
+    <string name="select_player">Выбор плеера</string>
     <string name="select_player_reseted">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
+    <string name="use_as_default">Запомнить выбор</string>
 </resources>

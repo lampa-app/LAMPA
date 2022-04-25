@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="top.rootu.lampa">
 
+    <!-- use older sdk -->
+    <uses-sdk tools:overrideLibrary="org.xwalk.core" />
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,12 +13,32 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Android 8.0 updater fix -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <queries>
         <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.google.android.katniss" />
+
         <intent>
             <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/x-bittorrent" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="audio/x-mpegurl" />
         </intent>
     </queries>
 
@@ -34,18 +57,19 @@
         android:allowBackup="true"
         android:banner="@drawable/lampa_banner"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/lampa_logo"
+        android:icon="@drawable/lampa_icon"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:roundIcon="@drawable/lampa_logo"
-        android:screenOrientation="landscape"
+        android:roundIcon="@drawable/lampa_icon"
+        android:screenOrientation="userLandscape"
         android:supportsRtl="true"
-        android:theme="@style/Theme.LAMPA">
+        android:theme="@style/Theme.LAMPA"
+        tools:targetApi="n">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="sensorLandscape">
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -56,9 +80,15 @@
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
-        <meta-data
-            android:name="xwalk_apk_url"
-            android:value="http://download.rootu.top/xwalk_apk/" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.update_provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
     </application>
 
 </manifest>

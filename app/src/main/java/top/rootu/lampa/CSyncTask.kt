@@ -68,7 +68,7 @@ abstract class CSyncTask<Params, Progress, Result>(private val taskName: String)
         status = Status.RUNNING
 
         // it can be used to setup UI - it should have access to Main Thread
-        GlobalScope.launch(Dispatchers.Main) {
+        CoroutineScope(Dispatchers.Main).launch {
             preJob = launch(Dispatchers.Main) {
                 printLog("$taskName onPreExecute started")
                 onPreExecute()
@@ -98,7 +98,7 @@ abstract class CSyncTask<Params, Progress, Result>(private val taskName: String)
             isCancelled = true
             status = Status.FINISHED
             if (bgJob!!.isCompleted) {
-                GlobalScope.launch(Dispatchers.Main) {
+                CoroutineScope(Dispatchers.Main).launch {
                     onCancelled(bgJob!!.await())
                 }
             }
@@ -110,7 +110,7 @@ abstract class CSyncTask<Params, Progress, Result>(private val taskName: String)
 
     fun publishProgress(vararg progress: Progress) {
         //need to update main thread
-        GlobalScope.launch(Dispatchers.Main) {
+        CoroutineScope(Dispatchers.Main).launch {
             if (!isCancelled) {
                 onProgressUpdate(*progress)
             }
