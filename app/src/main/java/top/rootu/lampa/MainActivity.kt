@@ -224,7 +224,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // Specify the type of input expected; this, for example, sets the input as a password,
         // and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT
-        input.setText(if (LAMPA_URL.isNullOrEmpty()) "http://" else LAMPA_URL)
+        input.setText(if (LAMPA_URL.isNullOrEmpty()) "http://lampa.mx" else LAMPA_URL)
         val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(
