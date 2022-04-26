@@ -422,8 +422,14 @@ public class MyXWalkUpdater {
         String packageName = XWalkLibraryInterface.XWALK_CORE_PACKAGE;
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(ANDROID_MARKET_DETAILS + packageName));
-        List<ResolveInfo> infos = mContext.getPackageManager().queryIntentActivities(
-                intent, PackageManager.MATCH_ALL);
+        List<ResolveInfo> infos;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            infos = mContext.getPackageManager().queryIntentActivities(
+                    intent, PackageManager.MATCH_ALL);
+        } else {
+            infos = mContext.getPackageManager().queryIntentActivities(
+                    intent, 0);
+        }
 
         StringBuilder supportedStores = new StringBuilder();
         boolean hasGooglePlay = false;
@@ -567,6 +573,7 @@ public class MyXWalkUpdater {
         }
     }
 
+    @SuppressLint("PackageManagerGetSignatures")
     private boolean verifyDownloadedXWalkRuntime(String libFile) {
         // getPackageArchiveInfo also check the integrity of the downloaded runtime APK
         // besides returning the PackageInfo with signatures.

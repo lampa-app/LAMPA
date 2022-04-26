@@ -41,7 +41,7 @@ public class AppListAdapter extends BaseAdapter {
 
     public String getItemLabel(int position) {
         CharSequence loadLabel = getItem(position).loadLabel(pm);
-        String label = "";
+        String label;
         if (loadLabel == null || (label = loadLabel.toString()).isEmpty()) {
             label = getItemPackage(position);
         }

@@ -134,7 +134,6 @@ import java.util.ArrayList;
  *     }
  * }
  * </pre>
- *
  */
 
 public class MyXWalkDialogManager {
@@ -144,7 +143,6 @@ public class MyXWalkDialogManager {
      * <B>Positive Button</B>(<I>Mandatory</I>): download Crosswalk Project runtime<br>
      * <B>Negative Button</B>(<I>Optional</I>): invoke {@link XWalkActivity#onXWalkFailed()} /
      * {@link MyXWalkUpdater.XWalkUpdateListener#onXWalkUpdateCancelled()}
-     *
      */
     public static final int DIALOG_NOT_FOUND = 1;
 
@@ -223,7 +221,7 @@ public class MyXWalkDialogManager {
 
     private static final String TAG = "XWalkLib";
 
-    private Context mContext;
+    private final Context mContext;
     private Dialog mActiveDialog;
 
     private AlertDialog mNotFoundDialog;
@@ -253,7 +251,7 @@ public class MyXWalkDialogManager {
      * Create MyXWalkDialogManager for {@link MyXWalkUpdater} or {@link XWalkActivity}.
      *
      * @param context The context that is used by {@link MyXWalkUpdater} or {@link XWalkActivity}
-     *        itself
+     *                itself
      * @since 7.0
      */
     public MyXWalkDialogManager(Context context) {
@@ -267,7 +265,7 @@ public class MyXWalkDialogManager {
      * listener of all buttons will be overwrote with predefined action. For detailed information
      * of each dialog, please refer to the description of the dialog ID.
      *
-     * @param id the dialog ID
+     * @param id     the dialog ID
      * @param dialog the customized dialog
      * @since 7.0
      */
@@ -305,7 +303,7 @@ public class MyXWalkDialogManager {
      * listener of all buttons will be overwrote with defined actions. For the detailed information
      * of each dialog, please refer to the description of dialog ID.
      *
-     * @param id the dialog ID
+     * @param id     the dialog ID
      * @param dialog the customized dialog
      * @since 7.0
      */
@@ -324,7 +322,7 @@ public class MyXWalkDialogManager {
      *
      * @param id the dialog ID
      * @return the dialog for this situation. If you haven't set up the dialog before, it will
-     *         return default dialog.
+     * return default dialog.
      * @since 7.0
      */
     public AlertDialog getAlertDialog(int id) {
@@ -407,7 +405,7 @@ public class MyXWalkDialogManager {
      *
      * @param id the dialog ID
      * @return the dialog for this situation. If you haven't set up the dialog before, it will
-     *         return default dialog.
+     * return default dialog.
      * @since 7.0
      */
     public ProgressDialog getProgressDialog(int id) {
@@ -435,8 +433,8 @@ public class MyXWalkDialogManager {
     }
 
     void showInitializationError(int status, Runnable cancelCommand, Runnable downloadCommand) {
-        AlertDialog dialog = null;
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        AlertDialog dialog;
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         if (status == XWalkLibraryInterface.STATUS_NOT_FOUND) {
             dialog = getAlertDialog(DIALOG_NOT_FOUND);
             actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
@@ -463,7 +461,7 @@ public class MyXWalkDialogManager {
 
     void showDownloadError(Runnable cancelCommand, Runnable downloadCommand) {
         AlertDialog dialog = getAlertDialog(DIALOG_DOWNLOAD_ERROR);
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
         actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
         showDialog(dialog, actions);
@@ -474,28 +472,28 @@ public class MyXWalkDialogManager {
         String message = mContext.getString(R.string.select_store_message);
         setMessage(dialog, message.replace("STORE_NAME", storeName));
 
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
         showDialog(dialog, actions);
     }
 
     void showUnsupportedStore(Runnable cancelCommand) {
         AlertDialog dialog = getAlertDialog(DIALOG_UNSUPPORTED_STORE);
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, true));
         showDialog(dialog, actions);
     }
 
     void showDecompressProgress(Runnable cancelCommand) {
         ProgressDialog dialog = getProgressDialog(DIALOG_DECOMPRESSING);
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
         showDialog(dialog, actions);
     }
 
     void showDownloadProgress(Runnable cancelCommand) {
         ProgressDialog dialog = getProgressDialog(DIALOG_DOWNLOADING);
-        ArrayList<ButtonAction> actions = new ArrayList<ButtonAction>();
+        ArrayList<ButtonAction> actions = new ArrayList<>();
         actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
         showDialog(dialog, actions);
     }

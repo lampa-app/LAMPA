@@ -52,15 +52,13 @@ class MyXWalkLibraryLoader {
     private static AsyncTask<Void, Integer, Integer> sActiveTask;
 
     public static boolean isInitializing() {
-        return sActiveTask != null &&
-                (sActiveTask instanceof DecompressTask
-                        || sActiveTask instanceof ActivateTask);
+        return (sActiveTask instanceof DecompressTask
+                || sActiveTask instanceof ActivateTask);
     }
 
     public static boolean isDownloading() {
-        return sActiveTask != null &&
-                (sActiveTask instanceof DownloadManagerTask
-                        || sActiveTask instanceof HttpDownloadTask);
+        return (sActiveTask instanceof DownloadManagerTask
+                || sActiveTask instanceof HttpDownloadTask);
     }
 
     /**
@@ -119,7 +117,7 @@ class MyXWalkLibraryLoader {
      * @return false if decompression is not running or could not be cancelled, true otherwise
      */
     public static boolean cancelDecompress() {
-        return sActiveTask != null && sActiveTask instanceof DecompressTask
+        return sActiveTask instanceof DecompressTask
                 && sActiveTask.cancel(true);
     }
 
@@ -150,12 +148,11 @@ class MyXWalkLibraryLoader {
 
     /**
      * Attempt to cancel download manager
-     *
-     * @return false if download is not running or could not be cancelled, true otherwise
      */
-    public static boolean cancelDownloadManager() {
-        return sActiveTask != null && sActiveTask instanceof DownloadManagerTask
-                && sActiveTask.cancel(true);
+    public static void cancelDownloadManager() {
+        if (sActiveTask instanceof DownloadManagerTask) {
+            sActiveTask.cancel(true);
+        }
     }
 
     /**
@@ -177,7 +174,7 @@ class MyXWalkLibraryLoader {
      * @return False if download is not running or could not be cancelled, true otherwise
      */
     public static boolean cancelHttpDownload() {
-        return sActiveTask != null && sActiveTask instanceof HttpDownloadTask
+        return sActiveTask instanceof HttpDownloadTask
                 && sActiveTask.cancel(true);
     }
 
@@ -282,7 +279,7 @@ class MyXWalkLibraryLoader {
             if (mIsCompressed) {
                 SharedPreferences sp = XWalkEnvironment.getSharedPreferences();
                 int version = sp.getInt("version", 0);
-                mIsDecompressed = version > 0 && version == XWalkAppVersion.API_VERSION;
+                mIsDecompressed = version == XWalkAppVersion.API_VERSION;
             }
             if (mIsCompressed && !mIsDecompressed) mListener.onDecompressStarted();
         }
@@ -376,13 +373,11 @@ class MyXWalkLibraryLoader {
             Log.d(TAG, "DownloadManagerTask started, " + mDownloadUrl);
             sActiveTask = this;
 
-            String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
-
             cleanDownload();
 
             Request request = new Request(Uri.parse(mDownloadUrl));
             request.setDestinationInExternalFilesDir(
-                    mContext, Environment.DIRECTORY_DOWNLOADS, savedFile);
+                    mContext, Environment.DIRECTORY_DOWNLOADS, DEFAULT_DOWNLOAD_FILE_NAME);
             if (isSilentDownload()) {
                 request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN);
             }
@@ -498,7 +493,7 @@ class MyXWalkLibraryLoader {
             return false;
         }
 
-        private boolean cleanDownload() {
+        private void cleanDownload() {
             String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
 
             // cleanup old downloads
@@ -516,7 +511,6 @@ class MyXWalkLibraryLoader {
                         mDownloadManager.remove(id);
                 }
             }
-            return true;
         }
     }
 

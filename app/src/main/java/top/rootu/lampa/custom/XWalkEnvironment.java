@@ -4,17 +4,18 @@
 
 package top.rootu.lampa.custom;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -109,7 +110,7 @@ public class XWalkEnvironment {
                 ApplicationInfo appInfo = packageManager.getApplicationInfo(
                         sApplicationContext.getPackageName(), 0);
                 sApplicationName = (String) packageManager.getApplicationLabel(appInfo);
-            } catch (PackageManager.NameNotFoundException e) {
+            } catch (PackageManager.NameNotFoundException ignored) {
             }
 
             if (sApplicationName == null || sApplicationName.isEmpty()
@@ -246,6 +247,7 @@ public class XWalkEnvironment {
         return sRuntimeAbi;
     }
 
+    @SuppressLint("NewApi")
     public static String getDeviceAbi() {
         if (sDeviceAbi == null) {
             try {
