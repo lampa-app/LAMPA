@@ -5,7 +5,6 @@ import android.net.Uri;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
@@ -21,7 +20,6 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HttpContext;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -125,12 +123,8 @@ public class HttpHelper {
 
         // Auth token header
         if (authToken != null) {
-            httpclient.addRequestInterceptor(new HttpRequestInterceptor() {
-                @Override
-                public void process(HttpRequest httpRequest, HttpContext httpContext) {
-                    httpRequest.addHeader("Authorization", "Bearer " + authToken);
-                }
-            });
+            httpclient.addRequestInterceptor((httpRequest, httpContext) ->
+                    httpRequest.addHeader("Authorization", "Bearer " + authToken));
         }
 
         return httpclient;

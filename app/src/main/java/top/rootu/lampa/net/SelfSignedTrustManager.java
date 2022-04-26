@@ -1,5 +1,7 @@
 package top.rootu.lampa.net;
 
+import android.annotation.SuppressLint;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
@@ -8,11 +10,12 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.X509TrustManager;
 
+@SuppressLint("CustomX509TrustManager")
 public class SelfSignedTrustManager implements X509TrustManager {
 
     private static final X509Certificate[] acceptedIssuers = new X509Certificate[]{};
 
-    private String certKey = null;
+    private final String certKey;
 
     public SelfSignedTrustManager(String certKey) {
         super();
@@ -41,8 +44,9 @@ public class SelfSignedTrustManager implements X509TrustManager {
 
     }
 
+    @SuppressLint("TrustAllX509TrustManager")
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType) {
     }
 
     @Override
@@ -66,7 +70,7 @@ public class SelfSignedTrustManager implements X509TrustManager {
             throw new CertificateException("Certificate key [" + thumbprint + "] doesn't match expected value.");
 
         } catch (NoSuchAlgorithmException e) {
-            throw new CertificateException("Unable to check self-signed cert, unknown algorithm. " + e.toString());
+            throw new CertificateException("Unable to check self-signed cert, unknown algorithm. " + e);
         }
 
     }

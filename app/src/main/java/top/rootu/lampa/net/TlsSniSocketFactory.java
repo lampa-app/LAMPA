@@ -1,6 +1,6 @@
 package top.rootu.lampa.net;
 
-import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
 import android.net.SSLCertificateSocketFactory;
 import android.os.Build;
 import android.util.Log;
@@ -64,12 +64,12 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
 
     @Override
     public Socket connectSocket(Socket s, String host, int port, InetAddress localAddress, int localPort,
-                                HttpParams params) throws IOException {
+                                HttpParams params) {
         return null;
     }
 
     @Override
-    public Socket createSocket() throws IOException {
+    public Socket createSocket() {
         return null;
     }
 
@@ -101,7 +101,7 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
         }
 
         // create and connect SSL socket, but don't do hostname/certificate verification yet
-        SSLSocket ssl = (SSLSocket) sslSocketFactory.createSocket(InetAddress.getByName(host), port);
+        @SuppressLint("SSLCertificateSocketFactoryCreateSocket") SSLSocket ssl = (SSLSocket) sslSocketFactory.createSocket(InetAddress.getByName(host), port);
 
         // enable TLSv1.1/1.2 if available
         ssl.setEnabledProtocols(ssl.getSupportedProtocols());
@@ -124,9 +124,9 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
             throw new SSLPeerUnverifiedException("Cannot verify hostname: " + host);
         }
 
-		/*DLog.d(TlsSniSocketFactory.class.getSimpleName(),
-				"Established " + session.getProtocol() + " connection with " + session.getPeerHost() +
-						" using " + session.getCipherSuite());*/
+//        Log.d(TlsSniSocketFactory.class.getSimpleName(),
+//                "Established " + session.getProtocol() + " connection with " + session.getPeerHost() +
+//                        " using " + session.getCipherSuite());
 
         return ssl;
     }
