@@ -12,6 +12,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
+import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Parcelable
@@ -21,7 +22,10 @@ import android.util.Log
 import android.view.*
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.*
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -549,14 +553,16 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 App.toast(R.string.not_found_speech, false)
             }
         } else {
+            // Verify permissions
             verifyMicPermissions(this)
-            // Voice Search dialogue
+
             val builder = AlertDialog.Builder(this)
             var dialog: AlertDialog? = null
             val view = layoutInflater.inflate(R.layout.dialog_search, null, false)
             val etSearch = view.findViewById<AppCompatEditText?>(R.id.etSearchQuery)
             val btnVoice = view.findViewById<AppCompatImageButton?>(R.id.btnVoiceSearch)
-            val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as? InputMethodManager
+            val inputManager =
+                getSystemService(Activity.INPUT_METHOD_SERVICE) as? InputMethodManager
 
             etSearch?.apply {
                 setOnClickListener {
@@ -572,7 +578,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             })
 
             btnVoice?.apply {
-                if (!hasMicPermissions(this.context)) {
+                val context = this.context
+                if (!hasMicPermissions(context)) {
                     this.isEnabled = false
                     etSearch?.requestFocus()
                 } else {
@@ -583,18 +590,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     val progress = view.findViewById<SpeechProgressView>(R.id.progress)
                     val heights = intArrayOf(40, 56, 38, 55, 35)
                     progress.setBarMaxHeightsInDp(heights)
-                    if (hasMicPermissions(this.context)) {
-                        etSearch?.hint = this.context.getString(R.string.search_voice_hint)
+                    if (hasMicPermissions(context)) {
+                        etSearch?.hint = context.getString(R.string.search_voice_hint)
                         btnVoice.visibility = View.GONE
                         dots?.visibility = View.VISIBLE
                     } else {
-                        App.toast(
-                            this.context.getString(R.string.search_requires_record_audio),
-                            true
-                        )
+                        App.toast(R.string.search_requires_record_audio)
                         btnVoice.visibility = View.VISIBLE
                         dots?.visibility = View.GONE
-                        etSearch?.hint = this.context.getString(R.string.search_is_empty)
+                        etSearch?.hint = context.getString(R.string.search_is_empty)
                         etSearch?.requestFocus()
                     }
                     // start Speech
@@ -624,10 +628,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
+//                    try {
+//                        Speech.getInstance()?.shutdown()
+//                    } catch (e: Exception) {
+//                    }
                 }
-//                .setNegativeButton(android.R.string.cancel) { _, _ ->
-//                    dialog?.dismiss()
-//                }
 
             dialog = builder.create()
             // top position (no keyboard overlap)
@@ -644,22 +649,19 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             // Set fullscreen mode (immersive sticky):
             // Flags for fullscreen mode:
             @Suppress("DEPRECATION")
-            val uiFlags: Int = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            var uiFlags: Int = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+            if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                @Suppress("DEPRECATION")
+                uiFlags = uiFlags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
             @Suppress("DEPRECATION")
             dialog.window?.decorView?.systemUiVisibility = uiFlags
             dialog.show()
             dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-            // focus
-//            etSearch?.let {
-//                it.nextFocusRightId = dialog.getButton(BUTTON_POSITIVE).id
-//                it.nextFocusDownId = dialog.getButton(BUTTON_POSITIVE).id
-//                it.nextFocusForwardId = dialog.getButton(BUTTON_POSITIVE).id
-//            }
             // run voice search
             btnVoice?.performClick()
         }
@@ -670,11 +672,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         progress: SpeechProgressView,
         onSpeech: (result: String, final: Boolean, success: Boolean) -> Unit
     ): Boolean {
-
-        if (hasMicPermissions(this)) {
+        val context = this.baseContext
+        if (hasMicPermissions(context)) {
             try {
                 // you must have android.permission.RECORD_AUDIO granted at this point
-                Speech.init(this.applicationContext, packageName)
+                Speech.init(context, packageName)
                     ?.startListening(progress, object : SpeechDelegate {
                         private var success = true
                         override fun onStartOfSpeech() {
@@ -704,10 +706,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 return true
             } catch (exc: SpeechRecognitionNotAvailable) {
                 Log.e("speech", "Speech recognition is not available on this device!")
-                App.toast(getString(R.string.search_no_voice_recognizer), true)
+                App.toast(R.string.search_no_voice_recognizer)
                 // You can prompt the user if he wants to install Google App to have
                 // speech recognition, and then you can simply call:
-                SpeechUtil.redirectUserToGoogleAppOnPlayStore(this.applicationContext)
+                SpeechUtil.redirectUserToGoogleAppOnPlayStore(context)
                 // to redirect the user to the Google App page on Play Store
             } catch (exc: GoogleVoiceTypingDisabledException) {
                 Log.e("speech", "Google voice typing must be enabled!")
