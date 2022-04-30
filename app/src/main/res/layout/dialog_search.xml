@@ -51,7 +51,7 @@
         android:nextFocusLeft="@id/btnVoiceSearch"
         android:nextFocusUp="@id/btnVoiceSearch"
         android:popupBackground="@android:color/transparent"
-        android:textColor="?attr/colorPrimary"
+        android:textColor="@color/tv_white"
         android:textSize="20sp" />
 
 </LinearLayout>

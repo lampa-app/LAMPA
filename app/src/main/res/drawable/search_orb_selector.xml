@@ -12,7 +12,7 @@
     </item>
     <item android:state_focused="true">
         <shape android:shape="oval">
-            <solid android:color="@color/purple_200" /><!-- ?attr/colorPrimary -->
+            <solid android:color="@color/red" /><!-- ?attr/colorPrimary -->
         </shape>
     </item>
     <item>

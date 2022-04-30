@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="lampa_background">#1E1F21</color>
-
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -14,4 +13,5 @@
     <color name="dialog_bg">#e61a1a1a</color>
     <color name="white_10">#1affffff</color>
     <color name="white_35">#5affffff</color>
+    <color name="red">#ffff5251</color>
 </resources>
