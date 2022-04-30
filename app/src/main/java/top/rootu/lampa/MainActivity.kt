@@ -370,6 +370,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
+    @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
         val videoUrl = jsonObject.optString("url")
         val intent = Intent(Intent.ACTION_VIEW)
@@ -556,7 +557,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             // Verify permissions
             verifyMicPermissions(this)
 
-            val builder = AlertDialog.Builder(this)
             var dialog: AlertDialog? = null
             val view = layoutInflater.inflate(R.layout.dialog_search, null, false)
             val etSearch = view.findViewById<AppCompatEditText?>(R.id.etSearchQuery)
@@ -619,7 +619,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
             }
 
-            builder.setView(view)
+            dialog = AlertDialog.Builder(this)
+                .setView(view)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     dialog?.dismiss()
                     val query = etSearch.text.toString()
@@ -633,8 +634,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 //                    } catch (e: Exception) {
 //                    }
                 }
+                .create()
 
-            dialog = builder.create()
             // top position (no keyboard overlap)
             val lp = dialog.window?.attributes
             lp?.apply {
@@ -647,7 +648,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             )
             // Set fullscreen mode (immersive sticky):
-            // Flags for fullscreen mode:
             @Suppress("DEPRECATION")
             var uiFlags: Int = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -662,6 +662,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             dialog.window?.decorView?.systemUiVisibility = uiFlags
             dialog.show()
             dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+
             // run voice search
             btnVoice?.performClick()
         }
