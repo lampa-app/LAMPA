@@ -459,10 +459,10 @@ public class MyXWalkDialogManager {
                 && status != XWalkLibraryInterface.STATUS_SIGNATURE_CHECK_ERROR
         ) {
             if (downloadCommand != null && appStoreCommand != null) {
-                actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, appStoreCommand, true));
-                setPositiveButton(dialog, top.rootu.lampa.R.string.xwalk_market_crosswalk);
-                actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, downloadCommand, false));
-                setNegativeButton(dialog, top.rootu.lampa.R.string.xwalk_download_crosswalk);
+                actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
+                setPositiveButton(dialog, top.rootu.lampa.R.string.xwalk_download_crosswalk);
+                actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, appStoreCommand, false));
+                setNegativeButton(dialog, top.rootu.lampa.R.string.xwalk_market_crosswalk);
                 actions.add(new ButtonAction(DialogInterface.BUTTON_NEUTRAL, cancelCommand, false));
                 setNeutralButton(dialog, R.string.xwalk_close);
             } else {

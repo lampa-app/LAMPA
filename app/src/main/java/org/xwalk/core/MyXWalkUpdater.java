@@ -431,7 +431,8 @@ public class MyXWalkUpdater {
         PackageManager pm = mContext.getPackageManager();
         try {
             PackageInfo info = pm.getPackageInfo(GOOGLE_PLAY_PACKAGE, PackageManager.GET_ACTIVITIES);
-            return !(info.applicationInfo.loadLabel(pm).toString().equals("Market"));
+            return (info.applicationInfo.enabled
+                    && !pm.hasSystemFeature("android.software.leanback"));
         } catch (PackageManager.NameNotFoundException ignored) {
         }
         return false;
