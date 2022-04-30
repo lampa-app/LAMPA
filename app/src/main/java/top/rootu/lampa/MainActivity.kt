@@ -554,16 +554,16 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             val builder = AlertDialog.Builder(this)
             var dialog: AlertDialog? = null
             val view = layoutInflater.inflate(R.layout.dialog_search, null, false)
-            val etSearch = view.findViewById<AppCompatEditText>(R.id.etSearchQuery)
-            val btnVoice = view.findViewById<AppCompatImageButton>(R.id.btnVoiceSearch)
-            val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+            val etSearch = view.findViewById<AppCompatEditText?>(R.id.etSearchQuery)
+            val btnVoice = view.findViewById<AppCompatImageButton?>(R.id.btnVoiceSearch)
+            val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as? InputMethodManager
 
-            etSearch.apply {
+            etSearch?.apply {
                 setOnClickListener {
-                    inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
+                    inputManager?.showSoftInput(this, 0) // SHOW_IMPLICIT
                 }
                 imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
-            }.setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
+            }?.setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
                 if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
                     dialog?.getButton(BUTTON_POSITIVE)?.performClick()
                     return@OnEditorActionListener true
@@ -571,7 +571,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 false
             })
 
-            btnVoice.apply {
+            btnVoice?.apply {
                 if (!hasMicPermissions(this.context)) {
                     this.isEnabled = false
                     etSearch?.requestFocus()
@@ -585,14 +585,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     progress.setBarMaxHeightsInDp(heights)
                     if (hasMicPermissions(this.context)) {
                         etSearch?.hint = this.context.getString(R.string.search_voice_hint)
-                        btnVoice?.visibility = View.GONE
+                        btnVoice.visibility = View.GONE
                         dots?.visibility = View.VISIBLE
                     } else {
                         App.toast(
                             this.context.getString(R.string.search_requires_record_audio),
                             true
                         )
-                        btnVoice?.visibility = View.VISIBLE
+                        btnVoice.visibility = View.VISIBLE
                         dots?.visibility = View.GONE
                         etSearch?.hint = this.context.getString(R.string.search_is_empty)
                         etSearch?.requestFocus()
@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         etSearch?.hint = ""
                         etSearch?.setText(result)
                         if (final) {
-                            btnVoice?.visibility = View.VISIBLE
+                            btnVoice.visibility = View.VISIBLE
                             dots?.visibility = View.GONE
                         }
                         if (final && success) {
