@@ -4,7 +4,7 @@
     package="top.rootu.lampa">
 
     <!-- use older sdk -->
-    <uses-sdk tools:overrideLibrary="org.xwalk.core" />
+    <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

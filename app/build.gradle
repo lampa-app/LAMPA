@@ -7,7 +7,7 @@ android {
     compileSdkVersion 31
     defaultConfig {
         applicationId "top.rootu.lampa"
-        minSdkVersion 18
+        minSdkVersion 16
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 28
         versionCode 28
