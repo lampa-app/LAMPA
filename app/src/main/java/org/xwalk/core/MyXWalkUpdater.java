@@ -293,6 +293,7 @@ public class MyXWalkUpdater {
     private final Context mContext;
     private MyXWalkDialogManager mDialogManager;
     private Runnable mDownloadCommand;
+    private Runnable mAppStoreCommand;
     private Runnable mCancelCommand;
 
     /**
@@ -361,16 +362,21 @@ public class MyXWalkUpdater {
             throw new RuntimeException("Must invoke XWalkInitializer.initAsync() first");
         }
 
+        String url = MyXWalkEnvironment.getXWalkApkUrl();
         if (mUpdateListener != null) {
-            mDownloadCommand = this::downloadXWalkApk;
+            if (!url.isEmpty()) {
+                mDownloadCommand = this::downloadXWalkApk;
+            }
+            if (isGooglePlayInstalled()) {
+                mAppStoreCommand = this::appStoreXWalkApk;
+            }
             mCancelCommand = () -> {
                 Log.d(TAG, "MyXWalkUpdater cancelled");
                 mUpdateListener.onXWalkUpdateCancelled();
             };
 
-            mDialogManager.showInitializationError(status, mCancelCommand, mDownloadCommand);
+            mDialogManager.showInitializationError(status, mCancelCommand, mDownloadCommand, mAppStoreCommand);
         } else if (mBackgroundUpdateListener != null) {
-            String url = XWalkEnvironment.getXWalkApkUrl();
             MyXWalkLibraryLoader.startHttpDownload(new BackgroundListener(), mContext, url);
         } else {
             throw new IllegalArgumentException("Update listener is null");
@@ -400,7 +406,7 @@ public class MyXWalkUpdater {
      * @param url The download URL.
      */
     public void setXWalkApkUrl(String url) {
-        XWalkEnvironment.setXWalkApkUrl(url);
+        MyXWalkEnvironment.setXWalkApkUrl(url);
     }
 
     /**
@@ -413,12 +419,25 @@ public class MyXWalkUpdater {
     }
 
     private void downloadXWalkApk() {
-        String url = XWalkEnvironment.getXWalkApkUrl();
+        String url = MyXWalkEnvironment.getXWalkApkUrl();
         if (!url.isEmpty()) {
             MyXWalkLibraryLoader.startDownloadManager(new ForegroundListener(), mContext, url);
             return;
         }
+        appStoreXWalkApk();
+    }
 
+    private boolean isGooglePlayInstalled() {
+        PackageManager pm = mContext.getPackageManager();
+        try {
+            PackageInfo info = pm.getPackageInfo(GOOGLE_PLAY_PACKAGE, PackageManager.GET_ACTIVITIES);
+            return !(info.applicationInfo.loadLabel(pm).toString().equals("Market"));
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+        return false;
+    }
+
+    private void appStoreXWalkApk() {
         String packageName = XWalkLibraryInterface.XWALK_CORE_PACKAGE;
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(ANDROID_MARKET_DETAILS + packageName));
@@ -453,14 +472,17 @@ public class MyXWalkUpdater {
             return;
         }
 
-        if (hasGooglePlay || !XWalkEnvironment.isIaDevice()) {
-            if (XWalkEnvironment.is64bitApp()) {
+        if (hasGooglePlay || !MyXWalkEnvironment.isIaDevice()) {
+            if (MyXWalkEnvironment.is64bitApp()) {
                 packageName = XWalkLibraryInterface.XWALK_CORE64_PACKAGE;
             } else {
                 packageName = XWalkLibraryInterface.XWALK_CORE_PACKAGE;
             }
+            if (hasGooglePlay) {
+                intent.setPackage(GOOGLE_PLAY_PACKAGE);
+            }
         } else {
-            if (XWalkEnvironment.is64bitApp()) {
+            if (MyXWalkEnvironment.is64bitApp()) {
                 packageName = XWalkLibraryInterface.XWALK_CORE64_IA_PACKAGE;
             } else {
                 packageName = XWalkLibraryInterface.XWALK_CORE_IA_PACKAGE;
@@ -541,13 +563,13 @@ public class MyXWalkUpdater {
         @Override
         public void onDownloadCompleted(Uri uri) {
             final String libFile = uri.getPath();
-            final String destDir = XWalkEnvironment.getExtractedCoreDir();
+            final String destDir = MyXWalkEnvironment.getExtractedCoreDir();
             Log.d(TAG, "Download mode extract dir: " + destDir);
 
             new AsyncTask<Void, Void, Boolean>() {
                 @Override
                 protected Boolean doInBackground(Void... params) {
-                    if (XWalkEnvironment.isXWalkVerify()) {
+                    if (MyXWalkEnvironment.isXWalkVerify()) {
                         if (!verifyDownloadedXWalkRuntime(libFile)) {
                             return false;
                         }

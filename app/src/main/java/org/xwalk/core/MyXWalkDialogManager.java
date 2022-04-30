@@ -432,29 +432,50 @@ public class MyXWalkDialogManager {
         }
     }
 
-    void showInitializationError(int status, Runnable cancelCommand, Runnable downloadCommand) {
+    void showInitializationError(int status, Runnable cancelCommand, Runnable downloadCommand, Runnable appStoreCommand) {
         AlertDialog dialog;
+        switch (status) {
+            case XWalkLibraryInterface.STATUS_NOT_FOUND:
+                dialog = getAlertDialog(DIALOG_NOT_FOUND);
+                break;
+            case XWalkLibraryInterface.STATUS_OLDER_VERSION:
+                dialog = getAlertDialog(DIALOG_OLDER_VERSION);
+                break;
+            case XWalkLibraryInterface.STATUS_NEWER_VERSION:
+                dialog = getAlertDialog(DIALOG_NEWER_VERSION);
+                break;
+            case XWalkLibraryInterface.STATUS_ARCHITECTURE_MISMATCH:
+                dialog = getAlertDialog(DIALOG_ARCHITECTURE_MISMATCH);
+                break;
+            case XWalkLibraryInterface.STATUS_SIGNATURE_CHECK_ERROR:
+                dialog = getAlertDialog(DIALOG_SIGNATURE_CHECK_ERROR);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid status " + status);
+        }
+
         ArrayList<ButtonAction> actions = new ArrayList<>();
-        if (status == XWalkLibraryInterface.STATUS_NOT_FOUND) {
-            dialog = getAlertDialog(DIALOG_NOT_FOUND);
-            actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
-            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
-        } else if (status == XWalkLibraryInterface.STATUS_OLDER_VERSION) {
-            dialog = getAlertDialog(DIALOG_OLDER_VERSION);
-            actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
-            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
-        } else if (status == XWalkLibraryInterface.STATUS_NEWER_VERSION) {
-            dialog = getAlertDialog(DIALOG_NEWER_VERSION);
-            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, true));
-        } else if (status == XWalkLibraryInterface.STATUS_ARCHITECTURE_MISMATCH) {
-            dialog = getAlertDialog(DIALOG_ARCHITECTURE_MISMATCH);
-            actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
-            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
-        } else if (status == XWalkLibraryInterface.STATUS_SIGNATURE_CHECK_ERROR) {
-            dialog = getAlertDialog(DIALOG_SIGNATURE_CHECK_ERROR);
-            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, true));
+        if (status != XWalkLibraryInterface.STATUS_NEWER_VERSION
+                && status != XWalkLibraryInterface.STATUS_SIGNATURE_CHECK_ERROR
+        ) {
+            if (downloadCommand != null && appStoreCommand != null) {
+                actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, appStoreCommand, true));
+                setPositiveButton(dialog, top.rootu.lampa.R.string.xwalk_market_crosswalk);
+                actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, downloadCommand, false));
+                setNegativeButton(dialog, top.rootu.lampa.R.string.xwalk_download_crosswalk);
+                actions.add(new ButtonAction(DialogInterface.BUTTON_NEUTRAL, cancelCommand, false));
+                setNeutralButton(dialog, R.string.xwalk_close);
+            } else {
+                if (downloadCommand != null) {
+                    actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
+                }
+                if (appStoreCommand != null) {
+                    actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, appStoreCommand, true));
+                }
+                actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, false));
+            }
         } else {
-            throw new IllegalArgumentException("Invalid status " + status);
+            actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, cancelCommand, true));
         }
         showDialog(dialog, actions);
     }
@@ -556,6 +577,11 @@ public class MyXWalkDialogManager {
 
     private void setPositiveButton(AlertDialog dialog, int resourceId) {
         dialog.setButton(DialogInterface.BUTTON_POSITIVE, mContext.getString(resourceId),
+                (OnClickListener) null);
+    }
+
+    private void setNeutralButton(AlertDialog dialog, int resourceId) {
+        dialog.setButton(DialogInterface.BUTTON_NEUTRAL, mContext.getString(resourceId),
                 (OnClickListener) null);
     }
 

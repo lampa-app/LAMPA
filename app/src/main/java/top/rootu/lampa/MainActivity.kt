@@ -33,7 +33,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import top.rootu.lampa.custom.XWalkEnvironment
+import org.xwalk.core.MyXWalkEnvironment
 import top.rootu.lampa.helpers.FileHelpers
 import java.io.File
 import java.util.*
@@ -122,43 +122,12 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         if (mXWalkUpdater == null) {
             mXWalkUpdater = MyXWalkUpdater(this, this)
         }
-        setUpdateApkUrl()
+        setupXWalkApkUrl()
         mXWalkUpdater?.updateXWalkRuntime()
     }
 
-    private fun setUpdateApkUrl() {
-        if (isUnsupportedArch()) {
-            setupXWalkApkUrl()
-            return
-        }
-
-        if (!isGooglePlayInstalled()) {
-            setupXWalkApkUrl()
-            return
-        }
-    }
-
-    private fun isUnsupportedArch(): Boolean {
-        val arch = System.getProperty("os.arch")?.lowercase(Locale.getDefault())
-        val unsupportedArch = hashSetOf("armv8l")
-        return unsupportedArch.contains(arch)
-    }
-
-    private fun isGooglePlayInstalled(): Boolean {
-        val context: Activity = this
-        val pm = context.packageManager
-        val appInstalled: Boolean = try {
-            val info = pm.getPackageInfo("com.android.vending", PackageManager.GET_ACTIVITIES)
-            val label = info.applicationInfo.loadLabel(pm) as String
-            label != "Market"
-        } catch (e: PackageManager.NameNotFoundException) {
-            false
-        }
-        return appInstalled
-    }
-
     private fun setupXWalkApkUrl() {
-        val abi = XWalkEnvironment.getRuntimeAbi()
+        val abi = MyXWalkEnvironment.getRuntimeAbi()
         val apkUrl = "http://download.rootu.top/xwalk_apk/?arch=$abi"
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
