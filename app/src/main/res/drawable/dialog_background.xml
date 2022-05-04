@@ -3,7 +3,7 @@
     android:insetTop="20dp"
     android:insetBottom="20dp">
     <shape>
-        <solid android:color="@color/dialog_bg" />
+        <solid android:color="@color/lampa_background" />
         <corners android:radius="4dp" />
         <stroke
             android:width="0.5dp"

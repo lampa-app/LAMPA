@@ -10,6 +10,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="tv_white">#FFEEEEEE</color>
-    <color name="dialog_bg">#e61a1a1a</color>
     <color name="white_10">#1affffff</color>
 </resources>
