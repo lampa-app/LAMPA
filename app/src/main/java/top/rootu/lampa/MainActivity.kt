@@ -481,7 +481,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     intent.setPackage(SELECTED_PLAYER)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition)
                 }
-                "net.gtvbox.videoplayer" -> {
+                "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     // see https://vimu.tv/player-api
                     if (listUrls.size <= 1) {
                         intent.setClassName(
