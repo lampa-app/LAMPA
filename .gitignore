@@ -86,3 +86,4 @@ lint/tmp/
 
 # Mac stuff
 .DS_Store
+/app/keystore/
