@@ -1,0 +1,48 @@
+name: Android CI
+
+on:
+  push:
+    tags:
+      - "[0-9].[0-9].[0-9]"
+
+permissions:
+  contents: write
+
+env:
+  KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  RELEASE_SIGN_KEY_ALIAS: ${{ secrets.RELEASE_SIGN_KEY_ALIAS }}
+  RELEASE_SIGN_KEY_PASSWORD: ${{ secrets.RELEASE_SIGN_KEY_PASSWORD }}
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: gradle
+    - name: Checkout keystore repo
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ secrets.KEYSTORE_GIT_REPOSITORY }}
+        token: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+        path: app/keystore
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: |
+         ./gradlew assembleRelease  --stacktrace
+         ./gradlew bundleRelease
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: app/build/outputs/apk/lite/release/app-lite-release.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
