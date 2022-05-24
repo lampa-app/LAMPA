@@ -12,4 +12,6 @@
     <string name="select_player_reseted">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
     <string name="use_as_default">Запомнить выбор</string>
+    <string name="xwalk_download_crosswalk">Direct Download</string>
+    <string name="xwalk_market_crosswalk">Google Play</string>
 </resources>

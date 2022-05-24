@@ -92,7 +92,7 @@ class MyXWalkLibraryLoader {
      * <p>This method must be invoked on the UI thread.
      */
     public static void prepareToInit(Context context) {
-        XWalkEnvironment.init(context);
+        MyXWalkEnvironment.init(context);
         XWalkCoreWrapper.handlePreInit(context.getClass().getName());
     }
 
@@ -277,7 +277,7 @@ class MyXWalkLibraryLoader {
 
             mIsCompressed = XWalkDecompressor.isLibraryCompressed();
             if (mIsCompressed) {
-                SharedPreferences sp = XWalkEnvironment.getSharedPreferences();
+                SharedPreferences sp = MyXWalkEnvironment.getSharedPreferences();
                 int version = sp.getInt("version", 0);
                 mIsDecompressed = version == XWalkAppVersion.API_VERSION;
             }
@@ -290,7 +290,7 @@ class MyXWalkLibraryLoader {
 
             if (!XWalkDecompressor.decompressLibrary()) return 1;
 
-            SharedPreferences sp = XWalkEnvironment.getSharedPreferences();
+            SharedPreferences sp = MyXWalkEnvironment.getSharedPreferences();
             sp.edit().putInt("version", XWalkAppVersion.API_VERSION).apply();
             return 0;
         }
