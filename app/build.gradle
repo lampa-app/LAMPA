@@ -7,7 +7,7 @@ def getVersionCode = { ->
     try {
         def code = new ByteArrayOutputStream()
         exec {
-            commandLine 'git', 'rev-list', '--count', 'origin/main'
+            commandLine 'git', 'rev-list', '--count'
             standardOutput = code
         }
         return Integer.parseInt(code.toString().trim())
