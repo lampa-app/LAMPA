@@ -11,6 +11,10 @@
     <string name="select_player">Выбор плеера</string>
     <string name="select_player_reseted">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
+    <string name="search_is_empty">Введите поисковую фразу</string>
+    <string name="search_no_voice_recognizer">Нет приложений для распознавания голоса</string>
+    <string name="search_requires_record_audio">Приложению требуется разрешение на запись звука, чтобы использовать эту функцию!</string>
+    <string name="search_voice_hint">Произнесите запрос</string>
     <string name="use_as_default">Запомнить выбор</string>
     <string name="xwalk_download_crosswalk">Direct Download</string>
     <string name="xwalk_market_crosswalk">Google Play</string>
