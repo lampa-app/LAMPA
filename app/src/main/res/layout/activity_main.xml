@@ -14,7 +14,6 @@
         android:visibility="visible"
         android:indeterminate="true"
         android:background="@drawable/lampa_logo_round"
-        android:foreground="@drawable/lampa_logo_round"
         app:indicatorSize="134dp"
         app:trackThickness="4dp"
         app:indicatorColor="@color/tv_white"

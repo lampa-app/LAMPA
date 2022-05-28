@@ -41,7 +41,6 @@ import net.gotev.speech.ui.SpeechProgressView
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import org.xwalk.core.MyXWalkEnvironment
 import top.rootu.lampa.helpers.FileHelpers
 import top.rootu.lampa.helpers.PermissionHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermissionHelpers.verifyMicPermissions
@@ -74,9 +73,21 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
+            val pos = data?.getIntExtra(
+                "position",
+                -1
+            ) // Last playback position in milliseconds. This extra will not exist if playback is completed.
+            val dur = data?.getIntExtra(
+                "duration",
+                -1
+            ) // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
+            val cause = data?.getStringExtra("end_by") //  Indicates reason of activity closure.
+
             when (result.resultCode) {
                 RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}")
-                RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}")
+                RESULT_CANCELED -> {
+                    Log.i(TAG, "Canceled: ${data?.toUri(0)}")
+                }
                 RESULT_ERROR -> Log.e(TAG, "Error occurred: ${data?.toUri(0)}")
                 else -> Log.w(
                     TAG,
@@ -470,7 +481,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     if (listUrls.size <= 1) {
                         intent.setClassName(
                             SELECTED_PLAYER!!,
-                            "$SELECTED_PLAYER.PlayerActivity"
+                            "net.gtvbox.videoplayer.PlayerActivity"
                         )
                         intent.putExtra("forcename", videoTitle)
                     } else {
@@ -500,6 +511,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
             }
             try {
+                intent.flags = 0 // https://stackoverflow.com/a/47694122
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, false)
