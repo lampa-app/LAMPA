@@ -4,11 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DownloadManager
 import android.app.DownloadManager.Query
-import android.content.Context
-import android.content.DialogInterface
+import android.content.*
 import android.content.DialogInterface.BUTTON_POSITIVE
-import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
@@ -73,26 +70,88 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
-            val pos = data?.getIntExtra(
-                "position",
-                -1
-            ) // Last playback position in milliseconds. This extra will not exist if playback is completed.
-            val dur = data?.getIntExtra(
-                "duration",
-                -1
-            ) // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
-            val cause = data?.getStringExtra("end_by") //  Indicates reason of activity closure.
-
-            when (result.resultCode) {
-                RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}")
-                RESULT_CANCELED -> {
-                    Log.i(TAG, "Canceled: ${data?.toUri(0)}")
-                }
-                RESULT_ERROR -> Log.e(TAG, "Error occurred: ${data?.toUri(0)}")
+            val resultCode = result.resultCode
+            when (resultCode) {
+                RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
+                RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}") // 0
+                RESULT_FIRST_USER -> Log.w(TAG, "FU: ${data?.toUri(0)}") // 1
+                RESULT_ERROR -> Log.e(TAG, "Error: ${data?.toUri(0)}") // 4
                 else -> Log.w(
                     TAG,
-                    "Undefined result code (${result.resultCode}): ${data?.toUri(0)}"
+                    "Undefined result code ($resultCode): ${data?.toUri(0)}"
                 )
+            }
+            data?.let {
+                if (it.action.equals("com.mxtech.intent.result.VIEW")) { // MX / Just
+                    when (resultCode) {
+                        RESULT_OK -> {
+                            when (val endBy = it.getStringExtra("end_by")) {
+                                "playback_completion" -> {
+                                    Log.i(TAG, "Playback completed")
+                                }
+                                "user" -> {
+                                    val pos = it.getIntExtra("position", 0)
+                                    val dur = it.getIntExtra("duration", 0)
+                                    if (pos > 0) {
+                                        Log.i(
+                                            TAG,
+                                            "Playback stopped [position=$pos, duration=$dur]"
+                                        )
+                                    } else {
+                                        Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
+                                    }
+                                }
+                                else -> {
+                                    Log.e(TAG, "Invalid state [endBy=$endBy]")
+                                }
+                            }
+                        }
+                        RESULT_CANCELED -> {
+                            Log.e(TAG, "Playback stopped by user")
+                        }
+                        RESULT_FIRST_USER -> {
+                            Log.e(TAG, "Playback stopped by unknown error")
+                        }
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
+                } else if (it.action.equals("org.videolan.vlc.player.result")) { // VLC
+                    when (resultCode) {
+                        RESULT_OK -> {
+                            val pos = it.getLongExtra("extra_position", 0L)
+                            val dur = it.getLongExtra("extra_duration", 0L)
+                            if (pos > 0L) {
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                            } else {
+                                if (dur == 0L && pos == 0L) {
+                                    Log.i(TAG, "Playback completed")
+                                }
+                            }
+                        }
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
+                } else { // ViMu
+                    when (resultCode) {
+                        RESULT_FIRST_USER -> {
+                            Log.i(TAG, "Playback completed")
+                        }
+                        RESULT_CANCELED -> {
+                            val pos = it.getIntExtra("position", -1)
+                            val dur = it.getIntExtra("duration", -1)
+                            if (pos > 0 && dur > 0)
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                        }
+                        RESULT_ERROR -> {
+                            Log.i(TAG, "Playback error")
+                        }
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
+                }
             }
         }
 
@@ -442,7 +501,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
-                    intent.setClassName(SELECTED_PLAYER!!, "$SELECTED_PLAYER.ActivityScreen")
+                    //intent.setPackage(SELECTED_PLAYER)
+                    intent.component = ComponentName(
+                        SELECTED_PLAYER!!,
+                        "$SELECTED_PLAYER.ActivityScreen"
+                    )
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
@@ -463,33 +526,30 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     intent.putExtra("return_result", true)
                 }
                 "org.videolan.vlc" -> {
-                    intent.putExtra("title", videoTitle)
-                    intent.setClassName(
+                    // https://wiki.videolan.org/Android_Player_Intents
+                    intent.component = ComponentName(
                         SELECTED_PLAYER!!,
                         "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
-                    )
+                    ) // required for return intent
+                    intent.putExtra("title", videoTitle)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition)
                 }
                 "com.brouken.player" -> {
-                    intent.putExtra("title", videoTitle)
-                    intent.putExtra("name", videoTitle)
                     intent.setPackage(SELECTED_PLAYER)
+                    intent.putExtra("title", videoTitle)
+                    intent.putExtra("return_result", true)
                     if (videoPosition > 0) intent.putExtra("position", videoPosition)
                 }
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
+                    intent.setPackage(SELECTED_PLAYER)
                     // see https://vimu.tv/player-api
                     if (listUrls.size <= 1) {
-                        intent.setClassName(
-                            SELECTED_PLAYER!!,
-                            "net.gtvbox.videoplayer.PlayerActivity"
-                        )
                         intent.putExtra("forcename", videoTitle)
                     } else {
                         intent.setDataAndType(
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        intent.setPackage(SELECTED_PLAYER)
                         intent.putStringArrayListExtra(
                             "asusfilelist",
                             ArrayList(listUrls.subList(startIndex, listUrls.size))
@@ -733,7 +793,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 //            when (resultCode) {
 //                RESULT_OK -> Log.i(TAG, "Ok: $data")
 //                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
-//                RESULT_ERROR -> Log.e(TAG, "Error occurred: $data")
+//                RESULT_FIRST_USER -> Log.e(TAG, "Error: $data")
 //                else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
 //            }
 //            if (data != null)
@@ -746,7 +806,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
     companion object {
         private const val TAG = "APP_MAIN"
-        const val RESULT_ERROR = 1
+        const val RESULT_ERROR = 4
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
