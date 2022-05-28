@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="top.rootu.lampa">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- use older sdk -->
     <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech" />
