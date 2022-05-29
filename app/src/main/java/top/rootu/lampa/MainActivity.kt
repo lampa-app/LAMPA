@@ -56,6 +56,19 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
+    companion object {
+        private const val TAG = "APP_MAIN"
+        const val RESULT_ERROR = 4
+        const val APP_PREFERENCES = "settings"
+        const val APP_URL = "url"
+        const val APP_PLAYER = "player"
+        var LAMPA_URL: String? = ""
+        var SELECTED_PLAYER: String? = ""
+        private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
+        private val URL_PATTERN = Pattern.compile(URL_REGEX)
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
@@ -71,10 +84,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         ) { result ->
             val data: Intent? = result.data
             val resultCode = result.resultCode
-            when (resultCode) {
+            when (resultCode) { // just for debug
                 RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
                 RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}") // 0
-                RESULT_FIRST_USER -> Log.w(TAG, "FU: ${data?.toUri(0)}") // 1
+                RESULT_FIRST_USER -> Log.i(TAG, "FU: ${data?.toUri(0)}") // 1
                 RESULT_ERROR -> Log.e(TAG, "Error: ${data?.toUri(0)}") // 4
                 else -> Log.w(
                     TAG,
@@ -107,7 +120,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             }
                         }
                         RESULT_CANCELED -> {
-                            Log.e(TAG, "Playback stopped by user")
+                            Log.i(TAG, "Playback stopped by user")
                         }
                         RESULT_FIRST_USER -> {
                             Log.e(TAG, "Playback stopped by unknown error")
@@ -139,13 +152,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.i(TAG, "Playback completed")
                         }
                         RESULT_CANCELED -> {
-                            val pos = it.getIntExtra("position", -1)
-                            val dur = it.getIntExtra("duration", -1)
+                            val pos = it.getIntExtra("position", 0)
+                            val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0)
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
                         }
                         RESULT_ERROR -> {
-                            Log.i(TAG, "Playback error")
+                            Log.e(TAG, "Playback error")
                         }
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
@@ -251,7 +264,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
             })
         }
-        //val ua = browser?.userAgentString + " LAMPA_ClientForLegacyOS"
         browser?.userAgentString = "lampa_client"
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
@@ -285,7 +297,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         input.layoutParams = params
         container.addView(input)
         builder.setView(container)
-//        builder.setView(input, margin, 0, margin, 0)
 
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
@@ -398,8 +409,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             it.clearCache(true)
             it.onDestroy()
         }
-        finishAffinity()
-//        exitProcess(1)
+        finishAffinity() // exitProcess(1)
     }
 
     fun setPlayerPackage(packageName: String) {
@@ -670,10 +680,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
-//                    try {
-//                        Speech.getInstance()?.shutdown()
-//                    } catch (e: Exception) {
-//                    }
                 }
                 .create()
 
@@ -688,7 +694,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             )
-            // Set fullscreen mode (immersive sticky):
+            // set fullscreen mode (immersive sticky):
             @Suppress("DEPRECATION")
             var uiFlags: Int = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -774,91 +780,5 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 "$funcName($params) $r"
             )
         }
-    }
-
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        Log.d(TAG, "onActivityResult req: $requestCode code: $resultCode data: ${data?.toUri(0)}")
-//        if (data?.action.equals("com.mxtech.intent.result.VIEW")) {
-//            val pos = data?.getIntExtra(
-//                "position",
-//                -1
-//            ) // Last playback position in milliseconds. This extra will not exist if playback is completed.
-//            val dur = data?.getIntExtra(
-//                "duration",
-//                -1
-//            ) // Duration of last played video in milliseconds. This extra will not exist if playback is completed.
-//            val cause = data?.getStringExtra("end_by") //  Indicates reason of activity closure.
-//        }
-//        if (requestCode == REQUEST_PLAYER_MX || requestCode == REQUEST_PLAYER_VLC) {
-//            when (resultCode) {
-//                RESULT_OK -> Log.i(TAG, "Ok: $data")
-//                RESULT_CANCELED -> Log.i(TAG, "Canceled: $data")
-//                RESULT_FIRST_USER -> Log.e(TAG, "Error: $data")
-//                else -> Log.w(TAG, "Undefined result code ($resultCode): $data")
-//            }
-//            if (data != null)
-//                dumpParams(data)
-//            App.toast("MX or VLC")
-//        } else {
-//            super.onActivityResult(requestCode, resultCode, data)
-//        }
-//    }
-
-    companion object {
-        private const val TAG = "APP_MAIN"
-        const val RESULT_ERROR = 4
-        const val APP_PREFERENCES = "settings"
-        const val APP_URL = "url"
-        const val APP_PLAYER = "player"
-        var LAMPA_URL: String? = ""
-        var SELECTED_PLAYER: String? = ""
-        private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
-        private val URL_PATTERN = Pattern.compile(URL_REGEX)
-
-//        const val REQUEST_PLAYER_OTHER = 1
-//        const val REQUEST_PLAYER_MX = 2
-//        const val REQUEST_PLAYER_VLC = 3
-//        const val REQUEST_PLAYER_VIMU = 4
-
-//        private fun dumpParams(intent: Intent) {
-//            val sb = StringBuilder()
-//            val extras = intent.extras
-//            sb.setLength(0)
-//            sb.append("* dat=").append(intent.data)
-//            Log.v(TAG, sb.toString())
-//            sb.setLength(0)
-//            sb.append("* typ=").append(intent.type)
-//            Log.v(TAG, sb.toString())
-//            if (extras != null && extras.size() > 0) {
-//                sb.setLength(0)
-//                sb.append("    << Extra >>\n")
-//                for ((i, key) in extras.keySet().withIndex()) {
-//                    sb.append(' ').append(i + 1).append(") ").append(key).append('=')
-//                    appendDetails(sb, extras[key])
-//                    sb.append('\n')
-//                }
-//                Log.v(TAG, sb.toString())
-//            }
-//        }
-//
-//        private fun appendDetails(sb: StringBuilder, `object`: Any?) {
-//            if (`object` != null && `object`.javaClass.isArray) {
-//                sb.append('[')
-//                val length = Array.getLength(`object`)
-//                for (i in 0 until length) {
-//                    if (i > 0) sb.append(", ")
-//                    appendDetails(sb, Array.get(`object`, i))
-//                }
-//                sb.append(']')
-//            } else if (`object` is Collection<*>) {
-//                sb.append('[')
-//                var first = true
-//                for (element in `object`) {
-//                    if (first) first = false else sb.append(", ")
-//                    appendDetails(sb, element)
-//                }
-//                sb.append(']')
-//            } else sb.append(`object`)
-//        }
     }
 }
