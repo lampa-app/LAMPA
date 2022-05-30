@@ -35,6 +35,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import net.gotev.speech.*
 import net.gotev.speech.ui.SpeechProgressView
+import org.json.JSONArray
 import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
@@ -64,6 +65,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         const val APP_PLAYER = "player"
         var LAMPA_URL: String? = ""
         var SELECTED_PLAYER: String? = ""
+        var playJSONArray: JSONArray = JSONArray()
+        var playIndex = 0
+        var playVideoUrl: String = ""
         private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
@@ -83,6 +87,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
+            val videoUrl: String = data?.data.toString();
+            Log.i(TAG, "Returned video url: ${videoUrl}")
             val resultCode = result.resultCode
             when (resultCode) { // just for debug
                 RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
@@ -101,15 +107,17 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             when (val endBy = it.getStringExtra("end_by")) {
                                 "playback_completion" -> {
                                     Log.i(TAG, "Playback completed")
+                                    resultPlayer(videoUrl, 0, 0, true)
                                 }
                                 "user" -> {
                                     val pos = it.getIntExtra("position", 0)
                                     val dur = it.getIntExtra("duration", 0)
-                                    if (pos > 0) {
+                                    if (pos > 0 && dur > 0) {
                                         Log.i(
                                             TAG,
                                             "Playback stopped [position=$pos, duration=$dur]"
                                         )
+                                        resultPlayer(videoUrl, pos, dur, false)
                                     } else {
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
                                     }
@@ -136,9 +144,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             val dur = it.getLongExtra("extra_duration", 0L)
                             if (pos > 0L) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), false)
                             } else {
                                 if (dur == 0L && pos == 0L) {
                                     Log.i(TAG, "Playback completed")
+                                    resultPlayer(videoUrl, 0, 0, true)
                                 }
                             }
                         }
@@ -150,12 +160,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     when (resultCode) {
                         RESULT_FIRST_USER -> {
                             Log.i(TAG, "Playback completed")
+                            resultPlayer(videoUrl, 0, 0, true)
                         }
                         RESULT_CANCELED -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
-                            if (pos > 0 && dur > 0)
+                            if (pos > 0 && dur > 0) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                resultPlayer(videoUrl, pos, dur, false)
+                            }
                         }
                         RESULT_ERROR -> {
                             Log.e(TAG, "Playback error")
@@ -180,7 +193,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     }
                 // Do something with spokenText.
                 if (spokenText != null) {
-                    runVoidJsFunc("voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
+                    runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
                 }
             }
         }
@@ -419,6 +432,43 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
+    fun resultPlayer(endedVideoUrl:String, pos:Int = 0, dur:Int = 0, ended:Boolean = false) {
+        val videoUrl =
+            if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
+            else endedVideoUrl
+        if (videoUrl == "") return;
+        for (i in 0 until playJSONArray.length()) {
+            val io = playJSONArray.getJSONObject(i)
+            if (!io.has("timeline") || !io.has("url")) break;
+            val timeline = io.optJSONObject("timeline")
+            val hash = timeline?.optString("hash", "0")
+            if (io.optString("url") == videoUrl) {
+                val time: Int = if (ended) 0 else pos/1000
+                val duration: Int =
+                    if (ended) 0
+                    else if (dur == 0 && timeline?.has("duration") == true)
+                        timeline.optDouble("duration", 0.0).toInt()
+                    else dur/1000
+                val percent: Int = if (duration > 0) time * 100 / duration else 100
+                val newTimeline = JSONObject()
+                newTimeline.put("hash", hash)
+                newTimeline.put("time", time.toDouble())
+                newTimeline.put("duration", duration.toDouble())
+                newTimeline.put("percent", percent)
+                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                break;
+            }
+            if (i >= playIndex) {
+                val newTimeline = JSONObject()
+                newTimeline.put("hash", hash)
+                newTimeline.put("percent", 100)
+                newTimeline.put("time", 0)
+                newTimeline.put("duration", 0)
+                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+            }
+        }
+    }
+
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
         val videoUrl = jsonObject.optString("url")
@@ -487,7 +537,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
-            var startIndex = 0
+            playIndex = 0
 
             if (jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
@@ -496,19 +546,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
 
             if (jsonObject.has("playlist")) {
-                val playJSONArray = jsonObject.getJSONArray("playlist")
+                playJSONArray = jsonObject.getJSONArray("playlist")
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
                         if (io.optString("url") == videoUrl)
-                            startIndex = i
+                            playIndex = i
                         listUrls.add(io.optString("url"))
                         listTitles.add(
                             if (io.has("title")) io.optString("title") else (i + 1).toString()
                         )
                     }
                 }
+            } else {
+                playJSONArray = JSONArray()
+                playJSONArray.put(jsonObject)
             }
+            playVideoUrl = videoUrl;
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     //intent.setPackage(SELECTED_PLAYER)
@@ -548,7 +602,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("return_result", true)
-                    if (videoPosition > 0) intent.putExtra("position", videoPosition)
+                    if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
                 }
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     intent.setPackage(SELECTED_PLAYER)
@@ -562,11 +616,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         )
                         intent.putStringArrayListExtra(
                             "asusfilelist",
-                            ArrayList(listUrls.subList(startIndex, listUrls.size))
+                            ArrayList(listUrls.subList(playIndex, listUrls.size))
                         )
                         intent.putStringArrayListExtra(
                             "asusnamelist",
-                            ArrayList(listTitles.subList(startIndex, listUrls.size))
+                            ArrayList(listTitles.subList(playIndex, listUrls.size))
                         )
                     }
                     if (videoPosition > 0) {
@@ -676,7 +730,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     dialog?.dismiss()
                     val query = etSearch.text.toString()
                     if (query.isNotEmpty()) {
-                        runVoidJsFunc("voiceResult", "'" + query.replace("'", "\\'") + "'")
+                        runVoidJsFunc("window.voiceResult", "'" + query.replace("'", "\\'") + "'")
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
@@ -767,11 +821,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        val js = ("(function(w,u){"
-                + "if(typeof w." + funcName.replace(".", "?.") + "===u) return u;"
-                + "w." + funcName + "(" + params + ");"
-                + "return 'runned';"
-                + "})(window,'undefined');")
+        val js = ("(function(){"
+                + "try {"
+                + funcName + "(" + params + ");"
+                + "return 'ok';"
+                + "} catch (e) {"
+                + "return 'error: ' + e.message;"
+                + "}"
+                + "})();")
         browser?.evaluateJavascript(
             js
         ) { r: String ->

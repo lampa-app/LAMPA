@@ -200,7 +200,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             } catch (e: Exception) {
                 e.printStackTrace()
                 // Очищаем поле ввода
-                mainActivity?.runVoidJsFunc("voiceResult", "''")
+                mainActivity?.runVoidJsFunc("window.voiceResult", "''")
             }
         }
     }
