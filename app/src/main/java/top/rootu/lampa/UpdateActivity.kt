@@ -1,6 +1,8 @@
 package top.rootu.lampa
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -9,24 +11,56 @@ import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.Updater
 
 
 class UpdateActivity : AppCompatActivity() {
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                recreate()
+            }
+        }
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_update)
 
-        PermHelpers.verifyStoragePermissions(this)
+        //PermHelpers.verifyStoragePermissions(this)
+        val perms = arrayOf(
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        )
+        perms.forEach { perm ->
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    perm
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // granted
+                }
+                ActivityCompat.shouldShowRequestPermissionRationale(this, perm) -> {
+                    requestPermissionLauncher.launch(perm)
+                }
+                // not granted
+                else -> {
+                    requestPermissionLauncher.launch(perm)
+                }
+            }
+        }
 
         findViewById<ProgressBar>(R.id.pbUpdate).visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
@@ -49,7 +83,7 @@ class UpdateActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnUpdate)?.setOnClickListener {
-            PermHelpers.verifyStoragePermissions(this)
+            //PermHelpers.verifyStoragePermissions(this)
             it.isEnabled = false
             lifecycleScope.launch(Dispatchers.IO) {
                 if (update())
