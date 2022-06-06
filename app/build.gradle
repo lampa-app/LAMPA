@@ -100,11 +100,15 @@ android {
 dependencies {
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
+    // netcipher
+    implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
     implementation 'androidx.activity:activity-ktx:1.6.0-alpha04'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.1'
+    implementation 'androidx.lifecycle:lifecycle-process:2.4.1'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     // material-ui
     implementation 'com.google.android.material:material:1.6.1'
