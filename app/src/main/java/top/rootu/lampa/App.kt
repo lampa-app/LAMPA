@@ -1,10 +1,17 @@
 package top.rootu.lampa
 
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDexApplication
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import top.rootu.lampa.helpers.Helpers.isConnected
+import top.rootu.lampa.helpers.Updater
 
 class App : MultiDexApplication() {
     override fun onCreate() {
@@ -12,10 +19,33 @@ class App : MultiDexApplication() {
         appContext = applicationContext
         // use vectors on pre-LP devices
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
+        // self-update check
+        val checkUpdates = true
+        if (checkUpdates)
+            CoroutineScope(Dispatchers.IO).launch {
+                var count = 60
+                try {
+                    while (!isConnected(appContext) && count > 0) {
+                        delay(1000) // wait for network
+                        count--
+                    }
+                    if (Updater.check()) {
+                        val intent = Intent(appContext, UpdateActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                } catch (e: Exception) {
+                }
+            }
     }
 
     companion object {
         private lateinit var appContext: Context
+
+        val context: Context
+            get() {
+                return appContext
+            }
 
         fun toast(txt: String, long: Boolean = true) {
             Handler(Looper.getMainLooper()).post {

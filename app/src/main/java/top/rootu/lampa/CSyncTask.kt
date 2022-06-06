@@ -14,7 +14,7 @@ enum class Status {
 abstract class CSyncTask<Params, Progress, Result>(private val taskName: String) {
 
     private val TAG by lazy {
-        CSyncTask::class.java.simpleName
+        javaClass.simpleName
     }
 
     companion object {
@@ -118,6 +118,7 @@ abstract class CSyncTask<Params, Progress, Result>(private val taskName: String)
     }
 
     private fun printLog(message: String) {
-        Log.d(TAG, message)
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, message)
     }
 }

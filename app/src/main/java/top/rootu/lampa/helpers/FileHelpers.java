@@ -99,7 +99,7 @@ public class FileHelpers {
             if (cacheDir == null || !cacheDir.canWrite()) {
                 if (VERSION.SDK_INT <= 23) {
                     // On Android 6.0 we can't use file providers so we need to ask a permissions
-                    PermissionHelpers.verifyStoragePermissions(context); // should be an Activity context
+                    PermHelpers.verifyStoragePermissions(context); // should be an Activity context
                 }
             }
         }

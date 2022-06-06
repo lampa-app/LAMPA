@@ -89,7 +89,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     fun clearDefaultPlayer() {
         mainActivity?.runOnUiThread {
             mainActivity?.setPlayerPackage("")
-            App.toast(R.string.select_player_reseted)
+            App.toast(R.string.select_player_reset)
         }
     }
 

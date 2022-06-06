@@ -6,7 +6,8 @@
     <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"
+        tools:ignore="LeanbackUsesWifi" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission
@@ -63,7 +64,8 @@
         android:screenOrientation="userLandscape"
         android:supportsRtl="true"
         android:theme="@style/Theme.LAMPA"
-        tools:targetApi="n">
+        tools:targetApi="n"
+        tools:ignore="RtlEnabled">
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
@@ -76,6 +78,12 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".UpdateActivity"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />

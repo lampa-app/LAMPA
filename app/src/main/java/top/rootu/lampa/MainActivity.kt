@@ -40,8 +40,8 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import top.rootu.lampa.helpers.FileHelpers
-import top.rootu.lampa.helpers.PermissionHelpers.hasMicPermissions
-import top.rootu.lampa.helpers.PermissionHelpers.verifyMicPermissions
+import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
+import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern

@@ -1,7 +1,6 @@
 package top.rootu.lampa.helpers;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -10,18 +9,17 @@ import android.os.Build.VERSION;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
-@TargetApi(16)
-public class PermissionHelpers {
+public class PermHelpers {
     // Storage Permissions
     public static final int REQUEST_EXTERNAL_STORAGE = 112;
-    private static String[] PERMISSIONS_STORAGE = {
+    private static final String[] PERMISSIONS_STORAGE = {
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
 
     // Mic Permissions
     public static final int REQUEST_MIC = 113;
-    private static String[] PERMISSIONS_MIC = {
+    private static final String[] PERMISSIONS_MIC = {
             Manifest.permission.RECORD_AUDIO
     };
 
@@ -43,6 +41,7 @@ public class PermissionHelpers {
 
     /**
      * Only check. There is no prompt.
+     *
      * @param context to apply permissions to
      * @return whether permission already granted
      */
@@ -77,6 +76,7 @@ public class PermissionHelpers {
 
     /**
      * Only check. There is no prompt.
+     *
      * @param context to apply permissions to
      * @return whether permission already granted
      */
