@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -17,36 +18,8 @@ import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Updater
 
 class App : MultiDexApplication() {
-    override fun onCreate() {
-        super.onCreate()
-        appContext = applicationContext
-        // use vectors on pre-LP devices
-        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
-        // register lifecycle observer
-        ProcessLifecycleOwner
-            .get().lifecycle
-            .addObserver(lifecycleEventObserver)
-        // self-update check
-        val checkUpdates = true
-        if (checkUpdates)
-            CoroutineScope(Dispatchers.IO).launch {
-                var count = 60
-                try {
-                    while (!isConnected(appContext) && count > 0) {
-                        delay(1000) // wait for network
-                        count--
-                    }
-                    if (Updater.check()) {
-                        val intent = Intent(appContext, UpdateActivity::class.java)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
-                    }
-                } catch (e: Exception) {
-                }
-            }
-    }
-
     companion object {
+        private val TAG: String = App::class.java.simpleName
         private lateinit var appContext: Context
         var inForeground: Boolean = false
 
@@ -57,10 +30,10 @@ class App : MultiDexApplication() {
 
         private val lifecycleEventObserver = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
-                //Log.e( "APP" , "in background" )
+                if (BuildConfig.DEBUG) Log.d(TAG, "in background")
                 inForeground = false
             } else if (event == Lifecycle.Event.ON_START) {
-                //Log.e( "APP" , "in foreground" )
+                if (BuildConfig.DEBUG) Log.d(TAG, "in foreground")
                 inForeground = true
             }
         }
@@ -82,6 +55,38 @@ class App : MultiDexApplication() {
                 else
                     android.widget.Toast.LENGTH_SHORT
                 android.widget.Toast.makeText(appContext, txt, duration).show()
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        appContext = applicationContext
+        // use vectors on pre-LP devices
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
+
+        // register lifecycle observer
+        ProcessLifecycleOwner
+            .get().lifecycle
+            .addObserver(lifecycleEventObserver)
+
+        // self-update check
+        val checkUpdates = true
+        if (checkUpdates) {
+            CoroutineScope(Dispatchers.IO).launch {
+                var count = 60
+                try {
+                    while (!isConnected(appContext) && count > 0) {
+                        delay(1000) // wait for network
+                        count--
+                    }
+                    if (Updater.check()) {
+                        val intent = Intent(appContext, UpdateActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                } catch (e: Exception) {
+                }
             }
         }
     }

@@ -39,7 +39,6 @@ class UpdateActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_update)
 
-        //PermHelpers.verifyStoragePermissions(this)
         val perms = arrayOf(
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
@@ -83,7 +82,6 @@ class UpdateActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnUpdate)?.setOnClickListener {
-            //PermHelpers.verifyStoragePermissions(this)
             it.isEnabled = false
             lifecycleScope.launch(Dispatchers.IO) {
                 if (update())

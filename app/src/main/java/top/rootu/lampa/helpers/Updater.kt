@@ -14,7 +14,6 @@ import top.rootu.lampa.models.Release
 import top.rootu.lampa.models.Releases
 import java.io.File
 import java.io.FileOutputStream
-import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
 
@@ -27,9 +26,8 @@ object Updater {
 
     fun check(): Boolean {
         try {
-            val connection: HttpURLConnection?
             val url = URL(RELEASE_LINK)
-            connection = if (RELEASE_LINK.startsWith("https"))
+            val connection = if (RELEASE_LINK.startsWith("https"))
                 NetCipher.getHttpsURLConnection(url)
             else
                 NetCipher.getHttpURLConnection(url)
@@ -129,38 +127,41 @@ object Updater {
                     link = asset.browser_download_url
                 }
                 if (link.isNotEmpty()) {
-                    val connection: HttpURLConnection?
-                    val url = URL(link)
-                    connection = if (link.startsWith("https"))
-                        NetCipher.getHttpsURLConnection(url)
-                    else
-                        NetCipher.getHttpURLConnection(url)
-                    connection?.connect()
-                    connection?.inputStream.use { input ->
-                        FileOutputStream(file).use { fileOut ->
-                            val contentLength = connection?.contentLength ?: 0
-                            if (onProgress == null)
-                                input?.copyTo(fileOut)
-                            else {
-                                val buffer = ByteArray(65535)
-                                val length = contentLength + 1
-                                var offset: Long = 0
-                                while (true) {
-                                    val read = input?.read(buffer) ?: 0
-                                    offset += read
-                                    val prc = (offset * 100 / length).toInt()
-                                    onProgress(prc)
-                                    if (read <= 0)
-                                        break
-                                    fileOut.write(buffer, 0, read)
+                    try {
+                        val url = URL(link)
+                        val connection = if (link.startsWith("https"))
+                            NetCipher.getHttpsURLConnection(url)
+                        else
+                            NetCipher.getHttpURLConnection(url)
+                        connection?.connect()
+                        connection?.inputStream.use { input ->
+                            FileOutputStream(file).use { fileOut ->
+                                val contentLength = connection?.contentLength ?: 0
+                                if (onProgress == null)
+                                    input?.copyTo(fileOut)
+                                else {
+                                    val buffer = ByteArray(65535)
+                                    val length = contentLength + 1
+                                    var offset: Long = 0
+                                    while (true) {
+                                        val read = input?.read(buffer) ?: 0
+                                        offset += read
+                                        val prc = (offset * 100 / length).toInt()
+                                        onProgress(prc)
+                                        if (read <= 0)
+                                            break
+                                        fileOut.write(buffer, 0, read)
+                                    }
+                                    fileOut.flush()
                                 }
                                 fileOut.flush()
+                                fileOut.close()
                             }
-                            fileOut.flush()
-                            fileOut.close()
                         }
+                        connection?.disconnect()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                    connection?.disconnect()
                 }
             }
         }

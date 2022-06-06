@@ -120,7 +120,7 @@
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="200dp"
             android:layout_height="wrap_content"
-            android:text="@android:string/cancel" />
+            android:text="@string/cancel" />
 
         <Button
             android:id="@+id/btnUpdate"
