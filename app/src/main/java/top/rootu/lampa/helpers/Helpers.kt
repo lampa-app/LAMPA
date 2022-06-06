@@ -38,6 +38,7 @@ object Helpers {
     private val deviceName: String
         get() = String.format("%s (%s)", Build.MODEL, Build.PRODUCT)
 
+    @JvmStatic
     val isGenymotion: Boolean
         get() {
             val deviceName = deviceName
