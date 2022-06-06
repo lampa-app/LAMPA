@@ -547,10 +547,17 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
             if (jsonObject.has("playlist")) {
                 playJSONArray = jsonObject.getJSONArray("playlist")
+                val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+&)preload".toRegex()
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
-                        if (io.optString("url") == videoUrl)
+                        val url = io.optString("url")
+                            .replace(badLinkPattern, "$1play")
+                        if (url != io.optString("url")) {
+                            io.put("url", url)
+                            playJSONArray.put(i, io)
+                        }
+                        if (url == videoUrl)
                             playIndex = i
                         listUrls.add(io.optString("url"))
                         listTitles.add(
