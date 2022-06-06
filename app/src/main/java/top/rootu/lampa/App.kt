@@ -5,6 +5,9 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.multidex.MultiDexApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +22,10 @@ class App : MultiDexApplication() {
         appContext = applicationContext
         // use vectors on pre-LP devices
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
+        // register lifecycle observer
+        ProcessLifecycleOwner
+            .get().lifecycle
+            .addObserver(lifecycleEventObserver)
         // self-update check
         val checkUpdates = true
         if (checkUpdates)
@@ -41,11 +48,22 @@ class App : MultiDexApplication() {
 
     companion object {
         private lateinit var appContext: Context
+        var inForeground: Boolean = false
 
         val context: Context
             get() {
                 return appContext
             }
+
+        private val lifecycleEventObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                //Log.e( "APP" , "in background" )
+                inForeground = false
+            } else if (event == Lifecycle.Event.ON_START) {
+                //Log.e( "APP" , "in foreground" )
+                inForeground = true
+            }
+        }
 
         fun toast(txt: String, long: Boolean = true) {
             Handler(Looper.getMainLooper()).post {

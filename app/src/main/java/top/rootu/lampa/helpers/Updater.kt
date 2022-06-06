@@ -6,6 +6,7 @@ import android.text.Spanned
 import androidx.core.content.FileProvider
 import androidx.core.text.HtmlCompat
 import com.google.gson.Gson
+import info.guardianproject.netcipher.NetCipher
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
@@ -13,9 +14,9 @@ import top.rootu.lampa.models.Release
 import top.rootu.lampa.models.Releases
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
-import javax.net.ssl.HttpsURLConnection
 
 object Updater {
     private const val RELEASE_LINK =
@@ -23,13 +24,18 @@ object Updater {
     private var releases: Releases? = null
     private var newVersion: Release? = null
 
+
     fun check(): Boolean {
         try {
+            val connection: HttpURLConnection?
             val url = URL(RELEASE_LINK)
-            val conn = url.openConnection() as HttpsURLConnection
-            conn.connect()
+            connection = if (RELEASE_LINK.startsWith("https"))
+                NetCipher.getHttpsURLConnection(url)
+            else
+                NetCipher.getHttpURLConnection(url)
+            connection?.connect()
             val body =
-                conn.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
+                connection?.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
                     ?: return false
             val gson = Gson()
             releases = gson.fromJson(body, Releases::class.java)
@@ -57,10 +63,12 @@ object Updater {
                     }
                     if (majorVersionDouble >= majorCurrVersionDouble && lastVersionDouble > currVersionDouble) {
                         newVersion = rel
+                        connection.disconnect()
                         return true
                     }
                 }
             }
+            connection.disconnect()
             return false
         } catch (e: Exception) {
             e.printStackTrace()
@@ -121,12 +129,16 @@ object Updater {
                     link = asset.browser_download_url
                 }
                 if (link.isNotEmpty()) {
+                    val connection: HttpURLConnection?
                     val url = URL(link)
-                    val conn = url.openConnection() as HttpsURLConnection
-                    conn.connect()
-                    conn.inputStream.use { input ->
+                    connection = if (link.startsWith("https"))
+                        NetCipher.getHttpsURLConnection(url)
+                    else
+                        NetCipher.getHttpURLConnection(url)
+                    connection?.connect()
+                    connection?.inputStream.use { input ->
                         FileOutputStream(file).use { fileOut ->
-                            val contentLength = conn.contentLength
+                            val contentLength = connection?.contentLength ?: 0
                             if (onProgress == null)
                                 input?.copyTo(fileOut)
                             else {
@@ -148,7 +160,7 @@ object Updater {
                             fileOut.close()
                         }
                     }
-                    conn.disconnect()
+                    connection?.disconnect()
                 }
             }
         }
