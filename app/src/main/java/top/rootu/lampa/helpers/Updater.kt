@@ -1,12 +1,13 @@
 package top.rootu.lampa.helpers
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.text.Spanned
 import androidx.core.content.FileProvider
 import androidx.core.text.HtmlCompat
 import com.google.gson.Gson
-import info.guardianproject.netcipher.NetCipher
+import info.guardianproject.netcipher.client.TlsOnlySocketFactory
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
@@ -14,23 +15,65 @@ import top.rootu.lampa.models.Release
 import top.rootu.lampa.models.Releases
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
+import java.security.GeneralSecurityException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.*
+
 
 object Updater {
+    private val TAG = javaClass.simpleName
     private const val RELEASE_LINK =
         "https://api.github.com/repos/lampa-app/LAMPA/releases"
     private var releases: Releases? = null
     private var newVersion: Release? = null
 
+    /**
+     * Avoid SSLv3 as the only protocol available.
+     * Trust all certs and hostnames (insecure).
+     */
+    init {
+        val trustAllCertificates = arrayOf<TrustManager>(
+            @SuppressLint("CustomX509TrustManager")
+            object : X509TrustManager {
+                override fun getAcceptedIssuers(): Array<X509Certificate> {
+                    return arrayOf() // Not relevant.
+                }
+
+                @SuppressLint("TrustAllX509TrustManager")
+                override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {
+                    // Do nothing. Just allow them all.
+                }
+
+                @SuppressLint("TrustAllX509TrustManager")
+                override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {
+                    // Do nothing. Just allow them all.
+                }
+            }
+        )
+        val trustAllHostnames = HostnameVerifier { _, _ ->
+            true // Just allow them all.
+        }
+        try {
+            val sslContext = SSLContext.getInstance("TLSv1.2")
+            sslContext.init(null, trustAllCertificates, SecureRandom())
+            val noSSLv3Factory: SSLSocketFactory = TlsOnlySocketFactory(sslContext.socketFactory)
+            HttpsURLConnection.setDefaultSSLSocketFactory(noSSLv3Factory)
+            HttpsURLConnection.setDefaultHostnameVerifier(trustAllHostnames)
+        } catch (e: GeneralSecurityException) {
+        }
+    }
 
     fun check(): Boolean {
         try {
             val url = URL(RELEASE_LINK)
             val connection = if (RELEASE_LINK.startsWith("https"))
-                NetCipher.getHttpsURLConnection(url)
+                url.openConnection() as HttpsURLConnection? // NetCipher.getHttpsURLConnection(url)
             else
-                NetCipher.getHttpURLConnection(url)
+                url.openConnection() as HttpURLConnection? // NetCipher.getHttpURLConnection(url)
             connection?.connect()
             val body =
                 connection?.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
@@ -130,9 +173,9 @@ object Updater {
                     try {
                         val url = URL(link)
                         val connection = if (link.startsWith("https"))
-                            NetCipher.getHttpsURLConnection(url)
+                            url.openConnection() as HttpsURLConnection? // NetCipher.getHttpsURLConnection(url)
                         else
-                            NetCipher.getHttpURLConnection(url)
+                            url.openConnection() as HttpURLConnection? // NetCipher.getHttpURLConnection(url)
                         connection?.connect()
                         connection?.inputStream.use { input ->
                             FileOutputStream(file).use { fileOut ->

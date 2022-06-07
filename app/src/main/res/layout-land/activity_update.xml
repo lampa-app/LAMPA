@@ -17,38 +17,36 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:layout_gravity="left|top"
-        android:layout_marginStart="20dp"
-        android:layout_marginLeft="20dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginLeft="40dp"
         android:layout_marginTop="80dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginRight="20dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="10dp">
 
         <TextView
             android:id="@+id/tvCurrentVersion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             android:text="@string/update_cur_version"
-            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
         <TextView
             android:id="@+id/tvNewVersion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginBottom="30dp"
             android:text="@string/update_new_version"
-            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
         <TextView
             android:id="@+id/tvUpdateInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             tools:text="@string/update_loading" />
 
     </LinearLayout>
@@ -56,14 +54,15 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="right|top"
-        android:layout_marginTop="86dp"
-        android:layout_marginEnd="26dp"
-        android:layout_marginRight="20dp"
+        android:layout_gravity="left|top"
+        android:layout_marginStart="40dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginTop="200dp"
         android:gravity="center"
-        android:minWidth="70dp"
-        android:minHeight="70dp"
-        android:orientation="vertical">
+        android:minWidth="140dp"
+        android:minHeight="200dp"
+        android:orientation="vertical"
+        android:padding="10dp">
 
         <!-- https://material.io/components/progress-indicators/android#using-progress-indicators -->
         <com.google.android.material.progressindicator.CircularProgressIndicator
@@ -72,7 +71,7 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:indicatorColor="?attr/colorAccent"
-            app:indicatorSize="70dp"
+            app:indicatorSize="120dp"
             app:trackColor="@color/white_35"
             tools:visibility="visible" />
 
@@ -80,24 +79,22 @@
             android:id="@+id/tvUpdatePrc"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="-52dp"
+            android:layout_marginTop="-91dp"
             android:lineSpacingExtra="0dp"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             android:textColor="@color/white_35"
-            android:textSize="18sp"
+            android:textSize="36sp"
             tools:text="100%" />
 
     </LinearLayout>
 
     <ScrollView
-        android:layout_width="match_parent"
+        android:layout_width="420dp"
         android:layout_height="match_parent"
         android:layout_gravity="right|top"
-        android:layout_marginStart="20dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="200dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_marginTop="90dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginRight="40dp"
         android:layout_marginBottom="90dp"
         android:fadingEdgeLength="40dp"
         android:requiresFadingEdge="vertical">
@@ -115,7 +112,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_margin="10dp"
+        android:layout_marginEnd="10dp"
         android:layout_marginBottom="10dp"
         android:divider="?android:attr/dividerVertical"
         android:gravity="end"
@@ -125,14 +122,14 @@
         <Button
             android:id="@+id/btnCancel"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="160dp"
+            android:layout_width="200dp"
             android:layout_height="wrap_content"
             android:text="@string/cancel" />
 
         <Button
             android:id="@+id/btnUpdate"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="160dp"
+            android:layout_width="200dp"
             android:layout_height="wrap_content"
             android:text="@string/update_install">
 

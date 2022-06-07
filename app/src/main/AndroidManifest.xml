@@ -82,7 +82,6 @@
             android:name=".UpdateActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
-            android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
         <uses-library
             android:name="org.apache.http.legacy"
