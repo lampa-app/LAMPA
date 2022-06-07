@@ -18,6 +18,12 @@ import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Updater
 
 class App : MultiDexApplication() {
+
+    init {
+        // use vectors on pre-LP devices
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
+    }
+
     companion object {
         private val TAG: String = App::class.java.simpleName
         private lateinit var appContext: Context
@@ -62,8 +68,6 @@ class App : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
         appContext = applicationContext
-        // use vectors on pre-LP devices
-        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
 
         // register lifecycle observer
         ProcessLifecycleOwner
