@@ -44,7 +44,6 @@ import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import java.io.File
 import java.util.*
-import java.util.regex.Pattern
 
 
 class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
@@ -68,9 +67,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
-        private const val URL_REGEX = "^https?://([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,}(:[0-9]+)?(/.*)?$"
-        private val URL_PATTERN = Pattern.compile(URL_REGEX)
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,8 +83,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
-            val videoUrl: String = data?.data.toString();
-            Log.i(TAG, "Returned video url: ${videoUrl}")
+            val videoUrl: String = data?.data.toString()
+            Log.i(TAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
             when (resultCode) { // just for debug
                 RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
@@ -314,7 +310,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             LAMPA_URL = input.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL!!).matches()) {
+            if (android.util.Patterns.WEB_URL.matcher(LAMPA_URL!!).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (mSettings?.getString(APP_URL, "") != LAMPA_URL) {
                     val editor = mSettings?.edit()
@@ -432,23 +428,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
-    fun resultPlayer(endedVideoUrl:String, pos:Int = 0, dur:Int = 0, ended:Boolean = false) {
+    fun resultPlayer(endedVideoUrl: String, pos: Int = 0, dur: Int = 0, ended: Boolean = false) {
         val videoUrl =
             if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
             else endedVideoUrl
-        if (videoUrl == "") return;
+        if (videoUrl == "") return
         for (i in 0 until playJSONArray.length()) {
             val io = playJSONArray.getJSONObject(i)
-            if (!io.has("timeline") || !io.has("url")) break;
+            if (!io.has("timeline") || !io.has("url")) break
             val timeline = io.optJSONObject("timeline")
             val hash = timeline?.optString("hash", "0")
             if (io.optString("url") == videoUrl) {
-                val time: Int = if (ended) 0 else pos/1000
+                val time: Int = if (ended) 0 else pos / 1000
                 val duration: Int =
                     if (ended) 0
                     else if (dur == 0 && timeline?.has("duration") == true)
                         timeline.optDouble("duration", 0.0).toInt()
-                    else dur/1000
+                    else dur / 1000
                 val percent: Int = if (duration > 0) time * 100 / duration else 100
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
@@ -456,7 +452,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 newTimeline.put("duration", duration.toDouble())
                 newTimeline.put("percent", percent)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                break;
+                break
             }
             if (i >= playIndex) {
                 val newTimeline = JSONObject()
@@ -569,7 +565,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 playJSONArray = JSONArray()
                 playJSONArray.put(jsonObject)
             }
-            playVideoUrl = videoUrl;
+            playVideoUrl = videoUrl
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     //intent.setPackage(SELECTED_PLAYER)
