@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         const val APP_PLAYER = "player"
         var LAMPA_URL: String? = ""
         var SELECTED_PLAYER: String? = ""
+        var playerTimeCode: String = "continue"
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
@@ -269,6 +270,28 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         view.visibility = View.VISIBLE
                         progressBar.visibility = View.GONE
                         println("LAMPA onLoadFinished $url")
+                        runVoidJsFunc(
+                            "Lampa.Storage.listener.add",
+                            "'change'," +
+                                    "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+                        )
+                        runVoidJsFunc(
+                            "Lampa.Params.select",
+                            "'player_timecode'," +
+                                    "{" +
+                                    "'again': 'Начать с начала'," +
+                                    "'continue': 'Продолжить'," +
+                                    "'ask': 'На усмотрение плеера'" +
+                                    "}," +
+                                    "'${playerTimeCode}'"
+                        )
+                        runVoidJsFunc(
+                            "AndroidJS.StorageChange",
+                            "JSON.stringify({" +
+                                    "name: 'player_timecode'," +
+                                    "value: Lampa.Storage.field('player_timecode')" +
+                                    "})"
+                        )
                     }
                 }
             })
@@ -428,7 +451,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
-    fun resultPlayer(endedVideoUrl: String, pos: Int = 0, dur: Int = 0, ended: Boolean = false) {
+    private fun resultPlayer(endedVideoUrl: String, pos: Int = 0, dur: Int = 0, ended: Boolean = false) {
         val videoUrl =
             if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
             else endedVideoUrl
@@ -537,7 +560,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
             if (jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
-                if (timeline?.has("time") == true)
+                if (timeline?.has("time") == true && playerTimeCode == "continue")
                     videoPosition = (timeline.optDouble("time") * 1000).toLong()
             }
 
@@ -575,7 +598,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     )
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
-                    if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
+                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+                        intent.putExtra("position", videoPosition.toInt())
+                    } else if (playerTimeCode == "again"
+                        || (playerTimeCode == "continue" && videoPosition == 0L)
+                    ) {
+                        intent.putExtra("position", 1)
+                    }
                     if (listUrls.size > 1) {
                         val parcelableArr = arrayOfNulls<Parcelable>(listUrls.size)
                         for (i in 0 until listUrls.size) {
@@ -599,13 +628,22 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                     ) // required for return intent
                     intent.putExtra("title", videoTitle)
-                    if (videoPosition > 0) intent.putExtra("position", videoPosition)
+                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+                        intent.putExtra("from_start", false)
+                        intent.putExtra("position", videoPosition)
+                    } else if (playerTimeCode == "again"
+                        || (playerTimeCode == "continue" && videoPosition == 0L)
+                    ) {
+                        intent.putExtra("from_start", true)
+                        intent.putExtra("position", 0L)
+                    }
                 }
                 "com.brouken.player" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("return_result", true)
-                    if (videoPosition > 0) intent.putExtra("position", videoPosition.toInt())
+                    if (playerTimeCode == "continue" || playerTimeCode == "again")
+                        intent.putExtra("position", videoPosition.toInt())
                 }
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     intent.setPackage(SELECTED_PLAYER)
@@ -626,7 +664,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             ArrayList(listTitles.subList(playIndex, listUrls.size))
                         )
                     }
-                    if (videoPosition > 0) {
+                    if (playerTimeCode == "continue" || playerTimeCode == "again") {
                         intent.putExtra("position", videoPosition.toInt())
                         intent.putExtra("startfrom", videoPosition.toInt())
                     }

@@ -13,6 +13,22 @@ import kotlin.system.exitProcess
 
 class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
+    fun StorageChange(str: String) {
+        val eo: JSONObject = if (str == "\"\"") {
+            JSONObject()
+        } else {
+            JSONObject(str)
+        }
+        if (!eo.has("name") || !eo.has("value")) return
+        val name = eo.optString("name")
+        when (name) {
+            "player_timecode" -> {
+                MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
+            }
+        }
+    }
+
+    @JavascriptInterface
     fun appVersion(): String {
         // версия AndroidJS для сайта указывается через тире, например 1.0.1-16 - 16 версия
         return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE // todo последняя версия от Немирова 7.7.7-77
