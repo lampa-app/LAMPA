@@ -65,6 +65,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         var LAMPA_URL: String? = ""
         var SELECTED_PLAYER: String? = ""
         var playerTimeCode: String = "continue"
+        var playerFileView: JSONObject? = null
+        var playerAutoNext: Boolean = true
+        var internalTorrserve: Boolean = false
+        var torrserverPreload: Boolean = false
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
@@ -285,13 +289,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                     "}," +
                                     "'${playerTimeCode}'"
                         )
-                        runVoidJsFunc(
-                            "AndroidJS.StorageChange",
-                            "JSON.stringify({" +
-                                    "name: 'player_timecode'," +
-                                    "value: Lampa.Storage.field('player_timecode')" +
-                                    "})"
-                        )
+                        runJsStorageChangeField("player_timecode")
+                        runJsStorageChangeField("playlist_next")
+                        runJsStorageChangeField("torrserver_preload")
+                        runJsStorageChangeField("internal_torrclient")
                     }
                 }
             })
@@ -556,22 +557,31 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
-            playIndex = 0
+            playIndex = -1
 
-            if (jsonObject.has("timeline")) {
+            if (playerTimeCode == "continue" && jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
-                if (timeline?.has("time") == true && playerTimeCode == "continue")
-                    videoPosition = (timeline.optDouble("time") * 1000).toLong()
+                if (timeline?.has("time") == true) {
+                    val hash = timeline.optString("hash", "0")
+                    val latestTimeline =
+                        if (playerFileView?.has(hash) == true) playerFileView?.optJSONObject(hash) else null
+                    videoPosition = if (latestTimeline?.has("time") == true)
+                        (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
+                    else
+                        (timeline.optDouble("time", 0.0) * 1000).toLong()
+                }
             }
 
-            if (jsonObject.has("playlist")) {
+            if (jsonObject.has("playlist") && playerAutoNext) {
                 playJSONArray = jsonObject.getJSONArray("playlist")
-                val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+&)preload".toRegex()
+                val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload\$".toRegex()
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
-                        val url = io.optString("url")
-                            .replace(badLinkPattern, "$1play")
+                        val url = if (torrserverPreload && internalTorrserve)
+                            io.optString("url").replace(badLinkPattern, "$1&play")
+                        else
+                            io.optString("url")
                         if (url != io.optString("url")) {
                             io.put("url", url)
                             playJSONArray.put(i, io)
@@ -584,7 +594,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         )
                     }
                 }
-            } else {
+            }
+            if (playIndex < 0) {
+                // current url not found in playlist or playlist missing
+                playIndex = 0;
                 playJSONArray = JSONArray()
                 playJSONArray.put(jsonObject)
             }
@@ -859,6 +872,16 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
         }
         return false
+    }
+
+    fun runJsStorageChangeField(name: String) {
+        runVoidJsFunc(
+            "AndroidJS.StorageChange",
+            "JSON.stringify({" +
+                    "name: '${name}'," +
+                    "value: Lampa.Storage.field('${name}')" +
+                    "})"
+        )
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {

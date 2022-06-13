@@ -25,13 +25,25 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
+            "file_view" -> {
+                MainActivity.playerFileView = eo.optJSONObject("value")
+            }
+            "playlist_next" -> {
+                MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
+            }
+            "torrserver_preload" -> {
+                MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
+            }
+            "internal_torrclient" -> {
+                MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
+            }
         }
     }
 
     @JavascriptInterface
     fun appVersion(): String {
         // версия AndroidJS для сайта указывается через тире, например 1.0.1-16 - 16 версия
-        return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE // todo последняя версия от Немирова 7.7.7-77
+        return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE
     }
 
     @JavascriptInterface
