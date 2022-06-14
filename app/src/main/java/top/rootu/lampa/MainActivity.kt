@@ -452,7 +452,12 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
-    private fun resultPlayer(endedVideoUrl: String, pos: Int = 0, dur: Int = 0, ended: Boolean = false) {
+    private fun resultPlayer(
+        endedVideoUrl: String,
+        pos: Int = 0,
+        dur: Int = 0,
+        ended: Boolean = false
+    ) {
         val videoUrl =
             if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
             else endedVideoUrl
@@ -597,7 +602,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
             if (playIndex < 0) {
                 // current url not found in playlist or playlist missing
-                playIndex = 0;
+                playIndex = 0
                 playJSONArray = JSONArray()
                 playJSONArray.put(jsonObject)
             }
