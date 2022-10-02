@@ -129,6 +129,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             jSONObject = JSONObject(str)
             val url = jSONObject.optString("url")
             val data = jSONObject.opt("post_data")
+            val headers = jSONObject.optJSONObject("headers")
             var contentType = jSONObject.optString("contentType")
             var requestContent = ""
             if (data != null) {
@@ -156,10 +157,10 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     try {
                         s = if (TextUtils.isEmpty(finalContentType)) {
                             // GET
-                            Http.Get(url)
+                            Http.Get(url, headers)
                         } else {
                             // POST
-                            Http.Post(url, finalRequestContent, finalContentType)
+                            Http.Post(url, finalRequestContent, finalContentType, headers)
                         }
                     } catch (e: Exception) {
                         json = JSONObject()
@@ -231,11 +232,6 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                 mainActivity?.runVoidJsFunc("window.voiceResult", "''")
             }
         }
-    }
-
-    @JavascriptInterface
-    fun showInput(inputText: String?) {
-        // todo Ввод с андройд клавиатуры с последующей передачей результата через JS
     }
 
     @JavascriptInterface

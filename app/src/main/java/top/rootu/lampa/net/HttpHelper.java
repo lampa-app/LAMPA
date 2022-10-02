@@ -132,6 +132,10 @@ public class HttpHelper {
     }
 
     public static DefaultHttpClient createStandardHttpClient(boolean sslTrustAll) {
+        return createStandardHttpClient(sslTrustAll, null);
+    }
+
+    public static DefaultHttpClient createStandardHttpClient(boolean sslTrustAll, String ua) {
 
         // Register http and https sockets
         SchemeRegistry registry = new SchemeRegistry();
@@ -148,7 +152,9 @@ public class HttpHelper {
         HttpParams httpparams = new BasicHttpParams();
         HttpConnectionParams.setConnectionTimeout(httpparams, DEFAULT_CONNECTION_TIMEOUT);
         HttpConnectionParams.setSoTimeout(httpparams, DEFAULT_CONNECTION_TIMEOUT);
-        if (userAgent != null) {
+        if (ua != null) {
+            HttpProtocolParams.setUserAgent(httpparams, ua);
+        } else if (userAgent != null) {
             HttpProtocolParams.setUserAgent(httpparams, userAgent);
         }
 

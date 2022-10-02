@@ -6,9 +6,11 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Iterator;
 
 public class Http {
     public static int lastErrorCode = 1000;
@@ -38,19 +40,57 @@ public class Http {
         return content.toString();
     }
 
-    public static String Get(String url) throws Exception {
-        HttpClient client = HttpHelper.createStandardHttpClient(false);
+    public static String Get(String url, JSONObject headers) throws Exception {
+        String ua = HttpHelper.userAgent;
         HttpGet request = new HttpGet(url);
+        if (headers != null) {
+            Iterator<String> keys = headers.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                String val = headers.optString(key);
+                switch (key.toLowerCase()) {
+                    case "user-agent":
+                        ua = val;
+                    case "content-length":
+                        break;
+                    default:
+                        request.setHeader(key, val);
+                }
+            }
+        }
+        HttpClient client = HttpHelper.createStandardHttpClient(false, ua);
         HttpResponse response = client.execute(request);
         return getContent(response);
     }
 
-    public static String Post(String url, String data, String contentType) throws Exception {
-        HttpClient client = HttpHelper.createStandardHttpClient(false);
+    public static String Post(String url, String data, String contentType, JSONObject headers) throws Exception {
+        String ua = HttpHelper.userAgent;
         HttpPost request = new HttpPost(url);
         StringEntity se = new StringEntity(data);
         request.setEntity(se);
-        request.setHeader("Content-type", contentType);
+        boolean setContentType = false;
+        if (headers != null) {
+            Iterator<String> keys = headers.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                String val = headers.optString(key);
+                request.setHeader(key, val);
+                switch (key.toLowerCase()) {
+                    case "user-agent":
+                        ua = val;
+                    case "content-length":
+                        break;
+                    case "content-type":
+                        setContentType = true;
+                    default:
+                        request.setHeader(key, val);
+                }
+            }
+        }
+        if (!setContentType && !contentType.isEmpty()) {
+            request.setHeader("Content-Type", contentType);
+        }
+        HttpClient client = HttpHelper.createStandardHttpClient(false, ua);
         HttpResponse response = client.execute(request);
         return getContent(response);
     }
