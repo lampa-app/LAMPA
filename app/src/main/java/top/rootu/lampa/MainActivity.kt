@@ -42,6 +42,7 @@ import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import top.rootu.lampa.helpers.FileHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
+import top.rootu.lampa.net.HttpHelper
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern
@@ -306,7 +307,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
             })
         }
-        browser?.userAgentString = "lampa_client"
+        browser?.userAgentString += " lampa_client"
+        HttpHelper.userAgent = browser?.userAgentString
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
