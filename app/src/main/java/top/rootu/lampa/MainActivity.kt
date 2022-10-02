@@ -44,6 +44,7 @@ import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import java.io.File
 import java.util.*
+import java.util.regex.Pattern
 
 
 class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
@@ -72,6 +73,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
+        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
+        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
+        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
+        private const val IP6_REGEX =
+            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        private const val URL_REGEX =
+            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,})(:[0-9]+)?(/.*)?$"
+        private val URL_PATTERN = Pattern.compile(URL_REGEX)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -334,7 +343,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             LAMPA_URL = input.text.toString()
-            if (android.util.Patterns.WEB_URL.matcher(LAMPA_URL!!).matches()) {
+            if (URL_PATTERN.matcher(LAMPA_URL!!).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (mSettings?.getString(APP_URL, "") != LAMPA_URL) {
                     val editor = mSettings?.edit()
