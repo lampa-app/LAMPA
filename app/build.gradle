@@ -44,8 +44,6 @@ android {
         // Use SupportLibrary for vectors
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        // https://stackoverflow.com/a/55121645
-        useLibrary 'org.apache.http.legacy'
     }
 
     signingConfigs {
@@ -98,6 +96,7 @@ android {
 }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
     // netcipher
