@@ -21,7 +21,7 @@
     <string name="update_install">安装</string>
     <string name="update_cur_version">安装版本</string>
     <string name="update_new_version">找到新版本</string>
-    <string name="update_loading">加载更新...</string>
+    <string name="update_loading">加载更新…</string>
     <string name="use_as_default">记住选择</string>
     <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="xwalk_market_crosswalk">Google Play</string>
