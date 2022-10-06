@@ -289,16 +289,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             "'change'," +
                                     "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                         )
-                        runVoidJsFunc(
-                            "Lampa.Params.select",
-                            "'player_timecode'," +
-                                    "{" +
-                                    "'again': 'Начать с начала'," +
-                                    "'continue': 'Продолжить'," +
-                                    "'ask': 'На усмотрение плеера'" +
-                                    "}," +
-                                    "'${playerTimeCode}'"
-                        )
                         runJsStorageChangeField("player_timecode")
                         runJsStorageChangeField("playlist_next")
                         runJsStorageChangeField("torrserver_preload")

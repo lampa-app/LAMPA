@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
+import org.brotli.dec.BrotliInputStream;
 
 /**
  * Provides a set of general helper methods that can be used in web-based communication.
@@ -38,7 +40,7 @@ import java.util.zip.GZIPInputStream;
  */
 public class HttpHelper {
 
-    public static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
+    public static final int DEFAULT_CONNECTION_TIMEOUT = 15000;
 
     /**
      * The 'User-Agent' name to send to the server
@@ -46,25 +48,38 @@ public class HttpHelper {
     public static String userAgent = "Mozilla/5.0";
 
     /**
-     * HTTP request interceptor to allow for GZip-encoded data transfer
+     * HTTP request interceptor to allow for gzip, deflate, br-encoded data transfer
      */
-    public static HttpRequestInterceptor gzipRequestInterceptor = (request, context) -> {
+    public static HttpRequestInterceptor encodingRequestInterceptor = (request, context) -> {
         if (!request.containsHeader("Accept-Encoding")) {
-            request.addHeader("Accept-Encoding", "gzip");
+            request.addHeader("Accept-Encoding", "gzip, deflate, br");
+        }
+        if (!request.containsHeader("Accept")) {
+            request.addHeader(
+                    "Accept",
+                    "*/*"
+            );
         }
     };
     /**
-     * HTTP response interceptor that decodes GZipped data
+     * HTTP response interceptor that decodes gzip, deflate, br data
      */
-    public static HttpResponseInterceptor gzipResponseInterceptor = (response, context) -> {
+    public static HttpResponseInterceptor encodingResponseInterceptor = (response, context) -> {
         HttpEntity entity = response.getEntity();
         Header ceheader = entity.getContentEncoding();
         if (ceheader != null) {
             HeaderElement[] codecs = ceheader.getElements();
             for (HeaderElement codec : codecs) {
-
                 if (codec.getName().equalsIgnoreCase("gzip")) {
                     response.setEntity(new GzipDecompressingEntity(response.getEntity()));
+                    return;
+                }
+                if (codec.getName().equalsIgnoreCase("deflate")) {
+                    response.setEntity(new DeflateDecompressingEntity(response.getEntity()));
+                    return;
+                }
+                if (codec.getName().equalsIgnoreCase("br")) {
+                    response.setEntity(new BrotliDecompressingEntity(response.getEntity()));
                     return;
                 }
             }
@@ -136,6 +151,10 @@ public class HttpHelper {
     }
 
     public static DefaultHttpClient createStandardHttpClient(boolean sslTrustAll, String ua) {
+        return createStandardHttpClient(sslTrustAll, null, DEFAULT_CONNECTION_TIMEOUT);
+    }
+
+    public static DefaultHttpClient createStandardHttpClient(boolean sslTrustAll, String ua, int timeout) {
 
         // Register http and https sockets
         SchemeRegistry registry = new SchemeRegistry();
@@ -150,8 +169,8 @@ public class HttpHelper {
 
         // Standard parameters
         HttpParams httpparams = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(httpparams, DEFAULT_CONNECTION_TIMEOUT);
-        HttpConnectionParams.setSoTimeout(httpparams, DEFAULT_CONNECTION_TIMEOUT);
+        HttpConnectionParams.setConnectionTimeout(httpparams, timeout);
+        HttpConnectionParams.setSoTimeout(httpparams, timeout);
         if (ua != null) {
             HttpProtocolParams.setUserAgent(httpparams, ua);
         } else if (userAgent != null) {
@@ -161,9 +180,9 @@ public class HttpHelper {
         DefaultHttpClient httpclient =
                 new DefaultHttpClient(new ThreadSafeClientConnManager(httpparams, registry), httpparams);
 
-        // add gzip support
-        httpclient.addRequestInterceptor(gzipRequestInterceptor);
-        httpclient.addResponseInterceptor(gzipResponseInterceptor);
+        // add gzip, deflate, br support
+        httpclient.addRequestInterceptor(encodingRequestInterceptor);
+        httpclient.addResponseInterceptor(encodingResponseInterceptor);
 
         return httpclient;
 
@@ -258,7 +277,6 @@ public class HttpHelper {
 
             // the wrapped entity's getContent() decides about repeatability
             InputStream wrappedin = wrappedEntity.getContent();
-
             return new GZIPInputStream(wrappedin);
         }
 
@@ -268,5 +286,49 @@ public class HttpHelper {
             return -1;
         }
 
+    }
+    /**
+     * HTTP entity wrapper to decompress deflate HTTP responses
+     */
+    private static class DeflateDecompressingEntity extends HttpEntityWrapper {
+
+        public DeflateDecompressingEntity(final HttpEntity entity) {
+            super(entity);
+        }
+
+        @Override
+        public InputStream getContent() throws IOException, IllegalStateException {
+
+            // the wrapped entity's getContent() decides about repeatability
+            InputStream wrappedin = wrappedEntity.getContent();
+            return new InflaterInputStream(wrappedin);
+        }
+
+        @Override
+        public long getContentLength() {
+            return -1;
+        }
+    }
+    /**
+     * HTTP entity wrapper to decompress br HTTP responses
+     */
+    private static class BrotliDecompressingEntity extends HttpEntityWrapper {
+
+        public BrotliDecompressingEntity(final HttpEntity entity) {
+            super(entity);
+        }
+
+        @Override
+        public InputStream getContent() throws IOException, IllegalStateException {
+
+            // the wrapped entity's getContent() decides about repeatability
+            InputStream wrappedin = wrappedEntity.getContent();
+            return new BrotliInputStream(wrappedin);
+        }
+
+        @Override
+        public long getContentLength() {
+            return -1;
+        }
     }
 }

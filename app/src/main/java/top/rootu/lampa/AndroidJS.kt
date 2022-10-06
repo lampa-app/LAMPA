@@ -131,6 +131,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             val data = jSONObject.opt("post_data")
             val headers = jSONObject.optJSONObject("headers")
             var contentType = jSONObject.optString("contentType")
+            val timeout = jSONObject.optInt("timeout", 15000)
             var requestContent = ""
             if (data != null) {
                 if (data is String) {
@@ -157,10 +158,10 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     try {
                         s = if (TextUtils.isEmpty(finalContentType)) {
                             // GET
-                            Http.Get(url, headers)
+                            Http.Get(url, headers, timeout)
                         } else {
                             // POST
-                            Http.Post(url, finalRequestContent, finalContentType, headers)
+                            Http.Post(url, finalRequestContent, finalContentType, headers, timeout)
                         }
                     } catch (e: Exception) {
                         json = JSONObject()
@@ -222,7 +223,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
 
     @JavascriptInterface
     fun voiceStart() {
-        // todo Голосовой ввод с последующей передачей результата через JS
+        // Голосовой ввод с последующей передачей результата через JS
         mainActivity?.runOnUiThread {
             try {
                 mainActivity?.displaySpeechRecognizer()
