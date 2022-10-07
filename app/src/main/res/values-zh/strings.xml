@@ -16,10 +16,10 @@
     <string name="search_no_voice_recognizer">没有语音识别应用</string>
     <string name="search_requires_record_audio">应用需要录音权限才能使用此功能！</string>
     <string name="search_voice_hint">说出您的问题</string>
-    <string name="update_app_found">​​应用有新更新 %s 可用</string>
+    <string name="update_app_found"> %s应用有新更新可升级</string>
     <string name="update_changes">变更</string>
     <string name="update_install">安装</string>
-    <string name="update_cur_version">安装版本</string>
+    <string name="update_cur_version">当前安装版本</string>
     <string name="update_new_version">找到新版本</string>
     <string name="update_loading">加载更新…</string>
     <string name="use_as_default">记住选择</string>
