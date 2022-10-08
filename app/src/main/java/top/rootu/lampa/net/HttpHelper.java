@@ -160,9 +160,9 @@ public class HttpHelper {
         SchemeRegistry registry = new SchemeRegistry();
         SocketFactory httpsSocketFactory;
         if (sslTrustAll) {
-            httpsSocketFactory = new TlsSniSocketFactory(true);
+            httpsSocketFactory = new TlsSniSocketFactory(true, timeout);
         } else {
-            httpsSocketFactory = new TlsSniSocketFactory();
+            httpsSocketFactory = new TlsSniSocketFactory(timeout);
         }
         registry.register(new Scheme("http", new PlainSocketFactory(), 80));
         registry.register(new Scheme("https", httpsSocketFactory, 443));

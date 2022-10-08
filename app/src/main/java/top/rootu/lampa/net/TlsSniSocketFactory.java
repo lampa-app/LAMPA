@@ -39,25 +39,49 @@ import javax.net.ssl.TrustManager;
  * Finally, the ignoring of all SSL certificates (and hostname) is possible (which is obviously very insecure!).
  */
 public class TlsSniSocketFactory implements LayeredSocketFactory {
+    private static final String[] TLS_V12_ONLY = {"TLSv1.2"};
 
     private final static HostnameVerifier hostnameVerifier = new StrictHostnameVerifier();
+    public static int DEFAULT_HANDSHAKE_TIMEOUT = 15000;
 
     private final boolean acceptAllCertificates;
     private final String selfSignedCertificateKey;
+    private final int handshakeTimeoutMillis;
 
     public TlsSniSocketFactory() {
         this.acceptAllCertificates = false;
         this.selfSignedCertificateKey = null;
+        this.handshakeTimeoutMillis = DEFAULT_HANDSHAKE_TIMEOUT;
+    }
+
+    public TlsSniSocketFactory(int handshakeTimeoutMillis) {
+        this.acceptAllCertificates = false;
+        this.selfSignedCertificateKey = null;
+        this.handshakeTimeoutMillis = handshakeTimeoutMillis;
     }
 
     public TlsSniSocketFactory(String certKey) {
         this.acceptAllCertificates = false;
         this.selfSignedCertificateKey = certKey;
+        this.handshakeTimeoutMillis = DEFAULT_HANDSHAKE_TIMEOUT;
+    }
+
+    public TlsSniSocketFactory(String certKey, int handshakeTimeoutMillis) {
+        this.acceptAllCertificates = false;
+        this.selfSignedCertificateKey = certKey;
+        this.handshakeTimeoutMillis = handshakeTimeoutMillis;
     }
 
     public TlsSniSocketFactory(boolean acceptAllCertificates) {
         this.acceptAllCertificates = acceptAllCertificates;
         this.selfSignedCertificateKey = null;
+        this.handshakeTimeoutMillis = DEFAULT_HANDSHAKE_TIMEOUT;
+    }
+
+    public TlsSniSocketFactory(boolean acceptAllCertificates, int handshakeTimeoutMillis) {
+        this.acceptAllCertificates = acceptAllCertificates;
+        this.selfSignedCertificateKey = null;
+        this.handshakeTimeoutMillis = handshakeTimeoutMillis;
     }
 
     // Plain TCP/IP (layer below TLS)
@@ -91,7 +115,7 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
         }
 
         SSLCertificateSocketFactory sslSocketFactory =
-                (SSLCertificateSocketFactory) SSLCertificateSocketFactory.getDefault(0);
+                (SSLCertificateSocketFactory) SSLCertificateSocketFactory.getDefault(this.handshakeTimeoutMillis);
 
         // For self-signed certificates use a custom trust manager
         if (acceptAllCertificates) {
@@ -103,8 +127,12 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
         // create and connect SSL socket, but don't do hostname/certificate verification yet
         @SuppressLint("SSLCertificateSocketFactoryCreateSocket") SSLSocket ssl = (SSLSocket) sslSocketFactory.createSocket(InetAddress.getByName(host), port);
 
-        // enable TLSv1.1/1.2 if available
-        ssl.setEnabledProtocols(ssl.getSupportedProtocols());
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
+            // enable TLSv1.2 only
+            ssl.setEnabledProtocols(TLS_V12_ONLY);
+        } else {
+            ssl.setEnabledProtocols(ssl.getSupportedProtocols());
+        }
 
         // set up SNI before the handshake
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {

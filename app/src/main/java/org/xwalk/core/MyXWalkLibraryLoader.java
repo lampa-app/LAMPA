@@ -26,11 +26,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
 import top.rootu.lampa.helpers.FileHelpers;
+import top.rootu.lampa.net.TlsSocketFactory;
 
 /**
  * MyXWalkLibraryLoader is a low level inteface to schedule decompressing, downloading, activating
@@ -517,13 +520,13 @@ class MyXWalkLibraryLoader {
     // This is used only in download mode where we want to save the downloaded file to application
     // private storage and it's also intended to solve the exception found in XWALK-5951
     private static class HttpDownloadTask extends AsyncTask<Void, Integer, Integer> {
-        private static final String XWALK_DOWNLOAD_DIR = "xwalk_download";
         private static final int UPDATE_INTERVAL_MS = 500;
         private static final int DOWNLOAD_SUCCESS = 0;
         private static final int DOWNLOAD_FAILED = -1;
 
         private final DownloadListener mListener;
         private final Context mContext;
+        private final File XWALK_DOWNLOAD_DIR;
         private String mDownloadUrl;
         private File mDownloadedFile;
         private long mProgressUpdateTime;
@@ -533,6 +536,7 @@ class MyXWalkLibraryLoader {
             mListener = listener;
             mContext = context;
             mDownloadUrl = url;
+            XWALK_DOWNLOAD_DIR = FileHelpers.getDownloadDir(mContext);
         }
 
         @Override
@@ -540,17 +544,7 @@ class MyXWalkLibraryLoader {
             Log.d(TAG, "HttpDownloadTask started, " + mDownloadUrl);
             sActiveTask = this;
 
-            String savedFile = DEFAULT_DOWNLOAD_FILE_NAME;
-            try {
-                String name = new File(new URL(mDownloadUrl).getPath()).getName();
-                if (!name.isEmpty()) savedFile = name;
-            } catch (MalformedURLException | NullPointerException e) {
-                Log.e(TAG, "Invalid download URL " + mDownloadUrl);
-                mDownloadUrl = null;
-                return;
-            }
-            mDownloadedFile = new File(mContext.getDir(XWALK_DOWNLOAD_DIR, Context.MODE_PRIVATE),
-                    savedFile);
+            mDownloadedFile = new File(XWALK_DOWNLOAD_DIR, DEFAULT_DOWNLOAD_FILE_NAME);
             mDownloadedFile.mkdirs();
             mDownloadedFile.deleteOnExit();
 
@@ -567,6 +561,8 @@ class MyXWalkLibraryLoader {
             HttpURLConnection connection = null;
             try {
                 URL url = new URL(mDownloadUrl);
+                SSLSocketFactory sf = new TlsSocketFactory();
+                HttpsURLConnection.setDefaultSSLSocketFactory(sf);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
 

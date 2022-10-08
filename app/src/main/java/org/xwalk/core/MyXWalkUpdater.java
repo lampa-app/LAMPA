@@ -22,6 +22,7 @@ import java.io.File;
 import java.util.List;
 
 import top.rootu.lampa.helpers.Helpers;
+import top.rootu.lampa.helpers.PermHelpers;
 
 /**
  * <p><code>MyXWalkUpdater</code> is a follow-up solution for {@link XWalkInitializer} in case the
@@ -365,6 +366,9 @@ public class MyXWalkUpdater {
         String url = MyXWalkEnvironment.getXWalkApkUrl();
         if (mUpdateListener != null) {
             if (!url.isEmpty()) {
+                if (!PermHelpers.hasStoragePermissions(mContext)) {
+                    PermHelpers.verifyStoragePermissions(mContext);
+                }
                 mDownloadCommand = this::downloadXWalkApk;
             }
             if (isGooglePlayInstalled()) {
@@ -421,7 +425,7 @@ public class MyXWalkUpdater {
     private void downloadXWalkApk() {
         String url = MyXWalkEnvironment.getXWalkApkUrl();
         if (!url.isEmpty()) {
-            MyXWalkLibraryLoader.startDownloadManager(new ForegroundListener(), mContext, url);
+            MyXWalkLibraryLoader.startHttpDownload(new ForegroundListener(), mContext, url);
             return;
         }
         appStoreXWalkApk();

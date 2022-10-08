@@ -161,9 +161,13 @@ public class MyXWalkEnvironment {
         return abi.equals("x86") || abi.equals("x86_64");
     }
 
+    @SuppressLint("NewApi")
     public static boolean is64bitDevice() {
-        String abi = getDeviceAbi();
-        return abi.equals("arm64-v8a") || abi.equals("x86_64");
+        try {
+            return Build.SUPPORTED_64_BIT_ABIS.length > 0;
+        } catch (NoSuchFieldError e) {
+            return false;
+        }
     }
 
     public static boolean is64bitApp() {
@@ -196,7 +200,12 @@ public class MyXWalkEnvironment {
                         throw new RuntimeException("Unexpected CPU_ABI: " + abi);
                 }
             } catch (NoSuchFieldError e) {
-                String arch = System.getProperty("os.arch").toLowerCase();
+                String arch = "undefined";
+                try {
+                    arch = System.getProperty("os.arch").toLowerCase();
+                } catch (NullPointerException unused) {
+                    arch = getDeviceAbi();
+                }
                 switch (arch) {
                     case "x86":
                     case "i686":

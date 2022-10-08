@@ -13,12 +13,15 @@ import java.io.InputStream;
 import java.util.Iterator;
 
 public class Http {
-    public static int lastErrorCode = 1000;
+    private int lastErrorCode = 0;
 
-    public static String getContent(HttpResponse response) throws Exception {
+    public Http() {
+    }
+
+    public String getContent(HttpResponse response) throws Exception {
         int code = response.getStatusLine().getStatusCode();
         if (code != 200) {
-            lastErrorCode = code;
+            this.lastErrorCode = code;
             throw new Exception("Invalid response from server: " + response.getStatusLine().toString());
         }
 
@@ -40,7 +43,7 @@ public class Http {
         return content.toString();
     }
 
-    public static String Get(String url, JSONObject headers, int timeout) throws Exception {
+    public String Get(String url, JSONObject headers, int timeout) throws Exception {
         String ua = HttpHelper.userAgent;
         HttpGet request = new HttpGet(url);
         if (headers != null) {
@@ -58,12 +61,12 @@ public class Http {
                 }
             }
         }
-        HttpClient client = HttpHelper.createStandardHttpClient(false, ua, timeout);
+        HttpClient client = HttpHelper.createStandardHttpClient(true, ua, timeout);
         HttpResponse response = client.execute(request);
         return getContent(response);
     }
 
-    public static String Post(String url, String data, String contentType, JSONObject headers, int timeout) throws Exception {
+    public String Post(String url, String data, String contentType, JSONObject headers, int timeout) throws Exception {
         String ua = HttpHelper.userAgent;
         HttpPost request = new HttpPost(url);
         StringEntity se = new StringEntity(data);
@@ -90,8 +93,12 @@ public class Http {
         if (!setContentType && !contentType.isEmpty()) {
             request.setHeader("Content-Type", contentType);
         }
-        HttpClient client = HttpHelper.createStandardHttpClient(false, ua, timeout);
+        HttpClient client = HttpHelper.createStandardHttpClient(true, ua, timeout);
         HttpResponse response = client.execute(request);
         return getContent(response);
+    }
+
+    public int getLastErrorCode() {
+        return lastErrorCode;
     }
 }

@@ -155,18 +155,19 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     var s: String
                     var action = "complite"
                     val json: JSONObject?
+                    val http = Http()
                     try {
                         s = if (TextUtils.isEmpty(finalContentType)) {
                             // GET
-                            Http.Get(url, headers, timeout)
+                            http.Get(url, headers, timeout)
                         } else {
                             // POST
-                            Http.Post(url, finalRequestContent, finalContentType, headers, timeout)
+                            http.Post(url, finalRequestContent, finalContentType, headers, timeout)
                         }
                     } catch (e: Exception) {
                         json = JSONObject()
                         try {
-                            json.put("status", Http.lastErrorCode)
+                            json.put("status", http.lastErrorCode)
                             json.put("message", "request error: " + e.message)
                         } catch (jsonException: JSONException) {
                             jsonException.printStackTrace()

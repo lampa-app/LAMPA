@@ -245,7 +245,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
     private fun setupXWalkApkUrl() {
         val abi = MyXWalkEnvironment.getRuntimeAbi()
-        val apkUrl = "http://download.rootu.top/xwalk_apk/?arch=$abi"
+        val apkUrl = "https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_$abi.apk"
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
