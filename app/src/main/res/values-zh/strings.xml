@@ -25,4 +25,5 @@
     <string name="use_as_default">记住选择</string>
     <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="xwalk_market_crosswalk">Google Play</string>
+    <string name="apk_download_proxy_url>https://ghproxy.com/</string>
 </resources>
