@@ -25,4 +25,5 @@
     <string name="use_as_default">Запомнить выбор</string>
     <string name="xwalk_download_crosswalk">Direct Download</string>
     <string name="xwalk_market_crosswalk">Google Play</string>
+    <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
 </resources>
