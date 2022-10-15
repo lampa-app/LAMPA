@@ -97,7 +97,12 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.11'
+    // okhttp for android 4.1+
+    //noinspection GradleDependency
+    implementation 'com.squareup.okhttp3:okhttp:3.12.12' // 3.12.12 - latest version for API 16
+    implementation 'com.squareup.okhttp3:okhttp-dnsoverhttps:3.12.12'
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
     // netcipher

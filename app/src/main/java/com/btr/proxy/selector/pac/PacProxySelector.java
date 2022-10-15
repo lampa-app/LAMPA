@@ -1,5 +1,9 @@
 package com.btr.proxy.selector.pac;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +15,7 @@ import android.util.Log;
  * 
  * @author Bernd Rosstauscher (proxyvole@rosstauscher.de) Copyright 2009
  ****************************************************************************/
-public class PacProxySelector {
+public class PacProxySelector extends ProxySelector {
 
 	// private static final String PAC_PROXY = "PROXY";
 	private static final String PAC_SOCKS = "SOCKS";
@@ -54,7 +58,7 @@ public class PacProxySelector {
 	 * 
 	 * @see java.net.ProxySelector#select(java.net.URI)
 	 ************************************************************************/
-	public List<Proxy> select(URI uri) {
+	public List<java.net.Proxy> select(URI uri) {
 		if (uri == null || uri.getHost() == null) {
 			throw new IllegalArgumentException("URI must not be null.");
 		}
@@ -69,6 +73,11 @@ public class PacProxySelector {
 		return findProxy(uri);
 	}
 
+	@Override
+	public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+
+	}
+
 	/*************************************************************************
 	 * Evaluation of the given URL with the PAC-file.
 	 * 
@@ -81,9 +90,9 @@ public class PacProxySelector {
 	 * @return <code>Proxy</code>-object list as result of the evaluation.
 	 ************************************************************************/
 
-	private List<Proxy> findProxy(URI uri) {
+	private List<java.net.Proxy> findProxy(URI uri) {
 		try {
-			List<Proxy> proxies = new ArrayList<Proxy>();
+			List<java.net.Proxy> proxies = new ArrayList<>();
 			String parseResult = this.pacScriptParser.evaluate(uri.toString(),
 					uri.getHost());
 			Log.d(TAG, "findProxy return "+ parseResult);
@@ -107,16 +116,16 @@ public class PacProxySelector {
 	 * 
 	 * @param pacResult
 	 *            the result from the PAC parser.
-	 * @return a Proxy
+	 * @return a java.net.Proxy
 	 ************************************************************************/
 
-	private Proxy buildProxyFromPacResult(String pacResult) {
+	private java.net.Proxy buildProxyFromPacResult(String pacResult) {
 		if (pacResult == null || pacResult.trim().length() < 6) {
-			return Proxy.NO_PROXY;
+			return java.net.Proxy.NO_PROXY;
 		}
 		String proxyDef = pacResult.trim();
 		if (proxyDef.toUpperCase().startsWith(PAC_DIRECT)) {
-			return Proxy.NO_PROXY;
+			return java.net.Proxy.NO_PROXY;
 		}
 
 		// Check proxy type.
@@ -129,7 +138,7 @@ public class PacProxySelector {
 		}
 
 		String host = proxyDef.substring(6);
-		Integer port = 80;
+		int port = 80;
 		if (type.equals(Proxy.TYPE_HTTPS)) {
 			port = 443;
 		}
@@ -140,7 +149,9 @@ public class PacProxySelector {
 			port = Integer.parseInt(host.substring(indexOfPort + 1).trim());
 			host = host.substring(0, indexOfPort).trim();
 		}
+		java.net.Proxy.Type pType = type.equals(Proxy.TYPE_SOCKS5) ? java.net.Proxy.Type.SOCKS : java.net.Proxy.Type.HTTP;
+		InetSocketAddress sa = new InetSocketAddress(host, port);
 
-		return new Proxy(host, port, type);
+		return new java.net.Proxy(pType, sa);
 	}
 }

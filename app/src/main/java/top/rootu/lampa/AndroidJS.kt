@@ -129,7 +129,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             jSONObject = JSONObject(str)
             val url = jSONObject.optString("url")
             val data = jSONObject.opt("post_data")
-            val headers = jSONObject.optJSONObject("headers")
+            var headers = jSONObject.optJSONObject("headers")
             var contentType = jSONObject.optString("contentType")
             val timeout = jSONObject.optInt("timeout", 15000)
             var requestContent = ""
@@ -147,8 +147,24 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     requestContent = data.toString()
                 }
             }
+            if (!requestContent.isEmpty()) {
+                if (headers == null) {
+                    headers = JSONObject()
+                    headers.put("Content-Type", contentType)
+                } else if(!headers.has("Content-Type")) {
+                    if (headers.has("Content-type")) {
+                        contentType = headers.optString("Content-type", contentType)
+                        headers.remove("Content-type")
+                    }
+                    if (headers.has("content-type")) {
+                        contentType = headers.optString("content-type", contentType)
+                        headers.remove("content-type")
+                    }
+                    headers.put("Content-Type", contentType)
+                }
+            }
             val finalRequestContent = requestContent
-            val finalContentType = contentType
+            val finalHeaders = headers
 
             class LampaAsyncTask : CSyncTask<Void?, String?, String>("LampaAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
@@ -157,12 +173,12 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                     val json: JSONObject?
                     val http = Http()
                     try {
-                        s = if (TextUtils.isEmpty(finalContentType)) {
+                        s = if (TextUtils.isEmpty(finalRequestContent)) {
                             // GET
-                            http.Get(url, headers, timeout)
+                            http.Get(url, finalHeaders, timeout)
                         } else {
                             // POST
-                            http.Post(url, finalRequestContent, finalContentType, headers, timeout)
+                            http.Post(url, finalRequestContent, finalHeaders, timeout)
                         }
                     } catch (e: Exception) {
                         json = JSONObject()
@@ -223,6 +239,16 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    fun setProxyPAC(link: String): Boolean {
+        return Http.setProxyPAC(link)
+    }
+
+    @JavascriptInterface
+    fun getProxyPAC(): String {
+        return Http.getProxyPAC()
+    }
+
+    @JavascriptInterface
     fun voiceStart() {
         // Голосовой ввод с последующей передачей результата через JS
         mainActivity?.runOnUiThread {
@@ -239,6 +265,9 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun updateChannel(where: String?) {
         // todo https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
+        if (where != null) {
+            Log.d(TAG, "updateChannel $where")
+        }
     }
 
     companion object {

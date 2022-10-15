@@ -1,5 +1,7 @@
 package top.rootu.lampa.net;
 
+import android.os.Build;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -61,7 +63,9 @@ public class TlsSocketFactory extends SSLSocketFactory {
     }
 
     private Socket patch(Socket s) {
-        if (s instanceof SSLSocket) {
+        if (s instanceof SSLSocket
+            && Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT
+        ) {
             ((SSLSocket) s).setEnabledProtocols(TLS_V12_ONLY);
         }
         return s;

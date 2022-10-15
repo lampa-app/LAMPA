@@ -2,6 +2,8 @@ package top.rootu.lampa.net;
 
 import android.net.Uri;
 
+import com.btr.proxy.selector.pac.PacProxySelector;
+
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
@@ -26,12 +28,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 import org.brotli.dec.BrotliInputStream;
+
+import okhttp3.OkHttpClient;
 
 /**
  * Provides a set of general helper methods that can be used in web-based communication.
@@ -47,6 +56,39 @@ public class HttpHelper {
      */
     public static String userAgent = "Mozilla/5.0";
 
+    private static InetAddress getByIp(String host) {
+        try {
+            return InetAddress.getByName(host);
+        } catch (UnknownHostException e) {
+            // unlikely
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static OkHttpClient getOkHttpClient(int timeout) {
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        try {
+            //noinspection deprecation
+            builder.sslSocketFactory(new TlsSocketFactory());
+        } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
+        }
+        if (timeout > 0) {
+            builder.connectTimeout(timeout/2L, TimeUnit.MILLISECONDS);
+            builder.readTimeout(timeout, TimeUnit.MILLISECONDS);
+            builder.writeTimeout(timeout, TimeUnit.MILLISECONDS);
+            builder.callTimeout(timeout, TimeUnit.MILLISECONDS);
+        } else {
+            builder.connectTimeout(DEFAULT_CONNECTION_TIMEOUT/2L, TimeUnit.MILLISECONDS);
+            builder.readTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+            builder.writeTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+            builder.callTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+        PacProxySelector ps = Http.getProxySelector();
+        if (ps != null) {
+            builder.proxySelector(ps);
+        }
+        return builder.build();
+    }
     /**
      * HTTP request interceptor to allow for gzip, deflate, br-encoded data transfer
      */
