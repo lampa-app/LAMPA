@@ -11,7 +11,7 @@ import org.xwalk.core.XWalkView
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
-class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
+class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun StorageChange(str: String) {
         val eo: JSONObject = if (str == "\"\"") {
@@ -37,6 +37,9 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             "internal_torrclient" -> {
                 MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
             }
+            "language" -> {
+                mainActivity.setLang(eo.optString("value", "ru"))
+            }
         }
     }
 
@@ -49,7 +52,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun exit() {
         try {
-            mainActivity?.runOnUiThread { mainActivity?.appExit() }
+            mainActivity.runOnUiThread { mainActivity.appExit() }
         } catch (unused: Exception) {
             exitProcess(1)
         }
@@ -86,9 +89,9 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                 intent.putExtra("data", optJSONObject.toString())
             }
         }
-        mainActivity?.runOnUiThread {
+        mainActivity.runOnUiThread {
             try {
-                mainActivity?.startActivity(intent)
+                mainActivity.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
                 App.toast(R.string.no_activity_found, false)
@@ -103,9 +106,9 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             Intent.ACTION_VIEW,
             Uri.parse("https://www.youtube.com/watch?v=$str")
         )
-        mainActivity?.runOnUiThread {
+        mainActivity.runOnUiThread {
             try {
-                mainActivity?.startActivity(intent)
+                mainActivity.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
                 App.toast(R.string.no_activity_found, false)
@@ -115,8 +118,8 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
 
     @JavascriptInterface
     fun clearDefaultPlayer() {
-        mainActivity?.runOnUiThread {
-            mainActivity?.setPlayerPackage("")
+        mainActivity.runOnUiThread {
+            mainActivity.setPlayerPackage("")
             App.toast(R.string.select_player_reset)
         }
     }
@@ -197,7 +200,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
                 }
 
                 override fun onPostExecute(result: String?) {
-                    mainActivity?.runOnUiThread {
+                    mainActivity.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '" + result + "')")
                         XWalkView.evaluateJavascript(js) { value -> Log.i("JSRV", value!!) }
@@ -235,7 +238,7 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
             } catch (ignored: JSONException) {
             }
         }
-        mainActivity?.runOnUiThread { mainActivity?.runPlayer(jsonObject) }
+        mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
     }
 
     @JavascriptInterface
@@ -251,13 +254,13 @@ class AndroidJS(var mainActivity: MainActivity?, var XWalkView: XWalkView) {
     @JavascriptInterface
     fun voiceStart() {
         // Голосовой ввод с последующей передачей результата через JS
-        mainActivity?.runOnUiThread {
+        mainActivity.runOnUiThread {
             try {
-                mainActivity?.displaySpeechRecognizer()
+                mainActivity.displaySpeechRecognizer()
             } catch (e: Exception) {
                 e.printStackTrace()
                 // Очищаем поле ввода
-                mainActivity?.runVoidJsFunc("window.voiceResult", "''")
+                mainActivity.runVoidJsFunc("window.voiceResult", "''")
             }
         }
     }

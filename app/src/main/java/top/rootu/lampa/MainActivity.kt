@@ -40,6 +40,7 @@ import org.json.JSONObject
 import org.xwalk.core.*
 import org.xwalk.core.XWalkInitializer.XWalkInitListener
 import top.rootu.lampa.helpers.FileHelpers
+import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
@@ -64,6 +65,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
+        const val APP_LANG = "lang"
         var LAMPA_URL: String? = ""
         var SELECTED_PLAYER: String? = ""
         var playerTimeCode: String = "continue"
@@ -93,6 +95,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
+
+        val lang = mSettings?.getString(APP_LANG, Locale.getDefault().language)
+        Helpers.setLocale(this, lang)
 
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -293,6 +298,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         runJsStorageChangeField("playlist_next")
                         runJsStorageChangeField("torrserver_preload")
                         runJsStorageChangeField("internal_torrclient")
+                        runJsStorageChangeField("language")
                     }
                 }
             })
@@ -444,6 +450,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             it.onDestroy()
         }
         finishAffinity() // exitProcess(1)
+    }
+
+    fun setLang(lang: String) {
+        Helpers.setLocale(this, lang)
+        val editor = mSettings?.edit()
+        editor?.putString(APP_LANG, lang)
+        editor?.apply()
     }
 
     fun setPlayerPackage(packageName: String) {
