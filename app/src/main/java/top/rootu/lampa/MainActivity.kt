@@ -576,6 +576,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
+            val subsTitles = ArrayList<String>()
+            val subsUrls = ArrayList<String>()
+            val headers = ArrayList<String>()
             playIndex = -1
 
             if (playerTimeCode == "continue" && jsonObject.has("timeline")) {
@@ -590,6 +593,28 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
                 }
             }
+
+            var ua = HttpHelper.userAgent
+            if (jsonObject.has("headers")) {
+                val headersJSON = jsonObject.optJSONObject("headers")
+                if (headersJSON != null) {
+                    val keys = headersJSON.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        val value = headersJSON.optString(key)
+                        when (key.lowercase(Locale.getDefault())) {
+                            "user-agent" -> ua = value
+                            "content-length" -> {}
+                            else -> {
+                                headers.add(key)
+                                headers.add(value)
+                            }
+                        }
+                    }
+                }
+            }
+            headers.add("User-Agent")
+            headers.add(ua)
 
             if (jsonObject.has("playlist") && playerAutoNext) {
                 playJSONArray = jsonObject.getJSONArray("playlist")
@@ -614,6 +639,16 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     }
                 }
             }
+            if (jsonObject.has("subtitles")) {
+                val subsJSONArray = jsonObject.getJSONArray("subtitles")
+                for (i in 0 until subsJSONArray.length()) {
+                    val io = subsJSONArray.getJSONObject(i)
+                    if (io.has("url")) {
+                        subsUrls.add(io.optString("url"))
+                        subsTitles.add(io.optString("label", "Sub " + (i + 1).toString()))
+                    }
+                }
+            }
             if (playIndex < 0) {
                 // current url not found in playlist or playlist missing
                 playIndex = 0
@@ -630,6 +665,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     )
                     intent.putExtra("title", videoTitle)
                     intent.putExtra("sticky", false)
+                    intent.putExtra("headers", headers.toTypedArray())
                     if (playerTimeCode == "continue" && videoPosition > 0L) {
                         intent.putExtra("position", videoPosition.toInt())
                     } else if (playerTimeCode == "again"
@@ -638,18 +674,21 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", 1)
                     }
                     if (listUrls.size > 1) {
-                        val parcelableArr = arrayOfNulls<Parcelable>(listUrls.size)
+                        val parcelableVideoArr = arrayOfNulls<Parcelable>(listUrls.size)
                         for (i in 0 until listUrls.size) {
-                            parcelableArr[i] = Uri.parse(listUrls[i])
+                            parcelableVideoArr[i] = Uri.parse(listUrls[i])
                         }
-                        val ta = listTitles.toTypedArray()
-                        intent.putExtra("video_list", parcelableArr)
-                        intent.putExtra("video_list.name", ta)
-                        intent.putExtra(
-                            "video_list.filename",
-                            ta
-                        ) // todo тут имя файла видео для поиска субтитров в интернете (не обязательно)
+                        intent.putExtra("video_list", parcelableVideoArr)
+                        intent.putExtra("video_list.name", listTitles.toTypedArray())
                         intent.putExtra("video_list_is_explicit", true)
+                    }
+                    if (subsUrls.size > 0) {
+                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+                        for (i in 0 until subsUrls.size) {
+                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+                        }
+                        intent.putExtra("subs", parcelableSubsArr)
+                        intent.putExtra("subs.name", subsTitles.toTypedArray())
                     }
                     intent.putExtra("return_result", true)
                 }

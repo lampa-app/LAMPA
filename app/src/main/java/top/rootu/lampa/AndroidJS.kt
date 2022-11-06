@@ -45,7 +45,6 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
 
     @JavascriptInterface
     fun appVersion(): String {
-        // версия AndroidJS для сайта указывается через тире, например 1.0.1-16 - 16 версия
         return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE
     }
 
