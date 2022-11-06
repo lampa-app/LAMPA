@@ -68,8 +68,9 @@ public class HttpHelper {
     public static OkHttpClient getOkHttpClient(int timeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         try {
-            //noinspection deprecation
-            builder.sslSocketFactory(new TlsSocketFactory());
+            // fix android 4.x TLS and trust all SSL
+            builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
+            builder.hostnameVerifier((hostname, session) -> true);
         } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
         }
         if (timeout > 0) {

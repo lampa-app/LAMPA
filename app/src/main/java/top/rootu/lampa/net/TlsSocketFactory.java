@@ -11,15 +11,18 @@ import java.security.NoSuchAlgorithmException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class TlsSocketFactory extends SSLSocketFactory {
     private static final String[] TLS_V12_ONLY = {"TLSv1.2"};
 
     final SSLSocketFactory delegate;
+    public static final X509TrustManager trustAllCerts = new IgnoreSSLTrustManager();
 
     public TlsSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext context = SSLContext.getInstance("TLSv1.2");
-        context.init(null, null, null);
+        context.init(null, new TrustManager[] {trustAllCerts}, new java.security.SecureRandom());
         this.delegate = context.getSocketFactory();
     }
 
