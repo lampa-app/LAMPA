@@ -172,6 +172,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
+                } else if (it.action.equals("is.xyz.mpv.MPVActivity.result")) { // MPV
+                    when (resultCode) {
+                        RESULT_OK -> {
+                            val pos = it.getIntExtra("position", 0)
+                            val dur = it.getIntExtra("duration", 0)
+                            if (dur > 0) {
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                resultPlayer(videoUrl, pos, dur, false)
+                            } else if (dur == 0 && pos == 0) {
+                                Log.i(TAG, "Playback completed")
+                                resultPlayer(videoUrl, 0, 0, true)
+                            }
+                        }
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
                 } else { // ViMu
                     when (resultCode) {
                         RESULT_FIRST_USER -> {
@@ -691,6 +708,24 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("subs.name", subsTitles.toTypedArray())
                     }
                     intent.putExtra("return_result", true)
+                }
+                "is.xyz.mpv" -> {
+                    // http://mpv-android.github.io/mpv-android/intent.html
+                    intent.setPackage(SELECTED_PLAYER);
+                    if (subsUrls.size > 0) {
+                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+                        for (i in 0 until subsUrls.size) {
+                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+                        }
+                        intent.putExtra("subs", parcelableSubsArr)
+                    }
+                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+                        intent.putExtra("position", videoPosition.toInt())
+                    } else if (playerTimeCode == "again"
+                        || (playerTimeCode == "continue" && videoPosition == 0L)
+                    ) {
+                        intent.putExtra("position", 1)
+                    }
                 }
                 "org.videolan.vlc" -> {
                     // https://wiki.videolan.org/Android_Player_Intents
