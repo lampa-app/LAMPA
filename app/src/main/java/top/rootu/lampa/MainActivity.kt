@@ -657,14 +657,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
             }
             if (jsonObject.has("subtitles")) {
-                val subsJSONArray = jsonObject.getJSONArray("subtitles")
-                for (i in 0 until subsJSONArray.length()) {
-                    val io = subsJSONArray.getJSONObject(i)
-                    if (io.has("url")) {
-                        subsUrls.add(io.optString("url"))
-                        subsTitles.add(io.optString("label", "Sub " + (i + 1).toString()))
+                val subsJSONArray = jsonObject.optJSONArray("subtitles")
+                if (subsJSONArray != null)
+                    for (i in 0 until subsJSONArray.length()) {
+                        val io = subsJSONArray.getJSONObject(i)
+                        if (io.has("url")) {
+                            subsUrls.add(io.optString("url"))
+                            subsTitles.add(io.optString("label", "Sub " + (i + 1).toString()))
+                        }
                     }
-                }
             }
             if (playIndex < 0) {
                 // current url not found in playlist or playlist missing
