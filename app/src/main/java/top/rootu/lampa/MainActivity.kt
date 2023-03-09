@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         private const val IP6_REGEX =
             "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
         private const val URL_REGEX =
-            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z0-9]+\\.)+[-A-Za-z]{2,})(:[0-9]+)?(/.*)?$"
+            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
     }
 
@@ -433,7 +433,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         }
         try {
             Speech.getInstance()?.shutdown()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
         }
     }
 
@@ -712,7 +712,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 }
                 "is.xyz.mpv" -> {
                     // http://mpv-android.github.io/mpv-android/intent.html
-                    intent.setPackage(SELECTED_PLAYER);
+                    intent.setPackage(SELECTED_PLAYER)
                     if (subsUrls.size > 0) {
                         val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
                         for (i in 0 until subsUrls.size) {
