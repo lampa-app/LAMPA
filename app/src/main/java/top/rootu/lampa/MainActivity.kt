@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Parcelable
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
 import android.speech.RecognizerIntent
 import android.text.InputType
 import android.util.Log
@@ -31,7 +33,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import net.gotev.speech.*
 import net.gotev.speech.ui.SpeechProgressView
@@ -125,6 +126,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                     Log.i(TAG, "Playback completed")
                                     resultPlayer(videoUrl, 0, 0, true)
                                 }
+
                                 "user" -> {
                                     val pos = it.getIntExtra("position", 0)
                                     val dur = it.getIntExtra("duration", 0)
@@ -138,17 +140,21 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
                                     }
                                 }
+
                                 else -> {
                                     Log.e(TAG, "Invalid state [endBy=$endBy]")
                                 }
                             }
                         }
+
                         RESULT_CANCELED -> {
                             Log.i(TAG, "Playback stopped by user")
                         }
+
                         RESULT_FIRST_USER -> {
                             Log.e(TAG, "Playback stopped by unknown error")
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -168,6 +174,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 }
                             }
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -185,6 +192,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 resultPlayer(videoUrl, 0, 0, true)
                             }
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -195,6 +203,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
+
                         RESULT_CANCELED -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
@@ -203,9 +212,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 resultPlayer(videoUrl, pos, dur, false)
                             }
                         }
+
                         RESULT_ERROR -> {
                             Log.e(TAG, "Playback error")
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -246,9 +257,12 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // 5. Call mXWalkView.addJavascriptInterface()
         XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
         XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-        // maybe this fixes crashes on mitv2?
-        // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
+        // enable this option switch SurfaceView to TextureView
+        XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true)
         setContentView(R.layout.activity_main)
+        // FIXME! Allow Network on MainThread
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
     }
 
     override fun onXWalkInitStarted() {}
@@ -298,6 +312,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         if (browser == null) {
             browser = findViewById(R.id.xwalkview)
             browser?.setLayerType(View.LAYER_TYPE_NONE, null)
+            browser?.background = null
             val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
             browser?.setResourceClient(object : XWalkResourceClient(browser) {
                 override fun onLoadFinished(view: XWalkView, url: String) {
@@ -322,7 +337,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         }
         browser?.userAgentString += " lampa_client"
         HttpHelper.userAgent = browser?.userAgentString
-        browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
+        // TextureView doesn't support displaying a background drawable
+//        browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
@@ -710,6 +726,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     }
                     intent.putExtra("return_result", true)
                 }
+
                 "is.xyz.mpv" -> {
                     // http://mpv-android.github.io/mpv-android/intent.html
                     intent.setPackage(SELECTED_PLAYER)
@@ -728,6 +745,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", 1)
                     }
                 }
+
                 "org.videolan.vlc" -> {
                     // https://wiki.videolan.org/Android_Player_Intents
                     intent.component = ComponentName(
@@ -745,6 +763,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", 0L)
                     }
                 }
+
                 "com.brouken.player" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("title", videoTitle)
@@ -752,6 +771,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     if (playerTimeCode == "continue" || playerTimeCode == "again")
                         intent.putExtra("position", videoPosition.toInt())
                 }
+
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     // see https://vimu.tv/player-api
@@ -778,6 +798,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     intent.putExtra("forcedirect", true)
                     intent.putExtra("forceresume", true)
                 }
+
                 else -> {
                     intent.setPackage(SELECTED_PLAYER)
                 }

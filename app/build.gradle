@@ -37,7 +37,7 @@ android {
         applicationId "top.rootu.lampa"
         minSdkVersion 16
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 28
+        targetSdkVersion 23
         versionCode getVersionCode()
         versionName getVersionName()
         multiDexEnabled = true
@@ -74,8 +74,20 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    packagingOptions {
+        resources.excludes += "DebugProbesKt.bin"
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    // kotlin-kapt workaround for kotlin_version 1.8.0
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "11"
+        }
     }
 
     // gradle 4.6 migration: disable dimensions mechanism
@@ -109,26 +121,26 @@ dependencies {
     // netcipher
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
-    implementation 'androidx.activity:activity-ktx:1.7.0-alpha02'
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core-ktx:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
-    implementation 'androidx.lifecycle:lifecycle-process:2.5.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
+    implementation 'androidx.lifecycle:lifecycle-process:2.6.1'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
     // material-ui
-    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'com.google.android.material:material:1.8.0'
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     // json serializer
-    implementation 'com.google.code.gson:gson:2.9.0'
+    //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
+    implementation 'com.google.code.gson:gson:2.9.1' // 2.10.1
     // tests
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
     // https://download.01.org/crosswalk/releases/crosswalk/android/stable/latest/
     liteApi 'org.xwalk:xwalk_shared_library:23.53.589.4'

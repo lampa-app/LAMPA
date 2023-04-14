@@ -63,7 +63,7 @@ object Updater {
             val noSSLv3Factory: SSLSocketFactory = TlsOnlySocketFactory(sslContext.socketFactory)
             HttpsURLConnection.setDefaultSSLSocketFactory(noSSLv3Factory)
             HttpsURLConnection.setDefaultHostnameVerifier(trustAllHostnames)
-        } catch (e: GeneralSecurityException) {
+        } catch (_: GeneralSecurityException) {
         }
     }
 
@@ -119,7 +119,7 @@ object Updater {
 
     fun getVersion(): String {
         if (newVersion == null)
-            check()
+            check() // FIXME: Network on MainThread in MainActivity!
         return newVersion?.tag_name?.replace("v", "") ?: ""
     }
 
