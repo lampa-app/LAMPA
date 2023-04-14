@@ -125,6 +125,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                     Log.i(TAG, "Playback completed")
                                     resultPlayer(videoUrl, 0, 0, true)
                                 }
+
                                 "user" -> {
                                     val pos = it.getIntExtra("position", 0)
                                     val dur = it.getIntExtra("duration", 0)
@@ -138,17 +139,21 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
                                     }
                                 }
+
                                 else -> {
                                     Log.e(TAG, "Invalid state [endBy=$endBy]")
                                 }
                             }
                         }
+
                         RESULT_CANCELED -> {
                             Log.i(TAG, "Playback stopped by user")
                         }
+
                         RESULT_FIRST_USER -> {
                             Log.e(TAG, "Playback stopped by unknown error")
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -168,6 +173,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 }
                             }
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -185,6 +191,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 resultPlayer(videoUrl, 0, 0, true)
                             }
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -195,6 +202,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
+
                         RESULT_CANCELED -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
@@ -203,9 +211,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                 resultPlayer(videoUrl, pos, dur, false)
                             }
                         }
+
                         RESULT_ERROR -> {
                             Log.e(TAG, "Playback error")
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -710,6 +720,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     }
                     intent.putExtra("return_result", true)
                 }
+
                 "is.xyz.mpv" -> {
                     // http://mpv-android.github.io/mpv-android/intent.html
                     intent.setPackage(SELECTED_PLAYER)
@@ -728,6 +739,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", 1)
                     }
                 }
+
                 "org.videolan.vlc" -> {
                     // https://wiki.videolan.org/Android_Player_Intents
                     intent.component = ComponentName(
@@ -745,6 +757,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", 0L)
                     }
                 }
+
                 "com.brouken.player" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("title", videoTitle)
@@ -752,6 +765,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     if (playerTimeCode == "continue" || playerTimeCode == "again")
                         intent.putExtra("position", videoPosition.toInt())
                 }
+
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     // see https://vimu.tv/player-api
@@ -778,6 +792,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     intent.putExtra("forcedirect", true)
                     intent.putExtra("forceresume", true)
                 }
+
                 else -> {
                     intent.setPackage(SELECTED_PLAYER)
                 }
