@@ -83,12 +83,6 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    // kotlin-kapt workaround for kotlin_version 1.8.0
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "11"
-        }
-    }
 
     // gradle 4.6 migration: disable dimensions mechanism
     // more: https://proandroiddev.com/advanced-android-flavors-part-4-a-new-version-fc2ad80c01bb

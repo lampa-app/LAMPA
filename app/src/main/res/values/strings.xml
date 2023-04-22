@@ -17,7 +17,6 @@
     <string name="search_requires_record_audio">Приложению требуется разрешение на запись звука, чтобы использовать эту функцию!</string>
     <string name="search_voice_hint">Произнесите запрос</string>
     <string name="update_app_found">Доступно обновление %s</string>
-    <string name="update_changes">Изменения</string>
     <string name="update_install">Установить</string>
     <string name="update_cur_version">Установленная версия</string>
     <string name="update_new_version">Найдена новая версия</string>

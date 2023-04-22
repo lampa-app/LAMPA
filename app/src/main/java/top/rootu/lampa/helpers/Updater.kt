@@ -8,6 +8,9 @@ import androidx.core.content.FileProvider
 import androidx.core.text.HtmlCompat
 import com.google.gson.Gson
 import info.guardianproject.netcipher.client.TlsOnlySocketFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
@@ -119,7 +122,9 @@ object Updater {
 
     fun getVersion(): String {
         if (newVersion == null)
-            check() // FIXME: Network on MainThread in MainActivity!
+            CoroutineScope(Dispatchers.IO).launch {
+                check()
+            }
         return newVersion?.tag_name?.replace("v", "") ?: ""
     }
 
