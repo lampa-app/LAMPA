@@ -2,8 +2,6 @@ package top.rootu.lampa
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.DownloadManager
-import android.app.DownloadManager.Query
 import android.content.*
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.pm.PackageManager
@@ -32,27 +30,27 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import net.gotev.speech.*
 import net.gotev.speech.ui.SpeechProgressView
 import org.json.JSONArray
 import org.json.JSONObject
-import org.xwalk.core.*
-import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import top.rootu.lampa.helpers.FileHelpers
+import org.mozilla.geckoview.*
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
-import java.io.File
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 
-class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
-    private var browser: XWalkView? = null
-    private var mXWalkInitializer: XWalkInitializer? = null
-    private var mXWalkUpdater: MyXWalkUpdater? = null
+class MainActivity : AppCompatActivity() {
+    private var browser: GeckoView? = null
+
     private var mDecorView: View? = null
     private var browserInit = false
     private var mSettings: SharedPreferences? = null
@@ -84,6 +82,21 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         private const val URL_REGEX =
             "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
+
+        lateinit var runtime: GeckoRuntime
+        lateinit var session: GeckoSession
+        suspend fun clearCache(ctx: Context) {
+            suspendCoroutine { cont ->
+                runtime.storageController.clearData(StorageController.ClearFlags.ALL_CACHES).then({
+                    cont.resume(null)
+                    GeckoResult.fromValue(null)
+                }, {
+                    it.printStackTrace()
+                    cont.resumeWithException(it)
+                    GeckoResult.fromValue(null)
+                })
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -236,108 +249,72 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     }
                 // Do something with spokenText.
                 if (spokenText != null) {
-                    runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
+//                    runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
                 }
             }
         }
 
-        // Must call initAsync() before anything that involves the embedding
-        // API, including invoking setContentView() with the layout which
-        // holds the XWalkView object.
-        mXWalkInitializer = XWalkInitializer(this, this)
-        mXWalkInitializer?.initAsync()
+        if (!browserInit) {
+            val builder = GeckoRuntimeSettings.Builder()
+            //if (BuildConfig.DEBUG) {
+            builder.remoteDebuggingEnabled(true)
+            builder.consoleOutput(true)
+            //}
+            builder.aboutConfigEnabled(true)
+            builder.allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
+            runtime = GeckoRuntime.create(this, builder.build())
+            session = GeckoSession()
+            browserInit = true
+            onGeckoInitCompleted()
+        }
 
-        // Until onXWalkInitCompleted() is invoked, you should do nothing with the
-        // embedding API except the following:
-        // 1. Instantiate the XWalkView object
-        // 2. Call XWalkPreferences.setValue()
-        // 3. Call mXWalkView.setXXClient(), e.g., setUIClient
-        // 4. Call mXWalkView.setXXListener(), e.g., setDownloadListener
-        // 5. Call mXWalkView.addJavascriptInterface()
-        XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
-        XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-        // maybe this fixes crashes on mitv2?
-        // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
+        //XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
+
         setContentView(R.layout.activity_main)
     }
 
-    override fun onXWalkInitStarted() {}
-    override fun onXWalkInitCancelled() {
-        // Perform error handling here
-        finish()
-    }
 
-    override fun onXWalkInitFailed() {
-        if (mXWalkUpdater == null) {
-            mXWalkUpdater = MyXWalkUpdater(this, this)
-        }
-        setupXWalkApkUrl()
-        mXWalkUpdater?.updateXWalkRuntime()
-    }
-
-    private fun setupXWalkApkUrl() {
-        val abi = MyXWalkEnvironment.getRuntimeAbi()
-        val apkUrl = String.format(getString(R.string.xwalk_apk_link), abi)
-        mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
-    }
-
-    private fun cleanXwalkDownload() {
-        val savedFile = "xwalk_update.apk"
-        val mDownloadManager: DownloadManager? =
-            getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager?
-        val downloadDir = FileHelpers.getDownloadDir(this) // getCacheDir(context)
-        val downloadFile = File(downloadDir, savedFile)
-        if (downloadFile.isFile && downloadFile.canWrite()) downloadFile.delete()
-        val query = Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL)
-        mDownloadManager?.query(query)?.let {
-            while (it.moveToNext()) {
-                @SuppressLint("Range") val id =
-                    it.getLong(it.getColumnIndex(DownloadManager.COLUMN_ID))
-                @SuppressLint("Range") val localFilename =
-                    it.getString(it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
-                if (localFilename.contains(savedFile)) mDownloadManager.remove(id)
-            }
-        }
-    }
-
-    override fun onXWalkInitCompleted() {
-        // Clean downloads
-        cleanXwalkDownload()
+    fun onGeckoInitCompleted() {
+        //browserInit = true
         // Do anything with the embedding API
-        browserInit = true
         if (browser == null) {
-            browser = findViewById(R.id.xwalkview)
-            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
-            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
-            browser?.setResourceClient(object : XWalkResourceClient(browser) {
-                override fun onLoadFinished(view: XWalkView, url: String) {
-                    super.onLoadFinished(view, url)
-                    if (view.visibility != View.VISIBLE) {
-                        view.visibility = View.VISIBLE
-                        progressBar.visibility = View.GONE
-                        println("LAMPA onLoadFinished $url")
-                        runVoidJsFunc(
-                            "Lampa.Storage.listener.add",
-                            "'change'," +
-                                    "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-                        )
-                        runJsStorageChangeField("player_timecode")
-                        runJsStorageChangeField("playlist_next")
-                        runJsStorageChangeField("torrserver_preload")
-                        runJsStorageChangeField("internal_torrclient")
-                        runJsStorageChangeField("language")
-                    }
-                }
-            })
+            browser = findViewById(R.id.geckoview)
+            session.open(runtime)
+            browser?.setSession(session)
+            session.loadUri("about:buildconfig"); // Or any other URL...
+
+//            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
+//            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
+//            browser?.setResourceClient(object : XWalkResourceClient(browser) {
+//                override fun onLoadFinished(view: XWalkView, url: String) {
+//                    super.onLoadFinished(view, url)
+//                    if (view.visibility != View.VISIBLE) {
+//                        view.visibility = View.VISIBLE
+//                        progressBar.visibility = View.GONE
+//                        println("LAMPA onLoadFinished $url")
+//                        runVoidJsFunc(
+//                            "Lampa.Storage.listener.add",
+//                            "'change'," +
+//                                    "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+//                        )
+//                        runJsStorageChangeField("player_timecode")
+//                        runJsStorageChangeField("playlist_next")
+//                        runJsStorageChangeField("torrserver_preload")
+//                        runJsStorageChangeField("internal_torrclient")
+//                        runJsStorageChangeField("language")
+//                    }
+//                }
+//            })
         }
-        browser?.userAgentString += " lampa_client"
-        HttpHelper.userAgent = browser?.userAgentString
+        session.settings.userAgentOverride = "lampa_client"
+        //browser?.userAgentString += " lampa_client"
+        HttpHelper.userAgent = session.userAgent.toString()
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
-        browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
+        //browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            browser?.loadUrl(LAMPA_URL)
+            session.loadUri(LAMPA_URL!!)
         }
     }
 
@@ -374,7 +351,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     val editor = mSettings?.edit()
                     editor?.putString(APP_URL, LAMPA_URL)
                     editor?.apply()
-                    browser?.loadUrl(LAMPA_URL)
+                    session.loadUri(LAMPA_URL!!)
                     App.toast(R.string.change_url_press_back)
                 }
             } else {
@@ -423,15 +400,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         return super.onKeyLongPress(keyCode, event)
     }
 
-    override fun onXWalkUpdateCancelled() {
-        // Perform error handling here
-        finish()
-    }
+//    override fun onXWalkUpdateCancelled() {
+//        // Perform error handling here
+//        finish()
+//    }
 
     override fun onPause() {
         super.onPause()
         if (browserInit && browser != null) {
-            browser?.pauseTimers()
+//            browser?.pauseTimers()
 //            browser?.onHide()
         }
     }
@@ -439,7 +416,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     override fun onDestroy() {
         super.onDestroy()
         if (browserInit && browser != null) {
-            browser?.onDestroy()
+            browser?.session?.close()
         }
         try {
             Speech.getInstance()?.shutdown()
@@ -451,12 +428,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         super.onResume()
         hideSystemUI()
 
-        // Try to initialize again when the user completed updating and
-        // returned to current activity. The initAsync() will do nothing if
-        // the initialization is proceeding or has already been completed.
-        mXWalkInitializer?.initAsync()
         if (browserInit && browser != null) {
-            browser?.resumeTimers()
+//            browser?.resumeTimers()
 //            browser?.onShow()
         }
     }
@@ -472,11 +445,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     }
 
     fun appExit() {
-        browser?.let {
-            it.clearCache(true)
-            it.onDestroy()
+        lifecycleScope.launch {
+            clearCache(this@MainActivity)
         }
-        finishAffinity() // exitProcess(1)
+        finishAffinity()
     }
 
     fun setLang(lang: String) {
@@ -508,21 +480,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             if (!io.has("timeline") || !io.has("url")) break
             val timeline = io.optJSONObject("timeline")
             val hash = timeline?.optString("hash", "0")
-            if (io.optString("url") == videoUrl) {
-                val time: Int = if (ended) 0 else pos / 1000
-                val duration: Int =
-                    if (ended) 0
-                    else if (dur == 0 && timeline?.has("duration") == true)
-                        timeline.optDouble("duration", 0.0).toInt()
-                    else dur / 1000
-                val percent: Int = if (duration > 0) time * 100 / duration else 100
-                val newTimeline = JSONObject()
-                newTimeline.put("hash", hash)
-                newTimeline.put("time", time.toDouble())
-                newTimeline.put("duration", duration.toDouble())
-                newTimeline.put("percent", percent)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                break
+            when (videoUrl) {
+                io.optString("url") -> {
+                    val time: Int = if (ended) 0 else pos / 1000
+                    val duration: Int =
+                        if (ended) 0
+                        else if (dur == 0 && timeline?.has("duration") == true)
+                            timeline.optDouble("duration", 0.0).toInt()
+                        else dur / 1000
+                    val percent: Int = if (duration > 0) time * 100 / duration else 100
+                    val newTimeline = JSONObject()
+                    newTimeline.put("hash", hash)
+                    newTimeline.put("time", time.toDouble())
+                    newTimeline.put("duration", duration.toDouble())
+                    newTimeline.put("percent", percent)
+//                    runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                    break
+                }
             }
             if (i >= playIndex) {
                 val newTimeline = JSONObject()
@@ -530,7 +504,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 newTimeline.put("percent", 100)
                 newTimeline.put("time", 0)
                 newTimeline.put("duration", 0)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+//                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
             }
         }
     }
@@ -893,7 +867,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                     dialog?.dismiss()
                     val query = etSearch.text.toString()
                     if (query.isNotEmpty()) {
-                        runVoidJsFunc("window.voiceResult", "'" + query.replace("'", "\\'") + "'")
+//                        runVoidJsFunc("window.voiceResult", "'" + query.replace("'", "\\'") + "'")
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
@@ -983,32 +957,32 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         return false
     }
 
-    fun runJsStorageChangeField(name: String) {
-        runVoidJsFunc(
-            "AndroidJS.StorageChange",
-            "JSON.stringify({" +
-                    "name: '${name}'," +
-                    "value: Lampa.Storage.field('${name}')" +
-                    "})"
-        )
-    }
+//    fun runJsStorageChangeField(name: String) {
+//        runVoidJsFunc(
+//            "AndroidJS.StorageChange",
+//            "JSON.stringify({" +
+//                    "name: '${name}'," +
+//                    "value: Lampa.Storage.field('${name}')" +
+//                    "})"
+//        )
+//    }
 
-    fun runVoidJsFunc(funcName: String, params: String) {
-        val js = ("(function(){"
-                + "try {"
-                + funcName + "(" + params + ");"
-                + "return 'ok';"
-                + "} catch (e) {"
-                + "return 'error: ' + e.message;"
-                + "}"
-                + "})();")
-        browser?.evaluateJavascript(
-            js
-        ) { r: String ->
-            Log.i(
-                "runVoidJsFunc",
-                "$funcName($params) $r"
-            )
-        }
-    }
+//    fun runVoidJsFunc(funcName: String, params: String) {
+//        val js = ("(function(){"
+//                + "try {"
+//                + funcName + "(" + params + ");"
+//                + "return 'ok';"
+//                + "} catch (e) {"
+//                + "return 'error: ' + e.message;"
+//                + "}"
+//                + "})();")
+//        browser?.evaluateJavascript(
+//            js
+//        ) { r: String ->
+//            Log.i(
+//                "runVoidJsFunc",
+//                "$funcName($params) $r"
+//            )
+//        }
+//    }
 }

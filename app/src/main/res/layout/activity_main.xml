@@ -23,11 +23,11 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.5" />
 
-    <org.xwalk.core.XWalkView
-        android:id="@+id/xwalkview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    <org.mozilla.geckoview.GeckoView
+        android:id="@+id/geckoview"
         android:background="@drawable/welcome"
-        android:visibility="gone" />
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:visibility="visible"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

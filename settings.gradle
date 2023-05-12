@@ -3,9 +3,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        jcenter() // Warning: this repository is going to shut down soon
         maven {
             url 'https://download.01.org/crosswalk/releases/crosswalk/android/maven2'
+        }
+        maven {
+            url "https://maven.mozilla.org/maven2/"
         }
     }
 }
