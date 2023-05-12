@@ -155,7 +155,10 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/
     val geckoViewVersion = "113.0.20230501151611"
-    implementation("org.mozilla.geckoview:geckoview:$geckoViewVersion")
+    implementation("org.mozilla.geckoview:geckoview:$geckoViewVersion") {
+        exclude(null, "snakeyaml") // disable non-compatible yaml library: https://github.com/mozilla/geckoview/issues/139
+    }
+    implementation("org.yaml:snakeyaml:1.26:android") // use updated yaml library compatible with old Android
     // JavaScript to run PAC file to get correct proxies
     implementation("org.mozilla:rhino:1.7.11")
     // okhttp for android 4.1+ // 3.12.12 - latest version for API 16

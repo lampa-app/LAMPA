@@ -8,26 +8,26 @@
     tools:context=".MainActivity">
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/progressBar_cyclic"
+        android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="visible"
-        android:indeterminate="true"
         android:background="@drawable/lampa_logo_round"
-        app:indicatorSize="134dp"
-        app:trackThickness="4dp"
+        android:indeterminate="true"
+        android:visibility="visible"
         app:indicatorColor="@color/tv_white"
+        app:indicatorSize="134dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.5" />
+        app:layout_constraintVertical_bias="0.5"
+        app:trackThickness="4dp" />
 
     <org.mozilla.geckoview.GeckoView
         android:id="@+id/geckoview"
-        android:background="@drawable/welcome"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:visibility="visible"/>
+        android:background="@drawable/welcome"
+        android:visibility="gone"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,1 +1,0 @@
-xwalk --enable-experimental-canvas-features --disable-pull-to-refresh-effect --ignore-gpu-blacklist --disk-cache-size=1 --disable-web-security --enable-wasm

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gecko &lt-&gt Android bridge</title>
+    <script type="application/javascript">
+
+function onResponse(response) {
+    document.getElementById('response').innerHTML = response.message;
+}
+
+function send() {
+
+    console.log("document", document.defaultView.toString());
+    console.log("document.defaultView.", document.defaultView.toString());
+
+    var request = document.getElementById('request').value;
+    window.NowTaxi.sendRequest({"message": request}, onResponse);
+}
+    </script>
+</head>
+<body>
+<p><a href="http://google.com/">Google</a></p>
+
+<form>
+    <input type="text" id="request" value="Message to Android"/>
+    <input type="button" value="Send" onclick="javascript:send()"/>
+</form>
+
+<p>Android response: <span id="response"></span></p>
+</body>
+</html>

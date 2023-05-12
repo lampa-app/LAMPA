@@ -21,6 +21,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -95,6 +96,17 @@ class MainActivity : AppCompatActivity() {
                     cont.resumeWithException(it)
                     GeckoResult.fromValue(null)
                 })
+            }
+        }
+    }
+
+    private val onBackPressedCallback: OnBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (BuildConfig.DEBUG) Log.d("MainActivity", "handleOnBackPressed()")
+            if (supportFragmentManager.backStackEntryCount > 0) {
+                supportFragmentManager.popBackStack()
+            } else {
+                //finish()
             }
         }
     }
@@ -254,34 +266,35 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        setContentView(R.layout.activity_main)
+
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+
         if (!browserInit) {
-            val builder = GeckoRuntimeSettings.Builder()
-            //if (BuildConfig.DEBUG) {
-            builder.remoteDebuggingEnabled(true)
-            builder.consoleOutput(true)
-            //}
-            builder.aboutConfigEnabled(true)
-            builder.allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
-            runtime = GeckoRuntime.create(this, builder.build())
+            val settings = GeckoRuntimeSettings.Builder()
+            if (BuildConfig.DEBUG) {
+                settings.remoteDebuggingEnabled(true)
+                settings.consoleOutput(true)
+            }
+            settings.aboutConfigEnabled(true)
+            settings.javaScriptEnabled(true)
+            settings.allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
+            runtime = GeckoRuntime.create(this, settings.build())
             session = GeckoSession()
+            session.settings.userAgentOverride = "lampa_client"
             browserInit = true
             onGeckoInitCompleted()
         }
-
-        //XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-
-        setContentView(R.layout.activity_main)
     }
 
 
-    fun onGeckoInitCompleted() {
-        //browserInit = true
+    private fun onGeckoInitCompleted() {
         // Do anything with the embedding API
         if (browser == null) {
             browser = findViewById(R.id.geckoview)
             session.open(runtime)
             browser?.setSession(session)
-            session.loadUri("about:buildconfig"); // Or any other URL...
+            (browser as View).visibility = View.VISIBLE
 
 //            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
 //            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
@@ -306,14 +319,16 @@ class MainActivity : AppCompatActivity() {
 //                }
 //            })
         }
-        session.settings.userAgentOverride = "lampa_client"
-        //browser?.userAgentString += " lampa_client"
+
         HttpHelper.userAgent = session.userAgent.toString()
+
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         //browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
+
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
+            //session.loadUri("about:buildconfig")
             session.loadUri(LAMPA_URL!!)
         }
     }
@@ -400,11 +415,6 @@ class MainActivity : AppCompatActivity() {
         return super.onKeyLongPress(keyCode, event)
     }
 
-//    override fun onXWalkUpdateCancelled() {
-//        // Perform error handling here
-//        finish()
-//    }
-
     override fun onPause() {
         super.onPause()
         if (browserInit && browser != null) {
@@ -458,7 +468,7 @@ class MainActivity : AppCompatActivity() {
         editor?.apply()
     }
 
-    fun setPlayerPackage(packageName: String) {
+    private fun setPlayerPackage(packageName: String) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
         val editor = mSettings?.edit()
         editor?.putString(APP_PLAYER, SELECTED_PLAYER)
