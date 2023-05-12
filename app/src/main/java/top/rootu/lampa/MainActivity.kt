@@ -24,6 +24,7 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.UiThread
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -32,12 +33,14 @@ import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.launch
 import net.gotev.speech.*
 import net.gotev.speech.ui.SpeechProgressView
 import org.json.JSONArray
 import org.json.JSONObject
 import org.mozilla.geckoview.*
+import org.mozilla.geckoview.GeckoSession.ContentDelegate.ContextElement
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -50,13 +53,19 @@ import kotlin.coroutines.suspendCoroutine
 
 
 class MainActivity : AppCompatActivity() {
+    private val LOGTAG = "MainActivity"
     private var browser: GeckoView? = null
 
     private var mDecorView: View? = null
+    private var mProgressView: LinearProgressIndicator? = null
     private var browserInit = false
+    private var mFullScreen = false
+    private var mCanGoBack = false
+    private var mCanGoForward = false
     private var mSettings: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+    lateinit var session: GeckoSession
 
     companion object {
         private const val TAG = "APP_MAIN"
@@ -85,8 +94,25 @@ class MainActivity : AppCompatActivity() {
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
         lateinit var runtime: GeckoRuntime
-        lateinit var session: GeckoSession
-        suspend fun clearCache(ctx: Context) {
+
+        @UiThread
+        fun initialize(context: Context) {
+            if (!this::runtime.isInitialized) {
+                val runtimeSettings = GeckoRuntimeSettings.Builder()
+                if (BuildConfig.DEBUG) {
+                    runtimeSettings.remoteDebuggingEnabled(true)
+                    runtimeSettings.consoleOutput(true)
+                }
+                runtimeSettings.apply {
+                    aboutConfigEnabled(true)
+                    javaScriptEnabled(true)
+                    preferredColorScheme(GeckoRuntimeSettings.COLOR_SCHEME_DARK)
+                }
+                runtime = GeckoRuntime.create(context, runtimeSettings.build())
+            }
+        }
+
+        suspend fun clearCache() {
             suspendCoroutine { cont ->
                 runtime.storageController.clearData(StorageController.ClearFlags.ALL_CACHES).then({
                     cont.resume(null)
@@ -100,14 +126,149 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val onBackPressedCallback: OnBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            if (BuildConfig.DEBUG) Log.d("MainActivity", "handleOnBackPressed()")
-            if (supportFragmentManager.backStackEntryCount > 0) {
-                supportFragmentManager.popBackStack()
-            } else {
-                //finish()
+    private val onBackPressedCallback: OnBackPressedCallback =
+        object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (BuildConfig.DEBUG) Log.d("*****", "handleOnBackPressed()")
+                if (mFullScreen) { //  && session != null
+                    session.exitFullScreen()
+                    return
+                }
+                if (mCanGoBack) { //  && session != null
+                    session.goBack()
+                    return
+                }
             }
+        }
+
+    private val lampaNavigationDelegate: GeckoSession.NavigationDelegate =
+        object : GeckoSession.NavigationDelegate {
+            override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) {
+                mCanGoBack = canGoBack
+            }
+
+            override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) {
+                mCanGoForward = canGoForward
+            }
+        }
+
+    private val lampaProgressDelegate =
+        object : GeckoSession.ProgressDelegate {
+            override fun onProgressChange(session: GeckoSession, progress: Int) {
+                Log.i(LOGTAG, "onProgressChange $progress")
+                mProgressView?.progress = progress
+                if (progress in 1..99) {
+                    mProgressView?.visibility = View.VISIBLE
+                } else {
+                    mProgressView?.visibility = View.GONE
+                }
+            }
+        }
+
+    private val lampaContentDelegate = object : GeckoSession.ContentDelegate {
+        override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+            Log.i(LOGTAG, "onFullScreen: $fullScreen")
+            window.setFlags(
+                if (fullScreen) WindowManager.LayoutParams.FLAG_FULLSCREEN else 0,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
+            mFullScreen = fullScreen
+            if (fullScreen) {
+                supportActionBar?.hide()
+            } else {
+                supportActionBar?.show()
+            }
+        }
+
+        override fun onFocusRequest(session: GeckoSession) {
+            Log.i(LOGTAG, "Content requesting focus")
+        }
+
+        override fun onContextMenu(
+            session: GeckoSession, screenX: Int, screenY: Int, element: ContextElement
+        ) {
+            Log.d(
+                LOGTAG,
+                "onContextMenu screenX="
+                        + screenX
+                        + " screenY="
+                        + screenY
+                        + " type="
+                        + element.type
+                        + " linkUri="
+                        + element.linkUri
+                        + " title="
+                        + element.title
+                        + " alt="
+                        + element.altText
+                        + " srcUri="
+                        + element.srcUri
+            )
+        }
+
+        override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+            //TODO
+        }
+
+        override fun onCrash(session: GeckoSession) {
+            Log.e(LOGTAG, "Crashed, reopening session")
+            session.open(runtime)
+        }
+
+//        override fun onKill(session: GeckoSession) {
+//            val tabSession: TabSession = mTabSessionManager.getSession(session) ?: return
+//            if (tabSession !== mTabSessionManager.getCurrentSession()) {
+//                Log.e(LOGTAG, "Background session killed")
+//                return
+//            }
+//            if (isForeground()) {
+//                throw IllegalStateException("Foreground content process unexpectedly killed by OS!")
+//            }
+//            Log.e(LOGTAG, "Current session killed, reopening")
+//            tabSession.open(sGeckoRuntime)
+//            tabSession.loadUri(tabSession.getUri())
+//        }
+
+        override fun onFirstComposite(session: GeckoSession) {
+            Log.d(LOGTAG, "onFirstComposite")
+        }
+
+        override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
+            Log.d(LOGTAG, "onWebAppManifest: $manifest")
+        }
+
+        override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
+            if (VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                return
+            }
+            val layoutParams: WindowManager.LayoutParams = window.attributes
+            if ((viewportFit == "cover")) {
+                layoutParams.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            } else if ((viewportFit == "contain")) {
+                layoutParams.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+            } else {
+                layoutParams.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            }
+            window.attributes = layoutParams
+        }
+
+//        override fun onShowDynamicToolbar(session: GeckoSession) {
+//            val toolbar: View = findViewById<View>(android.R.id.toolbar)
+//            if (toolbar != null) {
+//                toolbar.translationY = 0f
+//                browser?.setVerticalClipping(0)
+//            }
+//        }
+
+        override fun onCookieBannerDetected(session: GeckoSession) {
+            Log.d("BELL", "A cookie banner was detected on this website")
+        }
+
+        override fun onCookieBannerHandled(session: GeckoSession) {
+            Log.d("BELL", "A cookie banner was handled on this website")
         }
     }
 
@@ -270,23 +431,35 @@ class MainActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
+        mProgressView = findViewById(R.id.page_progress)
+
         if (!browserInit) {
-            val settings = GeckoRuntimeSettings.Builder()
-            if (BuildConfig.DEBUG) {
-                settings.remoteDebuggingEnabled(true)
-                settings.consoleOutput(true)
+            initialize(this)
+
+            val isTvBox = Helpers.isTvBox(this)
+            val sessionSettings = GeckoSessionSettings.Builder()
+            sessionSettings.apply {
+                userAgentOverride("lampa_client")
+                viewportMode(
+                    if (isTvBox) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+                    else GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+                )
+                userAgentMode(
+                    if (isTvBox) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
+                    else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+                )
+                displayMode(GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN)
             }
-            settings.aboutConfigEnabled(true)
-            settings.javaScriptEnabled(true)
-            settings.allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
-            runtime = GeckoRuntime.create(this, settings.build())
-            session = GeckoSession()
-            session.settings.userAgentOverride = "lampa_client"
+            session = GeckoSession(sessionSettings.build())
+
+            session.navigationDelegate = lampaNavigationDelegate
+            session.progressDelegate = lampaProgressDelegate
+            session.contentDelegate = lampaContentDelegate
+
             browserInit = true
             onGeckoInitCompleted()
         }
     }
-
 
     private fun onGeckoInitCompleted() {
         // Do anything with the embedding API
@@ -294,10 +467,13 @@ class MainActivity : AppCompatActivity() {
             browser = findViewById(R.id.geckoview)
             session.open(runtime)
             browser?.setSession(session)
+            // show browser
             (browser as View).visibility = View.VISIBLE
+            // hide loader
+            mProgressView?.visibility = View.GONE
 
 //            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
-//            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
+//
 //            browser?.setResourceClient(object : XWalkResourceClient(browser) {
 //                override fun onLoadFinished(view: XWalkView, url: String) {
 //                    super.onLoadFinished(view, url)
@@ -456,7 +632,7 @@ class MainActivity : AppCompatActivity() {
 
     fun appExit() {
         lifecycleScope.launch {
-            clearCache(this@MainActivity)
+            clearCache()
         }
         finishAffinity()
     }
