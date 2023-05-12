@@ -10,8 +10,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.multidex.MultiDexApplication
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.rootu.lampa.helpers.Helpers.isConnected
@@ -65,6 +66,7 @@ class App : MultiDexApplication() {
         }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
         appContext = applicationContext
@@ -75,9 +77,9 @@ class App : MultiDexApplication() {
             .addObserver(lifecycleEventObserver)
 
         // self-update check
-        val checkUpdates = true
+        val checkUpdates = false
         if (checkUpdates) {
-            CoroutineScope(Dispatchers.IO).launch {
+            GlobalScope.launch(Dispatchers.IO) {
                 var count = 60
                 try {
                     while (!isConnected(appContext) && count > 0) {
@@ -89,7 +91,7 @@ class App : MultiDexApplication() {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                 }
             }
         }

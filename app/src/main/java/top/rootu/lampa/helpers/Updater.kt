@@ -105,7 +105,7 @@ object Updater {
                     } catch (npe: NumberFormatException) {
                         0.0
                     }
-                    if (majorVersionDouble >= majorCurrVersionDouble && lastVersionDouble > currVersionDouble) {
+                    if (majorVersionDouble >= majorCurrVersionDouble && majorVersionDouble >= 2 && lastVersionDouble > currVersionDouble) {
                         newVersion = rel
                         connection.disconnect()
                         return true
@@ -152,7 +152,7 @@ object Updater {
             } catch (npe: NumberFormatException) {
                 0.0
             }
-            if (majorVersionDouble >= majorCurrVersionDouble && lastVersionDouble > currVersionDouble) {
+            if (majorVersionDouble >= majorCurrVersionDouble && majorVersionDouble >= 2 && lastVersionDouble > currVersionDouble) {
                 ret += "<font color='white'><b>${rel.tag_name}</b></font> <br>"
                 ret += "<i>${rel.body.replace("\r\n", "<br/>")}</i><br/><br/>"
             } else {
