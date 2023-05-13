@@ -31,7 +31,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.launch
@@ -53,22 +52,20 @@ import kotlin.coroutines.suspendCoroutine
 
 
 class MainActivity : AppCompatActivity() {
-    private val LOGTAG = "MainActivity"
     private var browser: GeckoView? = null
-
+    private var browserInit = false
     private var mDecorView: View? = null
     private var mProgressView: LinearProgressIndicator? = null
-    private var browserInit = false
     private var mFullScreen = false
     private var mCanGoBack = false
     private var mCanGoForward = false
     private var mSettings: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
-    lateinit var session: GeckoSession
+    private lateinit var session: GeckoSession
 
     companion object {
-        private const val TAG = "APP_MAIN"
+        private const val LOGTAG = "APP_MAIN"
         const val RESULT_ERROR = 4
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
@@ -92,7 +89,6 @@ class MainActivity : AppCompatActivity() {
         private const val URL_REGEX =
             "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
-
         lateinit var runtime: GeckoRuntime
 
         @UiThread
@@ -129,7 +125,7 @@ class MainActivity : AppCompatActivity() {
     private val onBackPressedCallback: OnBackPressedCallback =
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (BuildConfig.DEBUG) Log.d("*****", "handleOnBackPressed()")
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "handleOnBackPressed() FullScreen: $mFullScreen CanGoBack: $mCanGoBack")
                 if (mFullScreen) { //  && session != null
                     session.exitFullScreen()
                     return
@@ -152,10 +148,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private val lampaProgressDelegate =
+    private val lampaProgressDelegate: GeckoSession.ProgressDelegate =
         object : GeckoSession.ProgressDelegate {
             override fun onProgressChange(session: GeckoSession, progress: Int) {
-                Log.i(LOGTAG, "onProgressChange $progress")
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onProgressChange $progress")
                 mProgressView?.progress = progress
                 if (progress in 1..99) {
                     mProgressView?.visibility = View.VISIBLE
@@ -165,57 +161,59 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private val lampaContentDelegate = object : GeckoSession.ContentDelegate {
-        override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
-            Log.i(LOGTAG, "onFullScreen: $fullScreen")
-            window.setFlags(
-                if (fullScreen) WindowManager.LayoutParams.FLAG_FULLSCREEN else 0,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-            )
-            mFullScreen = fullScreen
-            if (fullScreen) {
-                supportActionBar?.hide()
-            } else {
-                supportActionBar?.show()
+    private val lampaContentDelegate: GeckoSession.ContentDelegate =
+        object : GeckoSession.ContentDelegate {
+            override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onFullScreen: $fullScreen")
+                window.setFlags(
+                    if (fullScreen) WindowManager.LayoutParams.FLAG_FULLSCREEN else 0,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+                )
+                mFullScreen = fullScreen
+                if (fullScreen) {
+                    supportActionBar?.hide()
+                } else {
+                    supportActionBar?.show()
+                }
             }
-        }
 
-        override fun onFocusRequest(session: GeckoSession) {
-            Log.i(LOGTAG, "Content requesting focus")
-        }
+            override fun onFocusRequest(session: GeckoSession) {
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "Content requesting focus")
+            }
 
-        override fun onContextMenu(
-            session: GeckoSession, screenX: Int, screenY: Int, element: ContextElement
-        ) {
-            Log.d(
-                LOGTAG,
-                "onContextMenu screenX="
-                        + screenX
-                        + " screenY="
-                        + screenY
-                        + " type="
-                        + element.type
-                        + " linkUri="
-                        + element.linkUri
-                        + " title="
-                        + element.title
-                        + " alt="
-                        + element.altText
-                        + " srcUri="
-                        + element.srcUri
-            )
-        }
+            override fun onContextMenu(
+                session: GeckoSession, screenX: Int, screenY: Int, element: ContextElement
+            ) {
+                if (BuildConfig.DEBUG) Log.d(
+                    LOGTAG,
+                    "onContextMenu screenX="
+                            + screenX
+                            + " screenY="
+                            + screenY
+                            + " type="
+                            + element.type
+                            + " linkUri="
+                            + element.linkUri
+                            + " title="
+                            + element.title
+                            + " alt="
+                            + element.altText
+                            + " srcUri="
+                            + element.srcUri
+                )
+            }
 
-        override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
-            //TODO
-        }
+            override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onExternalResponse: $response")
+            }
 
-        override fun onCrash(session: GeckoSession) {
-            Log.e(LOGTAG, "Crashed, reopening session")
-            session.open(runtime)
-        }
+            override fun onCrash(session: GeckoSession) {
+                Log.e(LOGTAG, "Crashed, reopening session")
+                session.open(runtime)
+            }
 
-//        override fun onKill(session: GeckoSession) {
+            override fun onKill(session: GeckoSession) {
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onKill($session)")
 //            val tabSession: TabSession = mTabSessionManager.getSession(session) ?: return
 //            if (tabSession !== mTabSessionManager.getCurrentSession()) {
 //                Log.e(LOGTAG, "Background session killed")
@@ -225,35 +223,36 @@ class MainActivity : AppCompatActivity() {
 //                throw IllegalStateException("Foreground content process unexpectedly killed by OS!")
 //            }
 //            Log.e(LOGTAG, "Current session killed, reopening")
-//            tabSession.open(sGeckoRuntime)
+//            tabSession.open(runtime)
 //            tabSession.loadUri(tabSession.getUri())
-//        }
-
-        override fun onFirstComposite(session: GeckoSession) {
-            Log.d(LOGTAG, "onFirstComposite")
-        }
-
-        override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
-            Log.d(LOGTAG, "onWebAppManifest: $manifest")
-        }
-
-        override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
-            if (VERSION.SDK_INT < Build.VERSION_CODES.P) {
-                return
             }
-            val layoutParams: WindowManager.LayoutParams = window.attributes
-            if ((viewportFit == "cover")) {
-                layoutParams.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-            } else if ((viewportFit == "contain")) {
-                layoutParams.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
-            } else {
-                layoutParams.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+
+//            override fun onFirstComposite(session: GeckoSession) {
+//                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onFirstComposite")
+//            }
+
+            override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
+                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onWebAppManifest: $manifest")
+                //TODO: sync theme etc
             }
-            window.attributes = layoutParams
-        }
+
+            override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
+                if (VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                    return
+                }
+                val layoutParams: WindowManager.LayoutParams = window.attributes
+                if ((viewportFit == "cover")) {
+                    layoutParams.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                } else if ((viewportFit == "contain")) {
+                    layoutParams.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+                } else {
+                    layoutParams.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                }
+                window.attributes = layoutParams
+            }
 
 //        override fun onShowDynamicToolbar(session: GeckoSession) {
 //            val toolbar: View = findViewById<View>(android.R.id.toolbar)
@@ -263,14 +262,14 @@ class MainActivity : AppCompatActivity() {
 //            }
 //        }
 
-        override fun onCookieBannerDetected(session: GeckoSession) {
-            Log.d("BELL", "A cookie banner was detected on this website")
-        }
+            override fun onCookieBannerDetected(session: GeckoSession) {
+                Log.d("BELL", "A cookie banner was detected on this website")
+            }
 
-        override fun onCookieBannerHandled(session: GeckoSession) {
-            Log.d("BELL", "A cookie banner was handled on this website")
+            override fun onCookieBannerHandled(session: GeckoSession) {
+                Log.d("BELL", "A cookie banner was handled on this website")
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
@@ -290,17 +289,14 @@ class MainActivity : AppCompatActivity() {
         ) { result ->
             val data: Intent? = result.data
             val videoUrl: String = data?.data.toString()
-            Log.i(TAG, "Returned video url: $videoUrl")
+            Log.i(LOGTAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
             when (resultCode) { // just for debug
-                RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
-                RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}") // 0
-                RESULT_FIRST_USER -> Log.i(TAG, "FU: ${data?.toUri(0)}") // 1
-                RESULT_ERROR -> Log.e(TAG, "Error: ${data?.toUri(0)}") // 4
-                else -> Log.w(
-                    TAG,
-                    "Undefined result code ($resultCode): ${data?.toUri(0)}"
-                )
+                RESULT_OK -> Log.i(LOGTAG, "OK: ${data?.toUri(0)}") // -1
+                RESULT_CANCELED -> Log.i(LOGTAG, "Canceled: ${data?.toUri(0)}") // 0
+                RESULT_FIRST_USER -> Log.i(LOGTAG, "FU: ${data?.toUri(0)}") // 1
+                RESULT_ERROR -> Log.e(LOGTAG, "Error: ${data?.toUri(0)}") // 4
+                else -> Log.w(LOGTAG, "Undefined result code ($resultCode): ${data?.toUri(0)}")
             }
             data?.let {
                 if (it.action.equals("com.mxtech.intent.result.VIEW")) { // MX / Just
@@ -308,7 +304,7 @@ class MainActivity : AppCompatActivity() {
                         RESULT_OK -> {
                             when (val endBy = it.getStringExtra("end_by")) {
                                 "playback_completion" -> {
-                                    Log.i(TAG, "Playback completed")
+                                    Log.i(LOGTAG, "Playback completed")
                                     resultPlayer(videoUrl, 0, 0, true)
                                 }
 
@@ -317,31 +313,34 @@ class MainActivity : AppCompatActivity() {
                                     val dur = it.getIntExtra("duration", 0)
                                     if (pos > 0 && dur > 0) {
                                         Log.i(
-                                            TAG,
+                                            LOGTAG,
                                             "Playback stopped [position=$pos, duration=$dur]"
                                         )
                                         resultPlayer(videoUrl, pos, dur, false)
                                     } else {
-                                        Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
+                                        Log.e(
+                                            LOGTAG,
+                                            "Invalid state [position=$pos, duration=$dur]"
+                                        )
                                     }
                                 }
 
                                 else -> {
-                                    Log.e(TAG, "Invalid state [endBy=$endBy]")
+                                    Log.e(LOGTAG, "Invalid state [endBy=$endBy]")
                                 }
                             }
                         }
 
                         RESULT_CANCELED -> {
-                            Log.i(TAG, "Playback stopped by user")
+                            Log.i(LOGTAG, "Playback stopped by user")
                         }
 
                         RESULT_FIRST_USER -> {
-                            Log.e(TAG, "Playback stopped by unknown error")
+                            Log.e(LOGTAG, "Playback stopped by unknown error")
                         }
 
                         else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                            Log.e(LOGTAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
                 } else if (it.action.equals("org.videolan.vlc.player.result")) { // VLC
@@ -350,18 +349,18 @@ class MainActivity : AppCompatActivity() {
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
                             if (pos > 0L) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                Log.i(LOGTAG, "Playback stopped [position=$pos, duration=$dur]")
                                 resultPlayer(videoUrl, pos.toInt(), dur.toInt(), false)
                             } else {
                                 if (dur == 0L && pos == 0L) {
-                                    Log.i(TAG, "Playback completed")
+                                    Log.i(LOGTAG, "Playback completed")
                                     resultPlayer(videoUrl, 0, 0, true)
                                 }
                             }
                         }
 
                         else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                            Log.e(LOGTAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
                 } else if (it.action.equals("is.xyz.mpv.MPVActivity.result")) { // MPV
@@ -370,22 +369,22 @@ class MainActivity : AppCompatActivity() {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                Log.i(LOGTAG, "Playback stopped [position=$pos, duration=$dur]")
                                 resultPlayer(videoUrl, pos, dur, false)
                             } else if (dur == 0 && pos == 0) {
-                                Log.i(TAG, "Playback completed")
+                                Log.i(LOGTAG, "Playback completed")
                                 resultPlayer(videoUrl, 0, 0, true)
                             }
                         }
 
                         else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                            Log.e(LOGTAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
                 } else { // ViMu
                     when (resultCode) {
                         RESULT_FIRST_USER -> {
-                            Log.i(TAG, "Playback completed")
+                            Log.i(LOGTAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
 
@@ -393,17 +392,17 @@ class MainActivity : AppCompatActivity() {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                Log.i(LOGTAG, "Playback stopped [position=$pos, duration=$dur]")
                                 resultPlayer(videoUrl, pos, dur, false)
                             }
                         }
 
                         RESULT_ERROR -> {
-                            Log.e(TAG, "Playback error")
+                            Log.e(LOGTAG, "Playback error")
                         }
 
                         else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                            Log.e(LOGTAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
                 }
@@ -431,7 +430,7 @@ class MainActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
-        mProgressView = findViewById(R.id.page_progress)
+        mProgressView = findViewById(R.id.progress)
 
         if (!browserInit) {
             initialize(this)
@@ -467,10 +466,8 @@ class MainActivity : AppCompatActivity() {
             browser = findViewById(R.id.geckoview)
             session.open(runtime)
             browser?.setSession(session)
-            // show browser
-            (browser as View).visibility = View.VISIBLE
             // hide loader
-            mProgressView?.visibility = View.GONE
+            //mProgressView?.visibility = View.GONE
 
 //            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
 //
@@ -496,16 +493,15 @@ class MainActivity : AppCompatActivity() {
 //            })
         }
 
-        HttpHelper.userAgent = session.userAgent.toString()
+        //HttpHelper.userAgent = session.userAgent
 
-        browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
+        //browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_back))
         //browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
 
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            //session.loadUri("about:buildconfig")
-            session.loadUri(LAMPA_URL!!)
+            session.loadUri(LAMPA_URL!!) // session.loadUri("about:buildconfig")
         }
     }
 
@@ -1015,7 +1011,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 setOnClickListener {
                     val dots = view.findViewById<LinearLayout>(R.id.searchDots)
-                    val progress = view.findViewById<SpeechProgressView>(R.id.progress)
+                    val progress = view.findViewById<SpeechProgressView>(R.id.speechProgress)
                     val heights = intArrayOf(40, 56, 38, 55, 35)
                     progress.setBarMaxHeightsInDp(heights)
                     if (hasMicPermissions(context)) {

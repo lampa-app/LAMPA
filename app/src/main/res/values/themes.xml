@@ -9,6 +9,8 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:windowOverscan">true</item>
+        <item name="android:windowBackground">@color/lampa_back</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="alertDialogTheme">@style/AlertDialog</item>
     </style>

@@ -30,7 +30,7 @@
         android:visibility="gone">
 
         <net.gotev.speech.ui.SpeechProgressView
-            android:id="@+id/progress"
+            android:id="@+id/speechProgress"
             android:layout_width="96dp"
             android:layout_height="68dp" />
 
