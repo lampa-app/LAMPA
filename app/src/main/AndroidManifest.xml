@@ -64,6 +64,7 @@
         android:screenOrientation="userLandscape"
         android:supportsRtl="true"
         android:theme="@style/Theme.LAMPA"
+        android:usesCleartextTraffic="true"
         tools:targetApi="n"
         tools:ignore="RtlEnabled">
         <activity

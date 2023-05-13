@@ -28,7 +28,6 @@ import javax.net.ssl.*
 
 
 object Updater {
-    private val TAG = javaClass.simpleName
     private const val RELEASE_LINK =
         "https://api.github.com/repos/lampa-app/LAMPA/releases"
     private var releases: Releases? = null

@@ -6,6 +6,7 @@ import android.content.*
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION
@@ -31,6 +32,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.launch
@@ -125,7 +127,10 @@ class MainActivity : AppCompatActivity() {
     private val onBackPressedCallback: OnBackPressedCallback =
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (BuildConfig.DEBUG) Log.d(LOGTAG, "handleOnBackPressed() FullScreen: $mFullScreen CanGoBack: $mCanGoBack")
+                if (BuildConfig.DEBUG) Log.d(
+                    LOGTAG,
+                    "handleOnBackPressed() FullScreen: $mFullScreen CanGoBack: $mCanGoBack"
+                )
                 if (mFullScreen) { //  && session != null
                     session.exitFullScreen()
                     return
@@ -150,6 +155,13 @@ class MainActivity : AppCompatActivity() {
 
     private val lampaProgressDelegate: GeckoSession.ProgressDelegate =
         object : GeckoSession.ProgressDelegate {
+            override fun onPageStop(session: GeckoSession, success: Boolean) = Unit
+            override fun onSecurityChange(
+                session: GeckoSession,
+                securityInfo: GeckoSession.ProgressDelegate.SecurityInformation
+            ) = Unit
+
+            override fun onPageStart(session: GeckoSession, url: String) = Unit
             override fun onProgressChange(session: GeckoSession, progress: Int) {
                 if (BuildConfig.DEBUG) Log.d(LOGTAG, "onProgressChange $progress")
                 mProgressView?.progress = progress
@@ -227,13 +239,23 @@ class MainActivity : AppCompatActivity() {
 //            tabSession.loadUri(tabSession.getUri())
             }
 
-//            override fun onFirstComposite(session: GeckoSession) {
-//                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onFirstComposite")
-//            }
+            override fun onFirstComposite(session: GeckoSession) = Unit
 
             override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
                 if (BuildConfig.DEBUG) Log.d(LOGTAG, "onWebAppManifest: $manifest")
                 //TODO: sync theme etc
+                val backColor = try {
+                    Color.parseColor(manifest.getString("background_color")) // "theme_color"
+                } catch (_: Exception) {
+                    ContextCompat.getColor(baseContext, R.color.lampa_back) // 0xFF1D1F20.toInt()
+                }
+                browser?.coverUntilFirstPaint(backColor)
+                val dm = when (manifest.getString("display_mode")) {
+                    "fullscreen" -> GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN
+                    "standalone" -> GeckoSessionSettings.DISPLAY_MODE_STANDALONE
+                    else -> {GeckoSessionSettings.DISPLAY_MODE_BROWSER}
+                }
+                session.settings.displayMode = dm
             }
 
             override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
@@ -447,7 +469,7 @@ class MainActivity : AppCompatActivity() {
                     if (isTvBox) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
                     else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
                 )
-                displayMode(GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN)
+                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
             }
             session = GeckoSession(sessionSettings.build())
 
@@ -464,8 +486,13 @@ class MainActivity : AppCompatActivity() {
         // Do anything with the embedding API
         if (browser == null) {
             browser = findViewById(R.id.geckoview)
+            //browser?.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+            //browser?.setViewBackend(GeckoView.BACKEND_SURFACE_VIEW)
+            browser?.setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
+            browser?.coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
             session.open(runtime)
             browser?.setSession(session)
+
             // hide loader
             //mProgressView?.visibility = View.GONE
 
@@ -501,7 +528,8 @@ class MainActivity : AppCompatActivity() {
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            session.loadUri(LAMPA_URL!!) // session.loadUri("about:buildconfig")
+            //session.loadUri("about:buildconfig")
+            session.loadUri(LAMPA_URL!!)
         }
     }
 

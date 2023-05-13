@@ -87,8 +87,7 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
     // Plain TCP/IP (layer below TLS)
 
     @Override
-    public Socket connectSocket(Socket s, String host, int port, InetAddress localAddress, int localPort,
-                                HttpParams params) {
+    public Socket connectSocket(Socket s, String host, int port, InetAddress localAddress, int localPort, HttpParams params) {
         return null;
     }
 
@@ -114,8 +113,7 @@ public class TlsSniSocketFactory implements LayeredSocketFactory {
             plainSocket.close();
         }
 
-        SSLCertificateSocketFactory sslSocketFactory =
-                (SSLCertificateSocketFactory) SSLCertificateSocketFactory.getDefault(this.handshakeTimeoutMillis);
+        SSLCertificateSocketFactory sslSocketFactory = (SSLCertificateSocketFactory) SSLCertificateSocketFactory.getDefault(this.handshakeTimeoutMillis);
 
         // For self-signed certificates use a custom trust manager
         if (acceptAllCertificates) {

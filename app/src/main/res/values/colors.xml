@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="lampa_back">#1e1f21</color>
+    <color name="lampa_back">#1d1f20</color>
     <color name="purple_200">#bb86fc</color>
     <color name="purple_500">#6200ee</color>
     <color name="purple_700">#3700b3</color>
