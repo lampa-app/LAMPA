@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
     private var browserInit = false
     private var mDecorView: View? = null
     private var mProgressView: LinearProgressIndicator? = null
-    private var mFullScreen = false
+//    private var mFullScreen = false
     private var mCanGoBack = false
     private var mCanGoForward = false
     private var mSettings: SharedPreferences? = null
@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 runtimeSettings.apply {
                     aboutConfigEnabled(true)
+                    allowInsecureConnections(GeckoRuntimeSettings.ALLOW_ALL)
                     javaScriptEnabled(true)
                     preferredColorScheme(GeckoRuntimeSettings.COLOR_SCHEME_DARK)
                 }
@@ -127,14 +128,10 @@ class MainActivity : AppCompatActivity() {
     private val onBackPressedCallback: OnBackPressedCallback =
         object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (BuildConfig.DEBUG) Log.d(
-                    LOGTAG,
-                    "handleOnBackPressed() FullScreen: $mFullScreen CanGoBack: $mCanGoBack"
-                )
-                if (mFullScreen) { //  && session != null
-                    session.exitFullScreen()
-                    return
-                }
+//                if (mFullScreen) { //  && session != null
+//                    session.exitFullScreen()
+//                    return
+//                }
                 if (mCanGoBack) { //  && session != null
                     session.goBack()
                     return
@@ -175,19 +172,19 @@ class MainActivity : AppCompatActivity() {
 
     private val lampaContentDelegate: GeckoSession.ContentDelegate =
         object : GeckoSession.ContentDelegate {
-            override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
-                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onFullScreen: $fullScreen")
-                window.setFlags(
-                    if (fullScreen) WindowManager.LayoutParams.FLAG_FULLSCREEN else 0,
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN
-                )
-                mFullScreen = fullScreen
-                if (fullScreen) {
-                    supportActionBar?.hide()
-                } else {
-                    supportActionBar?.show()
-                }
-            }
+//            override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+//                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onFullScreen: $fullScreen")
+//                window.setFlags(
+//                    if (fullScreen) WindowManager.LayoutParams.FLAG_FULLSCREEN else 0,
+//                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+//                )
+//                mFullScreen = fullScreen
+//                if (fullScreen) {
+//                    supportActionBar?.hide()
+//                } else {
+//                    supportActionBar?.show()
+//                }
+//            }
 
             override fun onFocusRequest(session: GeckoSession) {
                 if (BuildConfig.DEBUG) Log.d(LOGTAG, "Content requesting focus")
@@ -215,9 +212,9 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
-                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onExternalResponse: $response")
-            }
+//            override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+//                if (BuildConfig.DEBUG) Log.d(LOGTAG, "onExternalResponse: $response")
+//            }
 
             override fun onCrash(session: GeckoSession) {
                 Log.e(LOGTAG, "Crashed, reopening session")
@@ -256,6 +253,7 @@ class MainActivity : AppCompatActivity() {
                     else -> {GeckoSessionSettings.DISPLAY_MODE_BROWSER}
                 }
                 session.settings.displayMode = dm
+                session.reload()
             }
 
             override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
@@ -460,19 +458,22 @@ class MainActivity : AppCompatActivity() {
             val isTvBox = Helpers.isTvBox(this)
             val sessionSettings = GeckoSessionSettings.Builder()
             sessionSettings.apply {
-                userAgentOverride("lampa_client")
                 viewportMode(
-                    if (isTvBox) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
-                    else GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+//                    if (isTvBox)
+//                        GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+//                    else
+                        GeckoSessionSettings.VIEWPORT_MODE_MOBILE
                 )
                 userAgentMode(
-                    if (isTvBox) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
-                    else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+                    if (isTvBox)
+                        GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
+                    else
+                        GeckoSessionSettings.USER_AGENT_MODE_MOBILE
                 )
-                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
+                userAgentOverride("lampa_client")
+//                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
             }
             session = GeckoSession(sessionSettings.build())
-
             session.navigationDelegate = lampaNavigationDelegate
             session.progressDelegate = lampaProgressDelegate
             session.contentDelegate = lampaContentDelegate
@@ -485,19 +486,12 @@ class MainActivity : AppCompatActivity() {
     private fun onGeckoInitCompleted() {
         // Do anything with the embedding API
         if (browser == null) {
-            browser = findViewById(R.id.geckoview)
-            //browser?.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-            //browser?.setViewBackend(GeckoView.BACKEND_SURFACE_VIEW)
-            browser?.setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
-            browser?.coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
             session.open(runtime)
+            browser = findViewById<GeckoView?>(R.id.geckoview)?.apply {
+                coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
+            }
             browser?.setSession(session)
 
-            // hide loader
-            //mProgressView?.visibility = View.GONE
-
-//            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
-//
 //            browser?.setResourceClient(object : XWalkResourceClient(browser) {
 //                override fun onLoadFinished(view: XWalkView, url: String) {
 //                    super.onLoadFinished(view, url)
@@ -520,16 +514,12 @@ class MainActivity : AppCompatActivity() {
 //            })
         }
 
-        //HttpHelper.userAgent = session.userAgent
-
-        //browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_back))
-        //browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
+//        browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
 
         if (LAMPA_URL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            //session.loadUri("about:buildconfig")
-            session.loadUri(LAMPA_URL!!)
+            session.loadUri(LAMPA_URL!!) //session.loadUri("about:buildconfig")
         }
     }
 
@@ -1158,7 +1148,7 @@ class MainActivity : AppCompatActivity() {
                 App.toast(R.string.search_no_voice_recognizer)
                 // You can prompt the user if he wants to install Google App to have
                 // speech recognition, and then you can simply call:
-                SpeechUtil.redirectUserToGoogleAppOnPlayStore(context)
+                // SpeechUtil.redirectUserToGoogleAppOnPlayStore(context)
                 // to redirect the user to the Google App page on Play Store
             } catch (exc: GoogleVoiceTypingDisabledException) {
                 Log.e("speech", "Google voice typing must be enabled!")
