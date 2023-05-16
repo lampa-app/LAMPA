@@ -73,12 +73,12 @@ class MainActivity : AppCompatActivity() {
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
         const val APP_LANG = "lang"
-        var LAMPA_URL: String? = ""
+        var lampaURL: String? = ""
         var SELECTED_PLAYER: String? = ""
         var playerTimeCode: String = "continue"
         var playerFileView: JSONObject? = null
         var playerAutoNext: Boolean = true
-        var internalTorrserve: Boolean = false
+        var internalTS: Boolean = false
         var torrserverPreload: Boolean = false
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
@@ -298,7 +298,7 @@ class MainActivity : AppCompatActivity() {
         hideSystemUI()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
-        LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
+        lampaURL = mSettings?.getString(APP_URL, lampaURL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
 
         val lang = mSettings?.getString(APP_LANG, Locale.getDefault().language)
@@ -516,10 +516,10 @@ class MainActivity : AppCompatActivity() {
 
 //        browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
 
-        if (LAMPA_URL.isNullOrEmpty()) {
+        if (lampaURL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            session.loadUri(LAMPA_URL!!) //session.loadUri("about:buildconfig")
+            session.loadUri(lampaURL!!) //session.loadUri("about:buildconfig")
         }
     }
 
@@ -534,7 +534,7 @@ class MainActivity : AppCompatActivity() {
         // Specify the type of input expected; this, for example, sets the input as a password,
         // and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT
-        input.setText(if (LAMPA_URL.isNullOrEmpty()) "http://lampa.mx" else LAMPA_URL)
+        input.setText(if (lampaURL.isNullOrEmpty()) "http://lampa.mx" else lampaURL)
         val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(
@@ -549,18 +549,18 @@ class MainActivity : AppCompatActivity() {
 
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
-            LAMPA_URL = input.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL!!).matches()) {
-                println("URL '$LAMPA_URL' is valid")
-                if (mSettings?.getString(APP_URL, "") != LAMPA_URL) {
+            lampaURL = input.text.toString()
+            if (URL_PATTERN.matcher(lampaURL!!).matches()) {
+                println("URL '$lampaURL' is valid")
+                if (mSettings?.getString(APP_URL, "") != lampaURL) {
                     val editor = mSettings?.edit()
-                    editor?.putString(APP_URL, LAMPA_URL)
+                    editor?.putString(APP_URL, lampaURL)
                     editor?.apply()
-                    session.loadUri(LAMPA_URL!!)
+                    session.loadUri(lampaURL!!)
                     App.toast(R.string.change_url_press_back)
                 }
             } else {
-                println("URL '$LAMPA_URL' is invalid")
+                println("URL '$lampaURL' is invalid")
                 App.toast(R.string.invalid_url)
                 showUrlInputDialog()
             }
@@ -568,12 +568,12 @@ class MainActivity : AppCompatActivity() {
         }
         builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
             dialog.cancel()
-            if (LAMPA_URL.isNullOrEmpty() && mSettings?.getString(APP_URL, LAMPA_URL)
+            if (lampaURL.isNullOrEmpty() && mSettings?.getString(APP_URL, lampaURL)
                     .isNullOrEmpty()
             ) {
                 appExit()
             } else {
-                LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
+                lampaURL = mSettings?.getString(APP_URL, lampaURL)
                 hideSystemUI()
             }
         }
@@ -823,7 +823,7 @@ class MainActivity : AppCompatActivity() {
                 for (i in 0 until playJSONArray.length()) {
                     val io = playJSONArray.getJSONObject(i)
                     if (io.has("url")) {
-                        val url = if (torrserverPreload && internalTorrserve)
+                        val url = if (torrserverPreload && internalTS)
                             io.optString("url").replace(badLinkPattern, "$1&play")
                         else
                             io.optString("url")
@@ -1146,10 +1146,6 @@ class MainActivity : AppCompatActivity() {
             } catch (exc: SpeechRecognitionNotAvailable) {
                 Log.e("speech", "Speech recognition is not available on this device!")
                 App.toast(R.string.search_no_voice_recognizer)
-                // You can prompt the user if he wants to install Google App to have
-                // speech recognition, and then you can simply call:
-                // SpeechUtil.redirectUserToGoogleAppOnPlayStore(context)
-                // to redirect the user to the Google App page on Play Store
             } catch (exc: GoogleVoiceTypingDisabledException) {
                 Log.e("speech", "Google voice typing must be enabled!")
             }
