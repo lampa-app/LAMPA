@@ -1,19 +1,18 @@
 {
-  "manifest_version": 2,
-  "name": "allow-cors",
-  "version": "1.0",
-  "description": "Allow CORS extension",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "allow-cors@lampa.mx"
+    "manifest_version" : 2
+    ,"name"        : "noCORS"
+    ,"version"     : "1.0"
+    ,"permissions" : [
+         "webRequest"
+        ,"webRequestBlocking"
+        ,"<all_urls>"
+    ]
+    ,"background" : {
+        "scripts" : ["background.js"]
     }
-  },
-  "background": {
-    "scripts": ["background.js"]
-  },
-  "permissions": [
-    "*://*/*",
-    "webRequest",
-    "webRequestBlocking"
-  ]
+    ,"applications": {
+        "gecko": {
+            "id": "no@cors"
+        }
+    }
 }

@@ -454,11 +454,11 @@ class MainActivity : AppCompatActivity() {
         if (!browserInit) {
             initialize(this)
 
-            // CORS
+            // NoCORS
             runtime.webExtensionController
                 .ensureBuiltIn(
                     "resource://android/assets/cors/",
-                    "allow-cors@lampa.mx")
+                    "no@cors")
 
             val isTvBox = Helpers.isTvBox(this)
             val sessionSettings = GeckoSessionSettings.Builder()
