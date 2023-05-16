@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "allow-cors",
+  "version": "1.0",
+  "description": "CORS extension",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "allow-cors@lampa.mx"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [
+    "*://*/*",
+    "webRequest",
+    "webRequestBlocking"
+  ]
+}

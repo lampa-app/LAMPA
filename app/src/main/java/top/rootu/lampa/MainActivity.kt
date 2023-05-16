@@ -241,19 +241,18 @@ class MainActivity : AppCompatActivity() {
             override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
                 if (BuildConfig.DEBUG) Log.d(LOGTAG, "onWebAppManifest: $manifest")
                 //TODO: sync theme etc
-                val backColor = try {
-                    Color.parseColor(manifest.getString("background_color")) // "theme_color"
-                } catch (_: Exception) {
-                    ContextCompat.getColor(baseContext, R.color.lampa_back) // 0xFF1D1F20.toInt()
-                }
-                browser?.coverUntilFirstPaint(backColor)
-                val dm = when (manifest.getString("display_mode")) {
-                    "fullscreen" -> GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN
-                    "standalone" -> GeckoSessionSettings.DISPLAY_MODE_STANDALONE
-                    else -> {GeckoSessionSettings.DISPLAY_MODE_BROWSER}
-                }
-                session.settings.displayMode = dm
-                session.reload()
+//                val backColor = try {
+//                    Color.parseColor(manifest.getString("background_color")) // "theme_color"
+//                } catch (_: Exception) {
+//                    ContextCompat.getColor(baseContext, R.color.lampa_back) // 0xFF1D1F20.toInt()
+//                }
+//                browser?.coverUntilFirstPaint(backColor)
+//                val dm = when (manifest.getString("display")) {
+//                    "fullscreen" -> GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN
+//                    "standalone" -> GeckoSessionSettings.DISPLAY_MODE_STANDALONE
+//                    else -> {GeckoSessionSettings.DISPLAY_MODE_BROWSER}
+//                }
+//                session.settings.displayMode = dm
             }
 
             override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
@@ -454,6 +453,12 @@ class MainActivity : AppCompatActivity() {
 
         if (!browserInit) {
             initialize(this)
+
+            // CORS
+            runtime.webExtensionController
+                .ensureBuiltIn(
+                    "resource://android/assets/cors/",
+                    "allow-cors@lampa.mx")
 
             val isTvBox = Helpers.isTvBox(this)
             val sessionSettings = GeckoSessionSettings.Builder()
