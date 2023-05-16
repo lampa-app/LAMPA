@@ -475,7 +475,7 @@ class MainActivity : AppCompatActivity() {
                     else
                         GeckoSessionSettings.USER_AGENT_MODE_MOBILE
                 )
-                userAgentOverride("lampa_client")
+//                userAgentOverride("lampa_client")
 //                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
             }
             session = GeckoSession(sessionSettings.build())
