@@ -6,7 +6,6 @@ import android.content.*
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION
@@ -60,7 +59,8 @@ class MainActivity : AppCompatActivity() {
     private var browserInit = false
     private var mDecorView: View? = null
     private var mProgressView: LinearProgressIndicator? = null
-//    private var mFullScreen = false
+
+    // private var mFullScreen = false
     private var mCanGoBack = false
     private var mCanGoForward = false
     private var mSettings: SharedPreferences? = null
@@ -244,6 +244,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onKill(session: GeckoSession) {
                 if (BuildConfig.DEBUG) Log.d(LOGTAG, "onKill($session)")
+                Log.e(LOGTAG, "Session killed. Reload!")
+                onGeckoInitCompleted()
 //            val tabSession: TabSession = mTabSessionManager.getSession(session) ?: return
 //            if (tabSession !== mTabSessionManager.getCurrentSession()) {
 //                Log.e(LOGTAG, "Background session killed")
@@ -474,20 +476,19 @@ class MainActivity : AppCompatActivity() {
 
         if (!browserInit) {
             initialize(this)
-
             // NoCORS
             runtime.webExtensionController
                 .ensureBuiltIn(
                     "resource://android/assets/cors/",
-                    "no@cors")
-
+                    "no@cors"
+                )
             val isTvBox = Helpers.isTvBox(this)
             val sessionSettings = GeckoSessionSettings.Builder()
             sessionSettings.apply {
                 viewportMode(
-//                    if (isTvBox)
-//                        GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
-//                    else
+                    if (isTvBox)
+                        GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+                    else
                         GeckoSessionSettings.VIEWPORT_MODE_MOBILE
                 )
                 userAgentMode(
@@ -497,12 +498,13 @@ class MainActivity : AppCompatActivity() {
                         GeckoSessionSettings.USER_AGENT_MODE_MOBILE
                 )
 //                userAgentOverride("lampa_client")
-//                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
+                displayMode(GeckoSessionSettings.DISPLAY_MODE_STANDALONE)
             }
             session = GeckoSession(sessionSettings.build())
             session.navigationDelegate = lampaNavigationDelegate
             session.progressDelegate = lampaProgressDelegate
             session.contentDelegate = lampaContentDelegate
+
 
             browserInit = true
             onGeckoInitCompleted()
@@ -511,12 +513,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onGeckoInitCompleted() {
         // Do anything with the embedding API
-        if (browser == null) {
-            session.open(runtime)
-            browser = findViewById<GeckoView?>(R.id.geckoview)?.apply {
-                coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
-            }
-            browser?.setSession(session)
+        session.open(runtime)
+        browser = findViewById<GeckoView?>(R.id.geckoview)?.apply {
+            coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
+        }
+        browser?.setSession(session)
 
 //            browser?.setResourceClient(object : XWalkResourceClient(browser) {
 //                override fun onLoadFinished(view: XWalkView, url: String) {
@@ -538,7 +539,6 @@ class MainActivity : AppCompatActivity() {
 //                    }
 //                }
 //            })
-        }
 
 //        browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
 
