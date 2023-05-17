@@ -545,7 +545,7 @@ class MainActivity : AppCompatActivity() {
         if (lampaURL.isNullOrEmpty()) {
             showUrlInputDialog()
         } else {
-            session.loadUri(lampaURL!!) //session.loadUri("about:buildconfig")
+            session.loadUri(lampaURL!!) // "about:config" | "about:buildconfig"
         }
     }
 
@@ -576,7 +576,7 @@ class MainActivity : AppCompatActivity() {
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             lampaURL = input.text.toString()
-            if (URL_PATTERN.matcher(lampaURL!!).matches()) {
+            if (URL_PATTERN.matcher(lampaURL!!).matches() || lampaURL == "about:config") {
                 println("URL '$lampaURL' is valid")
                 if (mSettings?.getString(APP_URL, "") != lampaURL) {
                     val editor = mSettings?.edit()
