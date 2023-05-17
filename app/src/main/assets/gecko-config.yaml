@@ -1,0 +1,9 @@
+env:
+
+args:
+
+prefs:
+  network.cors_preflight.allow_client_cert: true
+  gfx.canvas.accelerated.debug: true
+  dom.security.unexpected_system_load_telemetry_enabled: false
+  network.trr.confirmation_telemetry_enabled: false

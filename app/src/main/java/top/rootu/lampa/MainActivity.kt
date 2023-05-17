@@ -46,6 +46,8 @@ import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
+import java.io.File
+import java.io.IOException
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.coroutines.resume
@@ -93,6 +95,19 @@ class MainActivity : AppCompatActivity() {
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         lateinit var runtime: GeckoRuntime
 
+        @Throws(IOException::class)
+        fun getFileFromAssets(context: Context, fileName: String): File =
+            File(context.cacheDir, fileName)
+                .also {
+                    if (!it.exists()) {
+                        it.outputStream().use { cache ->
+                            context.assets.open(fileName).use { inputStream ->
+                                inputStream.copyTo(cache)
+                            }
+                        }
+                    }
+                }
+
         @UiThread
         fun initialize(context: Context) {
             if (!this::runtime.isInitialized) {
@@ -100,6 +115,12 @@ class MainActivity : AppCompatActivity() {
                 if (BuildConfig.DEBUG) {
                     runtimeSettings.remoteDebuggingEnabled(true)
                     runtimeSettings.consoleOutput(true)
+                }
+                if (VERSION.SDK_INT > 21) {
+                    // load config from assets/gecko-config.yaml
+                    val configPath = getFileFromAssets(context, "gecko-config.yaml").absolutePath
+                    // default is /data/local/tmp/$PACKAGE-geckoview-config.yaml
+                    runtimeSettings.configFilePath(configPath)
                 }
                 runtimeSettings.apply {
                     aboutConfigEnabled(true)
