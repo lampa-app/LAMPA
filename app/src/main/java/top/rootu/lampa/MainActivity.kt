@@ -512,10 +512,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onGeckoInitCompleted() {
-        // Do anything with the embedding API
-        session.open(runtime)
         browser = findViewById<GeckoView?>(R.id.geckoview)?.apply {
             coverUntilFirstPaint(ContextCompat.getColor(baseContext, R.color.lampa_back))
+        }
+        if (!session.isOpen) {
+            session.open(runtime)
         }
         browser?.setSession(session)
 
