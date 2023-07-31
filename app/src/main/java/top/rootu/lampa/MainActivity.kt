@@ -789,8 +789,9 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         intent.putExtra("position", videoPosition.toInt())
                         intent.putExtra("startfrom", videoPosition.toInt())
                     }
-                    intent.putExtra("forcedirect", true)
-                    intent.putExtra("forceresume", true)
+                    // don't use ViMu resumes, use Lampa timecodes instead
+                    //intent.putExtra("forcedirect", true)
+                    //intent.putExtra("forceresume", true)
                 }
 
                 else -> {

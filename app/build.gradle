@@ -13,7 +13,7 @@ def getVersionCode = { ->
         return Integer.parseInt(code.toString().trim())
     }
     catch (ignored) {
-        return -1
+        return 1
     }
 }
 
@@ -116,18 +116,18 @@ dependencies {
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.core:core-ktx:1.10.0'
+    implementation 'androidx.core:core-ktx:1.10.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
     implementation 'androidx.lifecycle:lifecycle-process:2.6.1'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
     // material-ui
-    implementation 'com.google.android.material:material:1.8.0'
+    implementation 'com.google.android.material:material:1.9.0'
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
     // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1' // 2.10.1
