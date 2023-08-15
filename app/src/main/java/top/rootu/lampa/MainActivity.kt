@@ -56,16 +56,19 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     private var mDecorView: View? = null
     private var browserInit = false
     private var mSettings: SharedPreferences? = null
+    private var mLastPlayed: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
     companion object {
         private const val TAG = "APP_MAIN"
         const val RESULT_ERROR = 4
+        const val APP_LAST_PLAYED = "last_played"
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
         const val APP_LANG = "lang"
+        var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String? = ""
         var SELECTED_PLAYER: String? = ""
         var playerTimeCode: String = "continue"
@@ -98,6 +101,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
         val lang = mSettings?.getString(APP_LANG, Locale.getDefault().language)
         Helpers.setLocale(this, lang)
+
+        mLastPlayed = getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)
+        playIndex = mLastPlayed?.getInt("playIndex", playIndex)!!
+        playVideoUrl = mLastPlayed?.getString("playVideoUrl", playVideoUrl)!!
+        playJSONArray = try {
+            JSONArray(mLastPlayed?.getString("playJSONArray", "[]"))
+        } catch (e: Exception) {
+            JSONArray()
+        }
 
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -326,6 +338,8 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         runJsStorageChangeField("torrserver_preload")
                         runJsStorageChangeField("internal_torrclient")
                         runJsStorageChangeField("language")
+                        for (item in delayedVoidJsFunc) runVoidJsFunc(item[0],item[1])
+                        delayedVoidJsFunc.clear()
                     }
                 }
             })
@@ -490,6 +504,14 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
         val editor = mSettings?.edit()
         editor?.putString(APP_PLAYER, SELECTED_PLAYER)
+        editor?.apply()
+    }
+
+    fun saveLastPlayed() {
+        val editor = mLastPlayed?.edit()
+        editor?.putInt("playIndex", playIndex)
+        editor?.putString("playVideoUrl", playVideoUrl)
+        editor?.putString("playJSONArray", playJSONArray.toString())
         editor?.apply()
     }
 
@@ -684,6 +706,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 playJSONArray.put(jsonObject)
             }
             playVideoUrl = videoUrl
+            saveLastPlayed()
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     //intent.setPackage(SELECTED_PLAYER)
@@ -995,21 +1018,25 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        val js = ("(function(){"
-                + "try {"
-                + funcName + "(" + params + ");"
-                + "return 'ok';"
-                + "} catch (e) {"
-                + "return 'error: ' + e.message;"
-                + "}"
-                + "})();")
-        browser?.evaluateJavascript(
-            js
-        ) { r: String ->
-            Log.i(
-                "runVoidJsFunc",
-                "$funcName($params) $r"
-            )
+        if (browserInit && browser?.visibility == View.VISIBLE) {
+            val js = ("(function(){"
+                    + "try {"
+                    + funcName + "(" + params + ");"
+                    + "return 'ok';"
+                    + "} catch (e) {"
+                    + "return 'error: ' + e.message;"
+                    + "}"
+                    + "})();")
+            browser?.evaluateJavascript(
+                js
+            ) { r: String ->
+                Log.i(
+                    "runVoidJsFunc",
+                    "$funcName($params) $r"
+                )
+            }
+        } else {
+            delayedVoidJsFunc.add(listOf(funcName, params))
         }
     }
 }
