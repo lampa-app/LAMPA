@@ -32,7 +32,7 @@ def getVersionName = { ->
 }
 
 android {
-    compileSdkVersion 33
+    compileSdk 34
     defaultConfig {
         applicationId "top.rootu.lampa"
         minSdkVersion 16
@@ -116,10 +116,10 @@ dependencies {
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
-    implementation 'androidx.lifecycle:lifecycle-process:2.6.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
+    implementation 'androidx.lifecycle:lifecycle-process:2.6.2'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
     // material-ui

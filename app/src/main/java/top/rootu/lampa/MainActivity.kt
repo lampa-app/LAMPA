@@ -94,7 +94,15 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         super.onCreate(savedInstanceState)
         mDecorView = window.decorView
         hideSystemUI()
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        @Suppress("DEPRECATION")
+        if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        else // API > 33
+            overrideActivityTransition(
+                OVERRIDE_TRANSITION_OPEN,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out
+            )
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
@@ -338,7 +346,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         runJsStorageChangeField("torrserver_preload")
                         runJsStorageChangeField("internal_torrclient")
                         runJsStorageChangeField("language")
-                        for (item in delayedVoidJsFunc) runVoidJsFunc(item[0],item[1])
+                        for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                         delayedVoidJsFunc.clear()
                     }
                 }
@@ -507,7 +515,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         editor?.apply()
     }
 
-    fun saveLastPlayed() {
+    private fun saveLastPlayed() {
         val editor = mLastPlayed?.edit()
         editor?.putInt("playIndex", playIndex)
         editor?.putString("playVideoUrl", playVideoUrl)
