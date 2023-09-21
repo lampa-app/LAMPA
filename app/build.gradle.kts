@@ -42,7 +42,7 @@ fun getVersionName(): String {
 }
 
 android {
-    compileSdk = 33
+    compileSdk = 34
     defaultConfig {
         applicationId = "top.rootu.lampa"
         minSdk = 16
@@ -121,20 +121,19 @@ android {
                     "lampa-${flavour}-${versionName}(${arch}).apk"
             }
     }
-    compileOptions {
-        sourceCompatibility to JavaVersion.VERSION_11
-        targetCompatibility to JavaVersion.VERSION_11
-    }
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
-    packagingOptions {
-        resources.excludes += "DebugProbesKt.bin"
-    }
+//    testOptions {
+//        unitTests {
+//            isIncludeAndroidResources = true
+//        }
+//    }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
+    }
+    compileOptions {
+        // For AGP 4.1+
+        isCoreLibraryDesugaringEnabled = true
+//        sourceCompatibility to JavaVersion.VERSION_1_8
+//        targetCompatibility to JavaVersion.VERSION_1_8
     }
     flavorDimensions += listOf("gecko")
     productFlavors {
@@ -142,25 +141,25 @@ android {
             dimension = "gecko"
         }
     }
-    packagingOptions {
-        resources.excludes += "DebugProbesKt.bin"
-    }
     buildFeatures {
         viewBinding = true
     }
+
     namespace = "top.rootu.lampa"
 }
 
 dependencies {
+    // For AGP 7.4+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/
-    val geckoViewVersion = "113.0.20230501151611"
+    val geckoViewVersion = "118.0.20230918143747"
     implementation("org.mozilla.geckoview:geckoview:$geckoViewVersion") {
         exclude(null, "snakeyaml") // disable non-compatible yaml library: https://github.com/mozilla/geckoview/issues/139
     }
     implementation("org.yaml:snakeyaml:1.26:android") // use updated yaml library compatible with old Android
     // JavaScript to run PAC file to get correct proxies
-    implementation("org.mozilla:rhino:1.7.11")
+    implementation("org.mozilla:rhino:1.7.14")
     // okhttp for android 4.1+ // 3.12.12 - latest version for API 16
     //noinspection GradleDependency
     implementation("com.squareup.okhttp3:okhttp:3.12.12")
@@ -172,10 +171,10 @@ dependencies {
     implementation("info.guardianproject.netcipher:netcipher:2.1.0")
     // androidx
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.core:core-ktx:1.10.1")
+    implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-process:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
     implementation("androidx.vectordrawable:vectordrawable:1.1.0")
     implementation("org.brotli:dec:0.1.2")
     // material-ui
@@ -183,7 +182,7 @@ dependencies {
     // speech
     implementation("net.gotev:speech:1.6.2")
     // coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation("com.google.code.gson:gson:2.9.1") // 2.10.1
