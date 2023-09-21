@@ -9,9 +9,9 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.net.ConnectivityManager
-import android.net.NetworkInfo
+import android.net.NetworkCapabilities
 import android.os.Build
-import androidx.multidex.MultiDexApplication
+import androidx.annotation.RequiresApi
 import java.util.*
 
 
@@ -41,19 +41,35 @@ object Helpers {
         val locale = languageCode?.let { Locale(it) } ?: return
         Locale.setDefault(locale)
         val resources: Resources = activity.resources
-        val config: Configuration = resources.getConfiguration()
+        val config: Configuration = resources.configuration
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
             config.setLocale(locale)
         else
             config.locale = locale
-        resources.updateConfiguration(config, resources.getDisplayMetrics())
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun isConnectedOld(context: Context): Boolean {
+        val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connManager.activeNetworkInfo
+        return networkInfo?.isConnected == true
+
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun isConnectedNewApi(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 
     fun isConnected(context: Context): Boolean {
-        val connectivityManager =
-            context.getSystemService(MultiDexApplication.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkInfo: NetworkInfo? = connectivityManager.activeNetworkInfo
-        return networkInfo != null && networkInfo.state == NetworkInfo.State.CONNECTED
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            isConnectedNewApi(context)
+        } else{
+            isConnectedOld(context)
+        }
     }
     fun isTvBox(ctx: Context): Boolean {
         val pm = ctx.packageManager

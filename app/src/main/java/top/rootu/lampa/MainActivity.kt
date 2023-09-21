@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private var mCanGoBack = false
     private var mCanGoForward = false
     private var mSettings: SharedPreferences? = null
+    private var mLastPlayed: SharedPreferences? = null
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
     private lateinit var session: GeckoSession
@@ -71,10 +72,12 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val LOGTAG = "APP_MAIN"
         const val RESULT_ERROR = 4
+        const val APP_LAST_PLAYED = "last_played"
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
         const val APP_LANG = "lang"
+        var delayedVoidJsFunc = mutableListOf<List<String>>()
         var lampaURL: String? = ""
         var SELECTED_PLAYER: String? = ""
         var playerTimeCode: String = "continue"
@@ -318,13 +321,30 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         mDecorView = window.decorView
         hideSystemUI()
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        @Suppress("DEPRECATION")
+        if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        else // API > 33
+            overrideActivityTransition(
+                OVERRIDE_TRANSITION_OPEN,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out
+            )
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         lampaURL = mSettings?.getString(APP_URL, lampaURL)
         SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
 
         val lang = mSettings?.getString(APP_LANG, Locale.getDefault().language)
         Helpers.setLocale(this, lang)
+
+        mLastPlayed = getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)
+        playIndex = mLastPlayed?.getInt("playIndex", playIndex)!!
+        playVideoUrl = mLastPlayed?.getString("playVideoUrl", playVideoUrl)!!
+        playJSONArray = try {
+            JSONArray(mLastPlayed?.getString("playJSONArray", "[]"))
+        } catch (e: Exception) {
+            JSONArray()
+        }
 
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -692,6 +712,14 @@ class MainActivity : AppCompatActivity() {
         editor?.apply()
     }
 
+    private fun saveLastPlayed() {
+        val editor = mLastPlayed?.edit()
+        editor?.putInt("playIndex", playIndex)
+        editor?.putString("playVideoUrl", playVideoUrl)
+        editor?.putString("playJSONArray", playJSONArray.toString())
+        editor?.apply()
+    }
+
     private fun resultPlayer(
         endedVideoUrl: String,
         pos: Int = 0,
@@ -885,6 +913,7 @@ class MainActivity : AppCompatActivity() {
                 playJSONArray.put(jsonObject)
             }
             playVideoUrl = videoUrl
+            saveLastPlayed()
             when (SELECTED_PLAYER) {
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     //intent.setPackage(SELECTED_PLAYER)
@@ -990,8 +1019,9 @@ class MainActivity : AppCompatActivity() {
                         intent.putExtra("position", videoPosition.toInt())
                         intent.putExtra("startfrom", videoPosition.toInt())
                     }
-                    intent.putExtra("forcedirect", true)
-                    intent.putExtra("forceresume", true)
+                    // don't use ViMu resumes, use Lampa timecodes instead
+                    //intent.putExtra("forcedirect", true)
+                    //intent.putExtra("forceresume", true)
                 }
 
                 else -> {
@@ -1191,21 +1221,25 @@ class MainActivity : AppCompatActivity() {
 //    }
 
 //    fun runVoidJsFunc(funcName: String, params: String) {
-//        val js = ("(function(){"
-//                + "try {"
-//                + funcName + "(" + params + ");"
-//                + "return 'ok';"
-//                + "} catch (e) {"
-//                + "return 'error: ' + e.message;"
-//                + "}"
-//                + "})();")
-//        browser?.evaluateJavascript(
-//            js
-//        ) { r: String ->
-//            Log.i(
-//                "runVoidJsFunc",
-//                "$funcName($params) $r"
-//            )
+//        if (browserInit && browser?.visibility == View.VISIBLE) {
+//            val js = ("(function(){"
+//                    + "try {"
+//                    + funcName + "(" + params + ");"
+//                    + "return 'ok';"
+//                    + "} catch (e) {"
+//                    + "return 'error: ' + e.message;"
+//                    + "}"
+//                    + "})();")
+//            browser?.evaluateJavascript(
+//                js
+//            ) { r: String ->
+//                Log.i(
+//                    "runVoidJsFunc",
+//                    "$funcName($params) $r"
+//                )
+//            }
+//        } else {
+//            delayedVoidJsFunc.add(listOf(funcName, params))
 //        }
 //    }
 }
