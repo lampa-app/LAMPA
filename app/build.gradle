@@ -123,7 +123,7 @@ dependencies {
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
     // material-ui
-    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'com.google.android.material:material:1.10.0'
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
