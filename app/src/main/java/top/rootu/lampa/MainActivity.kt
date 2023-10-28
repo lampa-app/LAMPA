@@ -216,19 +216,34 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
-                } else { // ViMu
+                } else { // ViMu, UPlayer and other player
+                    val pos = it.getIntExtra(
+                        "position",
+                        it.getLongExtra("position", 0L).toInt()
+                    )
+                    val dur = it.getIntExtra(
+                        "duration",
+                        it.getLongExtra("duration", 0L).toInt()
+                    )
+                    val isEnded = it.getBooleanExtra("isEnded", pos==dur)
+
                     when (resultCode) {
-                        RESULT_FIRST_USER -> {
+                        RESULT_OK -> { // UPlayer
+                            if (pos > 0 && dur > 0) {
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                resultPlayer(videoUrl, pos, dur, isEnded)
+                            }
+                        }
+
+                        RESULT_FIRST_USER -> { // ViMu
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
 
-                        RESULT_CANCELED -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
+                        RESULT_CANCELED -> { // ViMu
                             if (pos > 0 && dur > 0) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                resultPlayer(videoUrl, pos, dur, false)
+                                resultPlayer(videoUrl, pos, dur, isEnded)
                             }
                         }
 
@@ -575,13 +590,32 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         )
         val resInfo =
             packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        if (resInfo.isEmpty()) {
+        val excludedAppsPackageNames = hashSetOf(
+            "com.android.gallery3d",
+            "com.lonelycatgames.xplore",
+            "com.android.tv.frameworkpackagestubs",
+            "com.google.android.tv.frameworkpackagestubs",
+            "com.instantbits.cast.webvideo",
+            "com.ghisler.android.totalcommander",
+            "com.google.android.apps.photos",
+            "com.mixplorer.silver",
+            "com.estrongs.android.pop",
+            "pl.solidexplorer2"
+        )
+        val filteredList: MutableList<ResolveInfo> = mutableListOf()
+        for (info in resInfo) {
+            if (excludedAppsPackageNames.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
+                continue
+            }
+            filteredList.add(info)
+        }
+        if (filteredList.isEmpty()) {
             App.toast(R.string.no_activity_found, false)
             return
         }
         var playerPackageExist = false
         if (!SELECTED_PLAYER.isNullOrEmpty()) {
-            for (info in resInfo) {
+            for (info in filteredList) {
                 if (info.activityInfo.packageName.lowercase(Locale.getDefault()) == SELECTED_PLAYER) {
                     playerPackageExist = true
                     break
@@ -589,25 +623,6 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
         }
         if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
-            val excludedAppsPackageNames = hashSetOf(
-                "com.android.gallery3d",
-                "com.lonelycatgames.xplore",
-                "com.android.tv.frameworkpackagestubs",
-                "com.google.android.tv.frameworkpackagestubs",
-                "com.instantbits.cast.webvideo",
-                "com.ghisler.android.totalcommander",
-                "com.google.android.apps.photos",
-                "com.mixplorer.silver",
-                "com.estrongs.android.pop",
-                "pl.solidexplorer2"
-            )
-            val filteredList: MutableList<ResolveInfo> = mutableListOf()
-            for (info in resInfo) {
-                if (excludedAppsPackageNames.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
-                    continue
-                }
-                filteredList.add(info)
-            }
             val mainActivity = this
             val listAdapter = AppListAdapter(mainActivity, filteredList)
             val playerChooser = AlertDialog.Builder(mainActivity)
@@ -716,6 +731,76 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             playVideoUrl = videoUrl
             saveLastPlayed()
             when (SELECTED_PLAYER) {
+                "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
+                    intent.setPackage(SELECTED_PLAYER)
+
+                    if (playerTimeCode == "continue" || playerTimeCode == "again")
+                        intent.putExtra("resume", videoPosition)
+
+                    val isGroup = if (jsonObject.has("quality")) {
+                        var qualityListSize = 0
+                        val keys = (jsonObject["quality"] as JSONObject).keys()
+                        while (keys.hasNext() && qualityListSize < 2) {
+                            keys.next()
+                            qualityListSize++
+                        }
+                        qualityListSize > 1
+                    } else {
+                        false
+                    }
+
+                    if (listUrls.size > 1 || isGroup) {
+                        // todo Check: If create the playlist, RESULT_CANCELED is returned and no returns position.
+                        // todo If true, then remove the isGroup from the condition (in favor of returning the position for the timeline)
+
+                        val firstHash = ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString("hash", "0")
+                        if (firstHash != "0") {
+                            intent.putExtra("playlistTitle", firstHash)
+                        }
+
+                        if (listTitles.size > 0) {
+                            intent.putStringArrayListExtra("titleList", listTitles)
+                        } else {
+                            intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
+                        }
+
+                        if (isGroup) {
+                            val qualityMap =
+                                kotlin.collections.LinkedHashMap<String, ArrayList<String>>()
+                            for (i in 0 until playJSONArray.length()) {
+                                val itemQualityMap =
+                                    (playJSONArray[i] as JSONObject)["quality"] as JSONObject
+                                val keys = itemQualityMap.keys()
+                                while (keys.hasNext()) {
+                                    val key = keys.next()
+                                    val value = itemQualityMap.getString(key)
+
+                                    if (qualityMap.contains(key).not()) {
+                                        qualityMap.put(key, arrayListOf())
+                                    }
+                                    qualityMap.getValue(key).add(value)
+                                }
+                            }
+
+                            intent.putStringArrayListExtra(
+                                "videoGroupList",
+                                kotlin.collections.ArrayList(qualityMap.keys.toList())
+                            )
+                            qualityMap.keys.forEach {
+                                intent.putStringArrayListExtra(it, qualityMap.getValue(it))
+                            }
+                            intent.putExtra("groupPosition", playIndex)
+                        } else {
+                            if (listUrls.size > 0) {
+                                intent.putStringArrayListExtra("videoList", listUrls)
+                            } else {
+                                intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
+                            }
+                            intent.putExtra("playlistPosition", playIndex)
+                        }
+                    }
+                }
+
                 "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                     //intent.setPackage(SELECTED_PLAYER)
                     intent.component = ComponentName(
