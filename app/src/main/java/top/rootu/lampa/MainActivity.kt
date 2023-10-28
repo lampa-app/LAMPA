@@ -118,19 +118,35 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         } catch (e: Exception) {
             JSONArray()
         }
-
+        // Some external video player api specs:
+        // vlc https://wiki.videolan.org/Android_Player_Intents/
+        // justplayer https://github.com/moneytoo/Player/issues/203
+        // mxplayer https://mx.j2inter.com/api
+        // mpv http://mpv-android.github.io/mpv-android/intent.html
+        // vimu https://www.vimu.tv/player-api
         resultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
+            val bundle = data?.extras
+            if (BuildConfig.DEBUG) {
+                bundle?.let { b ->
+                    for (key in b.keySet()) {
+                        Log.d(
+                            TAG,
+                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
+                        )
+                    }
+                }
+            }
             val videoUrl: String = data?.data.toString()
             Log.i(TAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
             when (resultCode) { // just for debug
-                RESULT_OK -> Log.i(TAG, "OK: ${data?.toUri(0)}") // -1
-                RESULT_CANCELED -> Log.i(TAG, "Canceled: ${data?.toUri(0)}") // 0
-                RESULT_FIRST_USER -> Log.i(TAG, "FU: ${data?.toUri(0)}") // 1
-                RESULT_ERROR -> Log.e(TAG, "Error: ${data?.toUri(0)}") // 4
+                RESULT_OK -> Log.i(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
+                RESULT_CANCELED -> Log.i(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
+                RESULT_FIRST_USER -> Log.i(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
+                RESULT_ERROR -> Log.e(TAG, "RESULT_ERROR: ${data?.toUri(0)}") // 4
                 else -> Log.w(
                     TAG,
                     "Undefined result code ($resultCode): ${data?.toUri(0)}"
@@ -216,34 +232,39 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
-                } else { // ViMu, UPlayer and other player
-                    val pos = it.getIntExtra(
-                        "position",
-                        it.getLongExtra("position", 0L).toInt()
-                    )
-                    val dur = it.getIntExtra(
-                        "duration",
-                        it.getLongExtra("duration", 0L).toInt()
-                    )
-                    val isEnded = it.getBooleanExtra("isEnded", pos==dur)
-
+                } else if (it.action.equals("com.uapplication.uplayer.result") ||
+                    it.action.equals("com.uapplication.uplayer.beta.result")
+                ) { // UPlayer
                     when (resultCode) {
-                        RESULT_OK -> { // UPlayer
+                        RESULT_OK -> {
+                            val pos = it.getLongExtra("position", 0L).toInt()
+                            val dur = it.getLongExtra("duration", 0L).toInt()
+                            val isEnded = it.getBooleanExtra("isEnded", pos == dur)
                             if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, isEnded=$isEnded]")
                                 resultPlayer(videoUrl, pos, dur, isEnded)
                             }
                         }
-
+                        RESULT_CANCELED -> {
+                            Log.e(TAG, "Playback Error. It isn't possible to get the duration or create the playlist.")
+                        }
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
+                } else { // ViMu and others
+                    when (resultCode) {
                         RESULT_FIRST_USER -> { // ViMu
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
 
-                        RESULT_CANCELED -> { // ViMu
+                        RESULT_CANCELED -> {
+                            val pos = it.getIntExtra("position", 0)
+                            val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                resultPlayer(videoUrl, pos, dur, isEnded)
+                                resultPlayer(videoUrl, pos, dur, false)
                             }
                         }
 
@@ -733,11 +754,12 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             when (SELECTED_PLAYER) {
                 "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
                     intent.setPackage(SELECTED_PLAYER)
+                    intent.putExtra("title", videoTitle)
 
                     if (playerTimeCode == "continue" || playerTimeCode == "again")
                         intent.putExtra("resume", videoPosition)
 
-                    val isGroup = if (jsonObject.has("quality")) {
+                    val haveQuality = if (jsonObject.has("quality")) {
                         var qualityListSize = 0
                         val keys = (jsonObject["quality"] as JSONObject).keys()
                         while (keys.hasNext() && qualityListSize < 2) {
@@ -749,11 +771,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         false
                     }
 
-                    if (listUrls.size > 1 || isGroup) {
-                        // todo Check: If create the playlist, RESULT_CANCELED is returned and no returns position.
-                        // todo If true, then remove the isGroup from the condition (in favor of returning the position for the timeline)
+                    if (listUrls.size > 1 || haveQuality ) {
 
-                        val firstHash = ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString("hash", "0")
+                        val firstHash =
+                            ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString(
+                                "hash",
+                                "0"
+                            )
                         if (firstHash != "0") {
                             intent.putExtra("playlistTitle", firstHash)
                         }
@@ -763,10 +787,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                         } else {
                             intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
                         }
+                        intent.putExtra("playlistPosition", playIndex)
 
-                        if (isGroup) {
-                            val qualityMap =
-                                kotlin.collections.LinkedHashMap<String, ArrayList<String>>()
+                        if (haveQuality) {
+                            val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
                                 val itemQualityMap =
                                     (playJSONArray[i] as JSONObject)["quality"] as JSONObject
@@ -776,7 +800,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                                     val value = itemQualityMap.getString(key)
 
                                     if (qualityMap.contains(key).not()) {
-                                        qualityMap.put(key, arrayListOf())
+                                        qualityMap[key] = arrayListOf()
                                     }
                                     qualityMap.getValue(key).add(value)
                                 }
@@ -784,19 +808,18 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
                             intent.putStringArrayListExtra(
                                 "videoGroupList",
-                                kotlin.collections.ArrayList(qualityMap.keys.toList())
+                                ArrayList(qualityMap.keys.toList())
                             )
                             qualityMap.keys.forEach {
                                 intent.putStringArrayListExtra(it, qualityMap.getValue(it))
                             }
-                            intent.putExtra("groupPosition", playIndex)
+                            intent.putExtra("groupPosition", 0) // TODO: set as defined in Lampa prefs
                         } else {
                             if (listUrls.size > 0) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
                             } else {
                                 intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
                             }
-                            intent.putExtra("playlistPosition", playIndex)
                         }
                     }
                 }
@@ -858,10 +881,13 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
 
                 "org.videolan.vlc" -> {
                     // https://wiki.videolan.org/Android_Player_Intents
-                    intent.component = ComponentName(
-                        SELECTED_PLAYER!!,
-                        "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
-                    ) // required for return intent
+                    if (VERSION.SDK_INT > 32) {
+                        intent.setPackage(SELECTED_PLAYER)
+                    } else
+                        intent.component = ComponentName(
+                            SELECTED_PLAYER!!,
+                            "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
+                        ) // required for return intent
                     intent.putExtra("title", videoTitle)
                     if (playerTimeCode == "continue" && videoPosition > 0L) {
                         intent.putExtra("from_start", false)
@@ -877,9 +903,17 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 "com.brouken.player" -> {
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("title", videoTitle)
-                    intent.putExtra("return_result", true)
                     if (playerTimeCode == "continue" || playerTimeCode == "again")
                         intent.putExtra("position", videoPosition.toInt())
+                    if (subsUrls.size > 0) {
+                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+                        for (i in 0 until subsUrls.size) {
+                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+                        }
+                        intent.putExtra("subs", parcelableSubsArr)
+                        intent.putExtra("subs.name", subsTitles.toTypedArray())
+                    }
+                    intent.putExtra("return_result", true)
                 }
 
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
@@ -916,6 +950,18 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+                    intent.extras?.let {
+                        for (key in it.keySet()) {
+                            Log.d(
+                                TAG,
+                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+                            )
+                        }
+                    }
+                }
+
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, false)
