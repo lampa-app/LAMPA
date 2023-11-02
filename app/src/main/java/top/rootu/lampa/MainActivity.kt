@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity(),
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
-        var SELECTED_BROWSER: String? = if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) "XWalk" else ""
+        var SELECTED_BROWSER: String? = if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
         var playerTimeCode: String = "continue"
         var playerFileView: JSONObject? = null
         var playerAutoNext: Boolean = true
@@ -322,8 +322,6 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
-
-
 
         SELECTED_BROWSER = mSettings.getString(APP_BROWSER, SELECTED_BROWSER)
         if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP

@@ -214,7 +214,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                                     .replace("'", "\\'")
                                     .replace("\n", "\\\n")
                                 + "')")
-                        browser.evaluateJavascript(js) { value -> Log.i("JSRV", value!!) }
+                        browser.evaluateJavascript(js) { value -> Log.i("JSRV", value) }
                     }
                 }
             }
