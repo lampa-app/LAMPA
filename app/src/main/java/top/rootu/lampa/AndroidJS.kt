@@ -6,13 +6,14 @@ import android.text.TextUtils
 import android.util.Log
 import org.json.JSONException
 import org.json.JSONObject
-import org.xwalk.core.JavascriptInterface
-import org.xwalk.core.XWalkView
+import android.webkit.JavascriptInterface
+import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
-class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
+class AndroidJS(var mainActivity: MainActivity, var XWalkView: Browser) {
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun StorageChange(str: String) {
         val eo: JSONObject = if (str == "\"\"") {
             JSONObject()
@@ -44,11 +45,13 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun appVersion(): String {
         return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun exit() {
         try {
             mainActivity.runOnUiThread { mainActivity.appExit() }
@@ -58,6 +61,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     @Throws(JSONException::class)
     fun openTorrentLink(str: String, str2: String): Boolean {
         val jSONObject: JSONObject = if (str2 == "\"\"") {
@@ -100,6 +104,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun openYoutube(str: String) {
         val intent = Intent(
             Intent.ACTION_VIEW,
@@ -116,6 +121,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun clearDefaultPlayer() {
         mainActivity.runOnUiThread {
             mainActivity.setPlayerPackage("")
@@ -124,6 +130,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String?, returnI: Int) {
         Log.d("JS", str!!)
         val jSONObject: JSONObject?
@@ -201,7 +208,12 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
                 override fun onPostExecute(result: String?) {
                     mainActivity.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
-                                + returnI.toString() + ", '" + result + "')")
+                                + returnI.toString() + ", '"
+                                + result.toString()
+                                    .replace("\\", "\\\\")
+                                    .replace("'", "\\'")
+                                    .replace("\n", "\\\n")
+                                + "')")
                         XWalkView.evaluateJavascript(js) { value -> Log.i("JSRV", value!!) }
                     }
                 }
@@ -214,6 +226,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun getResp(str: String): String? {
         var string: String? = ""
         if (reqResponse.containsKey(str)) {
@@ -224,6 +237,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun openPlayer(link: String, jsonStr: String) {
         Log.d(TAG, "openPlayer: $link json:$jsonStr")
         val jsonObject: JSONObject = try {
@@ -241,16 +255,19 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun setProxyPAC(link: String): Boolean {
         return Http.setProxyPAC(link)
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun getProxyPAC(): String {
         return Http.getProxyPAC()
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun voiceStart() {
         // Голосовой ввод с последующей передачей результата через JS
         mainActivity.runOnUiThread {
@@ -265,6 +282,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: XWalkView) {
     }
 
     @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
         // todo https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null) {

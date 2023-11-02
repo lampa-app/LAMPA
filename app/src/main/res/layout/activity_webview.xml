@@ -23,11 +23,12 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.5" />
 
-    <org.xwalk.core.XWalkView
-        android:id="@+id/xwalkview"
+    <WebView
+        android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/welcome"
+        tools:ignore="MissingConstraints"
         android:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

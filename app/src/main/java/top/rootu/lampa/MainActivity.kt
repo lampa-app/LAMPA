@@ -2,10 +2,11 @@ package top.rootu.lampa
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.DownloadManager
-import android.app.DownloadManager.Query
-import android.content.*
+import android.content.ComponentName
+import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_POSITIVE
+import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
@@ -16,7 +17,12 @@ import android.os.Parcelable
 import android.speech.RecognizerIntent
 import android.text.InputType
 import android.util.Log
-import android.view.*
+import android.view.Gravity
+import android.view.KeyEvent
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -33,30 +39,41 @@ import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.progressindicator.CircularProgressIndicator
-import net.gotev.speech.*
+import net.gotev.speech.GoogleVoiceTypingDisabledException
+import net.gotev.speech.Speech
+import net.gotev.speech.SpeechDelegate
+import net.gotev.speech.SpeechRecognitionNotAvailable
+import net.gotev.speech.SpeechUtil
 import net.gotev.speech.ui.SpeechProgressView
 import org.json.JSONArray
 import org.json.JSONObject
-import org.xwalk.core.*
-import org.xwalk.core.XWalkInitializer.XWalkInitListener
-import top.rootu.lampa.helpers.FileHelpers
+import org.xwalk.core.MyXWalkEnvironment
+import org.xwalk.core.MyXWalkUpdater
+import org.xwalk.core.XWalkInitializer
+import org.xwalk.core.XWalkPreferences
+import top.rootu.lampa.browser.Browser
+import top.rootu.lampa.browser.SysView
+import top.rootu.lampa.browser.XWalk
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
-import java.io.File
-import java.util.*
+import java.util.Locale
 import java.util.regex.Pattern
 
 
-class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
-    private var browser: XWalkView? = null
-    private var mXWalkInitializer: XWalkInitializer? = null
+class MainActivity : AppCompatActivity(),
+    Browser.Listener,
+    XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener
+{
     private var mXWalkUpdater: MyXWalkUpdater? = null
+    private var mXWalkInitializer: XWalkInitializer? = null
+    private var browser: Browser? = null
+    private lateinit var progressBar: CircularProgressIndicator
     private var mDecorView: View? = null
     private var browserInit = false
-    private var mSettings: SharedPreferences? = null
-    private var mLastPlayed: SharedPreferences? = null
+    private lateinit var mSettings: SharedPreferences
+    private lateinit var mLastPlayed: SharedPreferences
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
@@ -67,10 +84,12 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         const val APP_PREFERENCES = "settings"
         const val APP_URL = "url"
         const val APP_PLAYER = "player"
+        const val APP_BROWSER = "browser"
         const val APP_LANG = "lang"
         var delayedVoidJsFunc = mutableListOf<List<String>>()
-        var LAMPA_URL: String? = ""
+        var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
+        var SELECTED_BROWSER: String? = if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) "XWalk" else ""
         var playerTimeCode: String = "continue"
         var playerFileView: JSONObject? = null
         var playerAutoNext: Boolean = true
@@ -104,17 +123,17 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
                 android.R.anim.fade_out
             )
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
-        LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
-        SELECTED_PLAYER = mSettings?.getString(APP_PLAYER, SELECTED_PLAYER)
+        LAMPA_URL = mSettings.getString(APP_URL, LAMPA_URL).toString()
+        SELECTED_PLAYER = mSettings.getString(APP_PLAYER, SELECTED_PLAYER)
 
-        val lang = mSettings?.getString(APP_LANG, Locale.getDefault().language)
+        val lang = mSettings.getString(APP_LANG, Locale.getDefault().language)
         Helpers.setLocale(this, lang)
 
         mLastPlayed = getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)
-        playIndex = mLastPlayed?.getInt("playIndex", playIndex)!!
-        playVideoUrl = mLastPlayed?.getString("playVideoUrl", playVideoUrl)!!
+        playIndex = mLastPlayed.getInt("playIndex", playIndex)
+        playVideoUrl = mLastPlayed.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
-            JSONArray(mLastPlayed?.getString("playJSONArray", "[]"))
+            JSONArray(mLastPlayed.getString("playJSONArray", "[]"))
         } catch (e: Exception) {
             JSONArray()
         }
@@ -297,27 +316,54 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             }
         }
 
-        // Must call initAsync() before anything that involves the embedding
-        // API, including invoking setContentView() with the layout which
-        // holds the XWalkView object.
-        mXWalkInitializer = XWalkInitializer(this, this)
-        mXWalkInitializer?.initAsync()
 
-        // Until onXWalkInitCompleted() is invoked, you should do nothing with the
-        // embedding API except the following:
-        // 1. Instantiate the XWalkView object
-        // 2. Call XWalkPreferences.setValue()
-        // 3. Call mXWalkView.setXXClient(), e.g., setUIClient
-        // 4. Call mXWalkView.setXXListener(), e.g., setDownloadListener
-        // 5. Call mXWalkView.addJavascriptInterface()
-        XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
-        XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-        // maybe this fixes crashes on mitv2?
-        // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
-        setContentView(R.layout.activity_main)
+
+        SELECTED_BROWSER = mSettings.getString(APP_BROWSER, SELECTED_BROWSER)
+        if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+            || (SELECTED_BROWSER.isNullOrEmpty() && playVideoUrl.isNotEmpty())
+        ) {
+            // If SELECTED_BROWSER not set, but there is information about the latest video,
+            // then the user used Crosswalk in previous versions of the application
+            SELECTED_BROWSER = "XWalk"
+        }
+        when (SELECTED_BROWSER) {
+            "XWalk" -> {
+                // Must call initAsync() before anything that involves the embedding
+                // API, including invoking setContentView() with the layout which
+                // holds the XWalkView object.
+                mXWalkInitializer = XWalkInitializer(this, this)
+                mXWalkInitializer?.initAsync()
+
+                // Until onXWalkInitCompleted() is invoked, you should do nothing with the
+                // embedding API except the following:
+                // 1. Instantiate the XWalkView object
+                // 2. Call XWalkPreferences.setValue()
+                // 3. Call mXWalkView.setXXClient(), e.g., setUIClient
+                // 4. Call mXWalkView.setXXListener(), e.g., setDownloadListener
+                // 5. Call mXWalkView.addJavascriptInterface()
+                XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
+                XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
+                // maybe this fixes crashes on mitv2?
+                // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
+                setContentView(R.layout.activity_xwalk)
+            }
+            "SysView" -> {
+                setContentView(R.layout.activity_webview)
+                browser = SysView(this, R.id.webView)
+            }
+            else -> {
+                setContentView(R.layout.activity_empty)
+                showBrowserInputDialog()
+            }
+        }
+
+        progressBar = findViewById(R.id.progressBar_cyclic)
+
+        browser?.init()
     }
 
     override fun onXWalkInitStarted() {}
+
     override fun onXWalkInitCancelled() {
         // Perform error handling here
         finish()
@@ -337,68 +383,99 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
-    private fun cleanXwalkDownload() {
-        val savedFile = "xwalk_update.apk"
-        val mDownloadManager: DownloadManager? =
-            getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager?
-        val downloadDir = FileHelpers.getDownloadDir(this) // getCacheDir(context)
-        val downloadFile = File(downloadDir, savedFile)
-        if (downloadFile.isFile && downloadFile.canWrite()) downloadFile.delete()
-        val query = Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL)
-        mDownloadManager?.query(query)?.let {
-            while (it.moveToNext()) {
-                @SuppressLint("Range") val id =
-                    it.getLong(it.getColumnIndex(DownloadManager.COLUMN_ID))
-                @SuppressLint("Range") val localFilename =
-                    it.getString(it.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
-                if (localFilename.contains(savedFile)) mDownloadManager.remove(id)
-            }
-        }
+    override fun onXWalkInitCompleted() {
+        browser = XWalk(this, R.id.xWalkView)
+        browser?.init()
     }
 
-    override fun onXWalkInitCompleted() {
-        // Clean downloads
-        cleanXwalkDownload()
-        // Do anything with the embedding API
-        browserInit = true
-        if (browser == null) {
-            browser = findViewById(R.id.xwalkview)
-            browser?.setLayerType(View.LAYER_TYPE_NONE, null)
-            val progressBar = findViewById<CircularProgressIndicator>(R.id.progressBar_cyclic)
-            browser?.setResourceClient(object : XWalkResourceClient(browser) {
-                override fun onLoadFinished(view: XWalkView, url: String) {
-                    super.onLoadFinished(view, url)
-                    if (view.visibility != View.VISIBLE) {
-                        view.visibility = View.VISIBLE
-                        progressBar.visibility = View.GONE
-                        println("LAMPA onLoadFinished $url")
-                        runVoidJsFunc(
-                            "Lampa.Storage.listener.add",
-                            "'change'," +
-                                    "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-                        )
-                        runJsStorageChangeField("player_timecode")
-                        runJsStorageChangeField("playlist_next")
-                        runJsStorageChangeField("torrserver_preload")
-                        runJsStorageChangeField("internal_torrclient")
-                        runJsStorageChangeField("language")
-                        for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-                        delayedVoidJsFunc.clear()
-                    }
-                }
-            })
+    override fun onXWalkUpdateCancelled() {
+        // Perform error handling here
+        finish()
+    }
+    override fun onBrowserPageFinished(view: ViewGroup, url: String) {
+        if (view.visibility != View.VISIBLE) {
+            view.visibility = View.VISIBLE
+            progressBar.visibility = View.GONE
+            println("LAMPA onLoadFinished $url")
+            runVoidJsFunc(
+                "Lampa.Storage.listener.add",
+                "'change'," +
+                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+            )
+            runJsStorageChangeField("player_timecode")
+            runJsStorageChangeField("playlist_next")
+            runJsStorageChangeField("torrserver_preload")
+            runJsStorageChangeField("internal_torrclient")
+            runJsStorageChangeField("language")
+            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+            delayedVoidJsFunc.clear()
         }
-        browser?.userAgentString += " lampa_client"
-        HttpHelper.userAgent = browser?.userAgentString
+    }
+    override fun onBrowserInitCompleted() {
+        browserInit = true
+        HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
+        browser?.setUserAgentString(HttpHelper.userAgent)
         browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
         browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
-        if (LAMPA_URL.isNullOrEmpty()) {
+        if (LAMPA_URL.isEmpty()) {
             showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
         }
     }
+    private fun showMenuDialog() {
+        val mainActivity = this
+        val menu = AlertDialog.Builder(mainActivity)
+        val menuItemsTitle = arrayOfNulls<CharSequence>(4)
+        val menuItemsAction = arrayOfNulls<String>(4)
 
+        menuItemsTitle[0] = "Close Menu"
+        menuItemsAction[0] = "CloseMenu"
+        menuItemsTitle[1] = "Change URL"
+        menuItemsAction[1] = "showUrlInputDialog"
+        menuItemsTitle[2] = "Change WebView Engine"
+        menuItemsAction[2] = "showBrowserInputDialog"
+        menuItemsTitle[3] = "Exit App"
+        menuItemsAction[3] = "appExit"
+
+        menu.setTitle("Menu")
+        menu.setItems(menuItemsTitle) { dialog, which ->
+            dialog.dismiss()
+            when (menuItemsAction[which]) {
+                "showUrlInputDialog" -> showUrlInputDialog()
+                "showBrowserInputDialog" -> showBrowserInputDialog()
+                "appExit" -> appExit()
+            }
+        }
+        val menuDialog = menu.create()
+        menuDialog.show()
+    }
+    private fun showBrowserInputDialog() {
+        val mainActivity = this
+        val menu = AlertDialog.Builder(mainActivity)
+        val menuItemsTitle = arrayOfNulls<CharSequence>(2)
+        val menuItemsAction = arrayOfNulls<String>(2)
+
+        menuItemsTitle[0] = "Crosswalk (XWalkLib)"
+        menuItemsAction[0] = "XWalk"
+        menuItemsTitle[1] = "System WebView"
+        menuItemsAction[1] = "SysView"
+
+        menu.setTitle("Change WebView Engine")
+        menu.setItems(menuItemsTitle) { dialog, which ->
+            dialog.dismiss()
+            if (menuItemsAction[which] != SELECTED_BROWSER) {
+                val editor = mSettings.edit()
+                editor?.putString(APP_BROWSER, menuItemsAction[which])
+                editor?.apply()
+                val intent = intent
+                mainActivity.finish()
+                mainActivity.startActivity(intent)
+            }
+        }
+        val menuDialog = menu.create()
+        menuDialog.show()
+    }
     private fun showUrlInputDialog() {
         val mainActivity = this
         val builder = AlertDialog.Builder(mainActivity)
@@ -410,7 +487,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // Specify the type of input expected; this, for example, sets the input as a password,
         // and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT
-        input.setText(if (LAMPA_URL.isNullOrEmpty()) "http://lampa.mx" else LAMPA_URL)
+        input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
         val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
         val container = FrameLayout(this)
         val params = FrameLayout.LayoutParams(
@@ -426,10 +503,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             LAMPA_URL = input.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL!!).matches()) {
+            if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
-                if (mSettings?.getString(APP_URL, "") != LAMPA_URL) {
-                    val editor = mSettings?.edit()
+                if (mSettings.getString(APP_URL, "") != LAMPA_URL) {
+                    val editor = mSettings.edit()
                     editor?.putString(APP_URL, LAMPA_URL)
                     editor?.apply()
                     browser?.loadUrl(LAMPA_URL)
@@ -444,12 +521,10 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         }
         builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
             dialog.cancel()
-            if (LAMPA_URL.isNullOrEmpty() && mSettings?.getString(APP_URL, LAMPA_URL)
-                    .isNullOrEmpty()
-            ) {
+            if (LAMPA_URL.isEmpty() && mSettings.getString(APP_URL, LAMPA_URL).isNullOrEmpty()) {
                 appExit()
             } else {
-                LAMPA_URL = mSettings?.getString(APP_URL, LAMPA_URL)
+                LAMPA_URL = mSettings.getString(APP_URL, LAMPA_URL).toString()
                 hideSystemUI()
             }
         }
@@ -466,7 +541,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
             || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
         ) {
             println("Menu key pressed")
-            showUrlInputDialog()
+            showMenuDialog()
             return true
         }
         return super.onKeyDown(keyCode, event)
@@ -475,29 +550,23 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             println("Back button long pressed")
-            showUrlInputDialog()
+            showMenuDialog()
             return true
         }
         return super.onKeyLongPress(keyCode, event)
-    }
-
-    override fun onXWalkUpdateCancelled() {
-        // Perform error handling here
-        finish()
     }
 
     override fun onPause() {
         super.onPause()
         if (browserInit && browser != null) {
             browser?.pauseTimers()
-//            browser?.onHide()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         if (browserInit && browser != null) {
-            browser?.onDestroy()
+            browser?.destroy()
         }
         try {
             Speech.getInstance()?.shutdown()
@@ -510,12 +579,11 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         hideSystemUI()
 
         // Try to initialize again when the user completed updating and
-        // returned to current activity. The initAsync() will do nothing if
+        // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
         mXWalkInitializer?.initAsync()
-        if (browserInit && browser != null) {
+        if (browserInit) {
             browser?.resumeTimers()
-//            browser?.onShow()
         }
     }
 
@@ -532,27 +600,27 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     fun appExit() {
         browser?.let {
             it.clearCache(true)
-            it.onDestroy()
+            it.destroy()
         }
         finishAffinity() // exitProcess(1)
     }
 
     fun setLang(lang: String) {
         Helpers.setLocale(this, lang)
-        val editor = mSettings?.edit()
+        val editor = mSettings.edit()
         editor?.putString(APP_LANG, lang)
         editor?.apply()
     }
 
     fun setPlayerPackage(packageName: String) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
-        val editor = mSettings?.edit()
+        val editor = mSettings.edit()
         editor?.putString(APP_PLAYER, SELECTED_PLAYER)
         editor?.apply()
     }
 
     private fun saveLastPlayed() {
-        val editor = mLastPlayed?.edit()
+        val editor = mLastPlayed.edit()
         editor?.putInt("playIndex", playIndex)
         editor?.putString("playVideoUrl", playVideoUrl)
         editor?.putString("playJSONArray", playJSONArray.toString())
@@ -1146,7 +1214,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
         return false
     }
 
-    fun runJsStorageChangeField(name: String) {
+    private fun runJsStorageChangeField(name: String) {
         runVoidJsFunc(
             "AndroidJS.StorageChange",
             "JSON.stringify({" +
@@ -1157,7 +1225,7 @@ class MainActivity : AppCompatActivity(), XWalkInitListener, MyXWalkUpdater.XWal
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && browser?.visibility == View.VISIBLE) {
+        if (browserInit && progressBar.visibility == View.GONE) {
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
