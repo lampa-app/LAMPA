@@ -60,4 +60,11 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
     override fun setBackgroundColor(color: Int) {
         browser?.setBackgroundColor(color)
     }
+
+    override fun canGoBack(): Boolean {
+        return false
+    }
+
+    override fun goBack() {}
+
 }

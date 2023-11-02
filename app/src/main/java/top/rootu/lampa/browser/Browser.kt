@@ -162,4 +162,6 @@ interface Browser {
      */
     fun destroy()
     fun setBackgroundColor(color: Int)
+    fun canGoBack(): Boolean
+    fun goBack()
 }

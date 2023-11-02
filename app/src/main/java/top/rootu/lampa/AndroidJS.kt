@@ -11,7 +11,7 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
-class AndroidJS(var mainActivity: MainActivity, var XWalkView: Browser) {
+class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun StorageChange(str: String) {
@@ -214,7 +214,7 @@ class AndroidJS(var mainActivity: MainActivity, var XWalkView: Browser) {
                                     .replace("'", "\\'")
                                     .replace("\n", "\\\n")
                                 + "')")
-                        XWalkView.evaluateJavascript(js) { value -> Log.i("JSRV", value!!) }
+                        browser.evaluateJavascript(js) { value -> Log.i("JSRV", value!!) }
                     }
                 }
             }

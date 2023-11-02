@@ -29,6 +29,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -122,6 +123,12 @@ class MainActivity : AppCompatActivity(),
                 android.R.anim.fade_in,
                 android.R.anim.fade_out
             )
+
+        onBackPressedDispatcher.addCallback {
+            if (browser?.canGoBack() == true) {
+                browser?.goBack()
+            }
+        }
         mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         LAMPA_URL = mSettings.getString(APP_URL, LAMPA_URL).toString()
         SELECTED_PLAYER = mSettings.getString(APP_PLAYER, SELECTED_PLAYER)
