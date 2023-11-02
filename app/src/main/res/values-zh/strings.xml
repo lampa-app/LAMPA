@@ -1,10 +1,17 @@
 <resources>
-    <string name="app_name">LAMPA</string>
     <string name="no_activity_found">​​Lampa：没有应用程序可以打开此类链接</string>
     <string name="no_launch_player">Lampa：所选播放器不支持该视频</string>
     <string name="invalid_url">请输入一个有效的网址，例如：\nhttp://lampa.mx</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
+    <string name="change_engine_title">更改WebView引擎</string>
+    <string name="close_menu_title">关闭菜单</string>
+    <string name="change_url_title">更改网址</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
+    <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - 当前的</string>
+    <string name="engine_webkit">Android System WebView</string>
+    <string name="engine_webkit_active">Android System WebView - 当前的</string>
+    <string name="menu_title">选项菜单</string>
     <string name="change_url_press_back">如果需要更改地址，请按住“返回”按钮\或按“菜单”按钮</string>
     <string name="error_app_not_found">​​未找到匹配的应用程序</string>
     <string name="exit">退出应用程序</string>
@@ -24,5 +31,4 @@
     <string name="use_as_default">记住选择</string>
     <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="xwalk_market_crosswalk">Google Play</string>
-    <string name="xwalk_apk_link">https://ghproxy.com/https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
 </resources>

@@ -65,8 +65,7 @@ import java.util.regex.Pattern
 
 class MainActivity : AppCompatActivity(),
     Browser.Listener,
-    XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener
-{
+    XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
@@ -267,13 +266,21 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getLongExtra("duration", 0L).toInt()
                             val isEnded = it.getBooleanExtra("isEnded", pos == dur)
                             if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, isEnded=$isEnded]")
+                                Log.i(
+                                    TAG,
+                                    "Playback stopped [position=$pos, duration=$dur, isEnded=$isEnded]"
+                                )
                                 resultPlayer(videoUrl, pos, dur, isEnded)
                             }
                         }
+
                         RESULT_CANCELED -> {
-                            Log.e(TAG, "Playback Error. It isn't possible to get the duration or create the playlist.")
+                            Log.e(
+                                TAG,
+                                "Playback Error. It isn't possible to get the duration or create the playlist."
+                            )
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -324,7 +331,8 @@ class MainActivity : AppCompatActivity(),
         }
 
         SELECTED_BROWSER = mSettings.getString(APP_BROWSER, SELECTED_BROWSER)
-        if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+        if (BuildConfig.DEBUG) Log.d(TAG, "onCreate() SELECTED_BROWSER: $SELECTED_BROWSER")
+        if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT
             || (SELECTED_BROWSER.isNullOrEmpty() && playVideoUrl.isNotEmpty())
         ) {
             // If SELECTED_BROWSER not set, but there is information about the latest video,
@@ -352,10 +360,12 @@ class MainActivity : AppCompatActivity(),
                 // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
                 setContentView(R.layout.activity_xwalk)
             }
+
             "SysView" -> {
                 setContentView(R.layout.activity_webview)
                 browser = SysView(this, R.id.webView)
             }
+
             else -> {
                 setContentView(R.layout.activity_empty)
                 showBrowserInputDialog()
@@ -367,14 +377,18 @@ class MainActivity : AppCompatActivity(),
         browser?.init()
     }
 
-    override fun onXWalkInitStarted() {}
+    override fun onXWalkInitStarted() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitStarted()")
+    }
 
     override fun onXWalkInitCancelled() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCancelled()")
         // Perform error handling here
         finish()
     }
 
     override fun onXWalkInitFailed() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitFailed()")
         if (mXWalkUpdater == null) {
             mXWalkUpdater = MyXWalkUpdater(this, this)
         }
@@ -389,14 +403,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onXWalkInitCompleted() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCompleted()")
         browser = XWalk(this, R.id.xWalkView)
         browser?.init()
     }
 
     override fun onXWalkUpdateCancelled() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkUpdateCancelled()")
         // Perform error handling here
         finish()
     }
+
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
@@ -416,34 +433,38 @@ class MainActivity : AppCompatActivity(),
             delayedVoidJsFunc.clear()
         }
     }
+
     override fun onBrowserInitCompleted() {
         browserInit = true
         HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
-        browser?.setUserAgentString(HttpHelper.userAgent)
-        browser?.setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
-        browser?.addJavascriptInterface(AndroidJS(this, browser!!), "AndroidJS")
+        browser?.apply {
+            setUserAgentString(HttpHelper.userAgent)
+            setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
+            addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
+        }
         if (LAMPA_URL.isEmpty()) {
             showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
         }
     }
+
     private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<CharSequence>(4)
         val menuItemsAction = arrayOfNulls<String>(4)
 
-        menuItemsTitle[0] = "Close Menu"
-        menuItemsAction[0] = "CloseMenu"
-        menuItemsTitle[1] = "Change URL"
+        menuItemsTitle[0] = getString(R.string.close_menu_title)
+        menuItemsAction[0] = "closeMenu"
+        menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
-        menuItemsTitle[2] = "Change WebView Engine"
+        menuItemsTitle[2] = getString(R.string.change_engine_title)
         menuItemsAction[2] = "showBrowserInputDialog"
-        menuItemsTitle[3] = "Exit App"
+        menuItemsTitle[3] = getString(R.string.exit)
         menuItemsAction[3] = "appExit"
 
-        menu.setTitle("Menu")
+        menu.setTitle(getString(R.string.menu_title))
         menu.setItems(menuItemsTitle) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
@@ -455,32 +476,36 @@ class MainActivity : AppCompatActivity(),
         val menuDialog = menu.create()
         menuDialog.show()
     }
+
     private fun showBrowserInputDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<CharSequence>(2)
         val menuItemsAction = arrayOfNulls<String>(2)
 
-        menuItemsTitle[0] = "Crosswalk (XWalkLib)"
-        menuItemsAction[0] = "XWalk"
-        menuItemsTitle[1] = "System WebView"
-        menuItemsAction[1] = "SysView"
 
-        menu.setTitle("Change WebView Engine")
+        menuItemsAction[0] = "XWalk"
+        menuItemsAction[1] = "SysView"
+        if (menuItemsAction[0] == SELECTED_BROWSER) {
+            menuItemsTitle[0] = getString(R.string.engine_crosswalk_active)
+            menuItemsTitle[1] = getString(R.string.engine_webkit)
+        } else {
+            menuItemsTitle[0] = getString(R.string.engine_crosswalk)
+            menuItemsTitle[1] = getString(R.string.engine_webkit_active)
+        }
+
+        menu.setTitle(getString(R.string.change_engine_title))
         menu.setItems(menuItemsTitle) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                val editor = mSettings.edit()
-                editor?.putString(APP_BROWSER, menuItemsAction[which])
-                editor?.apply()
-                val intent = intent
-                mainActivity.finish()
-                mainActivity.startActivity(intent)
+                mSettings.edit().putString(APP_BROWSER, menuItemsAction[which]).apply()
+                mainActivity.recreate()
             }
         }
         val menuDialog = menu.create()
         menuDialog.show()
     }
+
     private fun showUrlInputDialog() {
         val mainActivity = this
         val builder = AlertDialog.Builder(mainActivity)
@@ -511,9 +536,7 @@ class MainActivity : AppCompatActivity(),
             if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (mSettings.getString(APP_URL, "") != LAMPA_URL) {
-                    val editor = mSettings.edit()
-                    editor?.putString(APP_URL, LAMPA_URL)
-                    editor?.apply()
+                    mSettings.edit().putString(APP_URL, LAMPA_URL).apply()
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
                 }
@@ -563,14 +586,14 @@ class MainActivity : AppCompatActivity(),
 
     override fun onPause() {
         super.onPause()
-        if (browserInit && browser != null) {
+        if (browserInit) {
             browser?.pauseTimers()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (browserInit && browser != null) {
+        if (browserInit) {
             browser?.destroy()
         }
         try {
@@ -582,7 +605,6 @@ class MainActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         hideSystemUI()
-
         // Try to initialize again when the user completed updating and
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
@@ -612,24 +634,22 @@ class MainActivity : AppCompatActivity(),
 
     fun setLang(lang: String) {
         Helpers.setLocale(this, lang)
-        val editor = mSettings.edit()
-        editor?.putString(APP_LANG, lang)
-        editor?.apply()
+        mSettings.edit().putString(APP_LANG, lang).apply()
     }
 
     fun setPlayerPackage(packageName: String) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
-        val editor = mSettings.edit()
-        editor?.putString(APP_PLAYER, SELECTED_PLAYER)
-        editor?.apply()
+        mSettings.edit().putString(APP_PLAYER, SELECTED_PLAYER).apply()
     }
 
     private fun saveLastPlayed() {
         val editor = mLastPlayed.edit()
-        editor?.putInt("playIndex", playIndex)
-        editor?.putString("playVideoUrl", playVideoUrl)
-        editor?.putString("playJSONArray", playJSONArray.toString())
-        editor?.apply()
+        editor?.apply {
+            putInt("playIndex", playIndex)
+            putString("playVideoUrl", playVideoUrl)
+            putString("playJSONArray", playJSONArray.toString())
+            apply()
+        }
     }
 
     private fun resultPlayer(
@@ -844,7 +864,7 @@ class MainActivity : AppCompatActivity(),
                         false
                     }
 
-                    if (listUrls.size > 1 || haveQuality ) {
+                    if (listUrls.size > 1 || haveQuality) {
 
                         val firstHash =
                             ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString(
@@ -886,7 +906,10 @@ class MainActivity : AppCompatActivity(),
                             qualityMap.keys.forEach {
                                 intent.putStringArrayListExtra(it, qualityMap.getValue(it))
                             }
-                            intent.putExtra("groupPosition", 0) // TODO: set as defined in Lampa prefs
+                            intent.putExtra(
+                                "groupPosition",
+                                0
+                            ) // TODO: set as defined in Lampa prefs
                         } else {
                             if (listUrls.size > 0) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
