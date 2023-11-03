@@ -5,10 +5,11 @@
     <string name="invalid_url">Enter the correct website address, for example:\nhttp://lampa.mx</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
-    <string name="change_engine_title">Change WebView Engine</string>
+    <string name="change_engine">Change WebView Engine</string>
+    <string name="change_engine_title">Choose WebView Engine</string>
     <string name="close_menu_title">Close This Menu</string>
     <string name="change_url_title">Change Lampa URL</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib) - obsolete</string>
     <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - current</string>
     <string name="engine_webkit">Android System WebView</string>
     <string name="engine_webkit_active">Android System WebView - current</string>

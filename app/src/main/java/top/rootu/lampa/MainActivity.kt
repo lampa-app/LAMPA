@@ -457,7 +457,7 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[0] = "closeMenu"
         menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
-        menuItemsTitle[2] = getString(R.string.change_engine_title)
+        menuItemsTitle[2] = getString(R.string.change_engine)
         menuItemsAction[2] = "showBrowserInputDialog"
         menuItemsTitle[3] = getString(R.string.exit)
         menuItemsAction[3] = "appExit"

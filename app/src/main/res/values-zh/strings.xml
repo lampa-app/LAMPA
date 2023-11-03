@@ -4,10 +4,11 @@
     <string name="invalid_url">请输入一个有效的网址，例如：\nhttp://lampa.mx</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
-    <string name="change_engine_title">更改WebView引擎</string>
+    <string name="change_engine">更改WebView引擎</string>
+    <string name="change_engine_title">选择WebView引擎</string>
     <string name="close_menu_title">关闭菜单</string>
     <string name="change_url_title">更改网址</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib) - 过时的</string>
     <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - 当前的</string>
     <string name="engine_webkit">Android System WebView</string>
     <string name="engine_webkit_active">Android System WebView - 当前的</string>

@@ -4,10 +4,11 @@
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
+    <string name="change_engine">Изменить движок WebView</string>
+    <string name="change_engine_title">Выбор системы WebView</string>
     <string name="close_menu_title">Закрыть это меню</string>
     <string name="change_url_title">Изменить Lampa URL</string>
-    <string name="change_engine_title">Изменить движок WebView</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib) - устаревший</string>
     <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - используется</string>
     <string name="engine_webkit">Android System WebView</string>
     <string name="engine_webkit_active">Android System WebView - используется</string>
