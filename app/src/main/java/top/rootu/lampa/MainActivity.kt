@@ -39,7 +39,7 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.airbnb.lottie.LottieAnimationView
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(),
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private lateinit var progressBar: CircularProgressIndicator
+    private lateinit var progressBar: LottieAnimationView // CircularProgressIndicator
     private var mDecorView: View? = null
     private var browserInit = false
     private lateinit var mSettings: SharedPreferences
@@ -122,7 +122,6 @@ class MainActivity : AppCompatActivity(),
                 android.R.anim.fade_in,
                 android.R.anim.fade_out
             )
-
         onBackPressedDispatcher.addCallback {
             if (browser?.canGoBack() == true) {
                 browser?.goBack()
@@ -373,7 +372,6 @@ class MainActivity : AppCompatActivity(),
         }
 
         progressBar = findViewById(R.id.progressBar_cyclic)
-
         browser?.init()
     }
 
