@@ -908,7 +908,6 @@ class MainActivity : AppCompatActivity(),
                     }
 
                     if (listUrls.size > 1 || haveQuality) {
-
                         val firstHash =
                             ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString(
                                 "hash",
@@ -930,7 +929,7 @@ class MainActivity : AppCompatActivity(),
                         }
                         intent.putExtra("playlistPosition", playIndex)
 
-                        if (haveQuality && listUrls.size == 1) {
+                        if (haveQuality && listUrls.size <= 1) {
                             var qualitySet = ""
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
