@@ -112,7 +112,7 @@ object Helpers {
             val deviceName = deviceName
             return deviceName.contains("(vbox86p)")
         }
-
+    /* NOTE! must be called after setContentView */
     fun Activity.hideSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window?.insetsController?.let {
@@ -149,7 +149,7 @@ object Helpers {
             }
         }
     }
-
+    /* NOTE! must be called after setContentView */
     fun Activity.showSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // show app content in fullscreen, i. e. behind the bars when they are shown (alternative to

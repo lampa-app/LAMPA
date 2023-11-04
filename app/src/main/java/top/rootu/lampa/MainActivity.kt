@@ -114,7 +114,6 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
-        hideSystemUI()
         @Suppress("DEPRECATION")
         if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -372,6 +371,7 @@ class MainActivity : AppCompatActivity(),
                 showBrowserInputDialog()
             }
         }
+        hideSystemUI()
 
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
@@ -644,11 +644,9 @@ class MainActivity : AppCompatActivity(),
         Log.d(TAG, "onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            App.toast("landscape", false)
             hideSystemUI()
             handleViewScreen()
         } else {
-            App.toast("portrait", false)
             hideSystemUI()
             handleViewScreen()
         }
