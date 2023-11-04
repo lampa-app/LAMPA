@@ -1,9 +1,9 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!--Theme.AppCompat.Dialog-->
-    <style name="AlertDialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+    <style name="AlertDialog" parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@drawable/dialog_background</item>
-        <!-- Used for the title -->
+        <!-- Used for the title with Theme.AppCompat.DayNight.Dialog.Alert -->
         <item name="android:windowTitleStyle">@style/AlertTitleStyle</item>
         <!-- Used for the text -->
         <item name="android:textColorPrimary">@color/tv_white</item>
@@ -11,13 +11,29 @@
         <item name="windowMinWidthMajor">50%</item><!--landscape -->
         <item name="windowMinWidthMinor">70%</item><!--portrait -->
         <!-- Used for the buttons -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorAccent">@color/teal_200</item>
+        <item name="colorPrimary">@color/teal_200</item>
+        <item name="colorAccent">@color/teal_500</item>
+        <!-- Dialog Buttons -->
+        <item name="buttonBarPositiveButtonStyle">@style/AlertButtonStyle</item>
+        <item name="buttonBarNegativeButtonStyle">@style/AlertButtonStyle</item>
+        <item name="buttonBarNeutralButtonStyle">@style/AlertButtonStyle</item>
     </style>
+    <!-- Dialog Title -->
     <style name="AlertTitleStyle">
-        <item name="android:textSize">18dp</item>
+        <item name="android:textSize">22dp</item>
         <item name="android:layout_marginBottom">12dp</item>
         <item name="android:textColor">@color/tv_white</item>
         <item name="android:textAppearance">@style/TextAppearance.AppCompat.Title</item>
+    </style>
+    <!-- Dialog Buttons -->
+    <style name="AlertButtonStyle" parent="@style/Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:layout_marginLeft">6dp</item>
+        <item name="android:layout_marginRight">6dp</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:layout_marginBottom">0dp</item>
+    </style>
+    <!-- TextInputLayout -->
+    <style name="Widget.App.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="hintTextColor">?attr/colorAccent</item>
     </style>
 </resources>

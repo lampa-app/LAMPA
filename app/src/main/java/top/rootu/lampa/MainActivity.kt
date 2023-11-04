@@ -27,8 +27,6 @@ import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebView
-import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.addCallback
@@ -41,7 +39,10 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.setMargins
 import com.airbnb.lottie.LottieAnimationView
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
@@ -525,25 +526,21 @@ class MainActivity : AppCompatActivity(),
         val mainActivity = this
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
-
         // Set up the input
-        val input = EditText(this)
+        val wrapper = TextInputLayout(this)
+        val input = TextInputEditText(wrapper.context)
         input.setSingleLine()
-        // Specify the type of input expected; this, for example, sets the input as a password,
-        // and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
         val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
-        val container = FrameLayout(this)
-        val params = FrameLayout.LayoutParams(
+        val params = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        params.leftMargin = margin
-        params.rightMargin = margin
+        params.setMargins(margin)
         input.layoutParams = params
-        container.addView(input)
-        builder.setView(container)
+        wrapper.addView(input)
+        builder.setView(wrapper)
 
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->

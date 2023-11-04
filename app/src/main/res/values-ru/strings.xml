@@ -30,7 +30,6 @@
     <string name="update_new_version">Найдена новая версия</string>
     <string name="update_loading">Загрузка обновления…</string>
     <string name="use_as_default">Запомнить выбор</string>
-    <string name="xwalk_download_crosswalk">Прямая загрузка</string>
     <string name="startup_not_found_title">Служба Crosswalk не найдена</string>
     <string name="startup_not_found_message">Для работы приложения APP_NAME требуется сервис «Crosswalk». Сначала установите его, а затем перезапустите APP_NAME.</string>
     <string name="startup_older_version_title">Требуется новый «Crosswalk»</string>
@@ -43,6 +42,7 @@
     <string name="download_failed_message">Ошибка загрузки</string>
     <string name="download_progress_message">Выполняется загрузка «Crosswalk»…</string>
     <string name="unsupported_store_message">На устройстве не найден сервис «Crosswalk». Для работы приложения необходимо установить его вручную, загрузив с этого адреса (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0).</string>
+    <string name="xwalk_download_crosswalk">Прямая загрузка</string>
     <string name="xwalk_get_crosswalk">Загрузить «Crosswalk»</string>
     <string name="xwalk_cancel">Отмена</string>
     <string name="xwalk_continue">Продолжить</string>

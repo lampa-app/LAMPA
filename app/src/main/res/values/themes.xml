@@ -1,10 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.LAMPA" parent="Theme.AppCompat">
+    <style name="Theme.LAMPA" parent="Theme.MaterialComponents">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryDark">@color/purple_700</item>
-        <item name="colorAccent">@color/teal_200</item>
+        <item name="colorPrimary">@color/teal_200</item>
+        <item name="colorPrimaryDark">@color/purple_500</item>
+        <item name="colorAccent">@color/teal_500</item>
         <!-- Customize your theme here. -->
         <item name="android:windowBackground">@drawable/welcome</item>
         <item name="windowActionBar">false</item>
@@ -12,5 +12,6 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="alertDialogTheme">@style/AlertDialog</item>
+        <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
     </style>
 </resources>

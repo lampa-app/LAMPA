@@ -82,7 +82,7 @@
             android:name=".UpdateActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
+            android:theme="@style/Theme.LAMPA" />
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />

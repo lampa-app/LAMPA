@@ -30,7 +30,6 @@
     <string name="update_new_version">找到新版本</string>
     <string name="update_loading">加载更新…</string>
     <string name="use_as_default">记住选择</string>
-    <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="startup_not_found_title">未找到 Crosswalk</string>
     <string name="startup_not_found_message">APP_NAME 需要 Crosswalk 才能运行。 请先安装它，然后重新启动 APP_NAME。</string>
     <string name="startup_older_version_title">需要新的 Crosswalk</string>
@@ -43,6 +42,7 @@
     <string name="download_failed_message">下载失败</string>
     <string name="download_progress_message">正在从远程主机下载 Crosswalk...</string>
     <string name="unsupported_store_message">您设备上的应用商店不支持 Crosswalk。 请从该网站手动下载 Crosswalk (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0)。</string>
+    <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="xwalk_get_crosswalk">得到 Сrosswalk</string>
     <string name="xwalk_cancel">取消</string>
     <string name="xwalk_continue">继续</string>

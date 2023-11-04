@@ -31,7 +31,6 @@
     <string name="update_new_version">New version found</string>
     <string name="update_loading">Downloading the update…</string>
     <string name="use_as_default">Remember choice</string>
-    <string name="xwalk_download_crosswalk">Direct Download</string>
     <string name="startup_not_found_title">Crosswalk Project Service Not Found</string>
     <string name="startup_not_found_message">APP_NAME requires the Crosswalk Project Service to work. Please install it first, then restart APP_NAME.</string>
     <string name="startup_older_version_title">New Crosswalk Project Service Required</string>
@@ -44,6 +43,7 @@
     <string name="download_failed_message">Download failed</string>
     <string name="download_progress_message">Downloading the Crosswalk Project Service from remote host...</string>
     <string name="unsupported_store_message">The application stores on your device don\'t support Crosswalk Project Service. Please download Crosswalk Project Service manually from this website (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0).</string>
+    <string name="xwalk_download_crosswalk">Direct Download</string>
     <string name="xwalk_get_crosswalk">Get Crosswalk</string>
     <string name="xwalk_cancel">Cancel</string>
     <string name="xwalk_continue">Continue</string>
