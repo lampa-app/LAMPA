@@ -926,6 +926,7 @@ class MainActivity : AppCompatActivity(),
                         intent.putExtra("playlistPosition", playIndex)
 
                         if (haveQuality) {
+                            var qualitySet = ""
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
                                 val itemQualityMap =
@@ -934,25 +935,23 @@ class MainActivity : AppCompatActivity(),
                                 while (keys.hasNext()) {
                                     val key = keys.next()
                                     val value = itemQualityMap.getString(key)
-
+                                    if (value == videoUrl) qualitySet = key
                                     if (qualityMap.contains(key).not()) {
                                         qualityMap[key] = arrayListOf()
                                     }
                                     qualityMap.getValue(key).add(value)
                                 }
                             }
-
-                            intent.putStringArrayListExtra(
-                                "videoGroupList",
-                                ArrayList(qualityMap.keys.toList())
-                            )
-                            qualityMap.keys.forEach {
+                            val qualityKeys = ArrayList(qualityMap.keys.toList())
+                            val qualityIndex = qualityKeys.indexOf(qualitySet)
+                            intent.putStringArrayListExtra("videoGroupList", qualityKeys)
+                            qualityKeys.forEach {
                                 intent.putStringArrayListExtra(it, qualityMap.getValue(it))
                             }
                             intent.putExtra(
                                 "groupPosition",
-                                0
-                            ) // TODO: set as defined in Lampa prefs
+                                if (qualityIndex < 1) 0 else qualityIndex
+                            )
                         } else {
                             if (listUrls.size > 0) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
