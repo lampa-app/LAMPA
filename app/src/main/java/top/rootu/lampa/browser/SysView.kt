@@ -7,10 +7,12 @@ import android.view.View
 import android.webkit.ConsoleMessage
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.annotation.RequiresApi
+import androidx.webkit.WebViewClientCompat
+import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 
@@ -33,7 +35,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             databaseEnabled = true
             loadWithOverviewMode = true
             useWideViewPort = true
-            cacheMode = WebSettings.LOAD_DEFAULT
+            cacheMode = WebSettings.LOAD_NO_CACHE
             setRenderPriority(WebSettings.RenderPriority.HIGH)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -42,10 +44,18 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             settings?.mediaPlaybackRequiresUserGesture = false
         }
-        browser?.webViewClient = object : WebViewClient() {
+        browser?.webViewClient = object : WebViewClientCompat() {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 mainActivity.onBrowserPageFinished(view, url)
+            }
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                view.loadUrl(request.toString())
+                return true
             }
 
             @Deprecated("Deprecated in Java")
@@ -68,7 +78,11 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     result: JsResult?
                 ): Boolean {
                     Log.d("WebView onJsAlert", "message: $message, result: $result")
-                    return super.onJsAlert(view, url, message, result)
+                    //return super.onJsAlert(view, url, message, result)
+                    if (message != null) {
+                        App.toast(message)
+                    }
+                    return false
                 }
             }
         mainActivity.onBrowserInitCompleted()

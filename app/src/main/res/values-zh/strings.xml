@@ -8,10 +8,10 @@
     <string name="change_engine_title">选择WebView引擎</string>
     <string name="close_menu_title">关闭菜单</string>
     <string name="change_url_title">更改网址</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib) - 过时的</string>
-    <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - 当前的</string>
+    <string name="engine_crosswalk_obsolete">Crosswalk (XWalkLib) - 过时的</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
     <string name="engine_webkit">Android System WebView</string>
-    <string name="engine_webkit_active">Android System WebView - 当前的</string>
+    <string name="engine_active">当前的</string>
     <string name="menu_title">选项菜单</string>
     <string name="change_url_press_back">如果需要更改地址，请按住“返回”按钮\或按“菜单”按钮</string>
     <string name="error_app_not_found">​​未找到匹配的应用程序</string>
@@ -31,5 +31,4 @@
     <string name="update_loading">加载更新…</string>
     <string name="use_as_default">记住选择</string>
     <string name="xwalk_download_crosswalk">直接下载</string>
-    <string name="xwalk_market_crosswalk">Google Play</string>
 </resources>

@@ -9,10 +9,10 @@
     <string name="change_engine_title">Choose WebView Engine</string>
     <string name="close_menu_title">Close This Menu</string>
     <string name="change_url_title">Change Lampa URL</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib) - obsolete</string>
-    <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - current</string>
+    <string name="engine_crosswalk_obsolete">Crosswalk (XWalkLib) - obsolete</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
     <string name="engine_webkit">Android System WebView</string>
-    <string name="engine_webkit_active">Android System WebView - current</string>
+    <string name="engine_active">current</string>
     <string name="menu_title">Options Menu</string>
     <string name="change_url_press_back">To change the address, press and hold the "Back" button\nor press the "Menu" button</string>
     <string name="error_app_not_found">No matching applications found</string>
@@ -32,6 +32,6 @@
     <string name="update_loading">Downloading the update…</string>
     <string name="use_as_default">Remember choice</string>
     <string name="xwalk_download_crosswalk">Direct Download</string>
-    <string name="xwalk_market_crosswalk">Google Play</string>
+    <string name="xwalk_market_crosswalk" translatable="false">Google Play</string>
     <string name="xwalk_apk_link" translatable="false">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
 </resources>

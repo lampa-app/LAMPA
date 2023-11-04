@@ -8,10 +8,10 @@
     <string name="change_engine_title">Выбор системы WebView</string>
     <string name="close_menu_title">Закрыть это меню</string>
     <string name="change_url_title">Изменить Lampa URL</string>
-    <string name="engine_crosswalk">Crosswalk (XWalkLib) - устаревший</string>
-    <string name="engine_crosswalk_active">Crosswalk (XWalkLib) - используется</string>
+    <string name="engine_crosswalk_obsolete">Crosswalk (XWalkLib) - устаревший</string>
+    <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
     <string name="engine_webkit">Android System WebView</string>
-    <string name="engine_webkit_active">Android System WebView - используется</string>
+    <string name="engine_active">используется</string>
     <string name="menu_title">Меню опций</string>
     <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»\nили нажмите кнопку «Меню»</string>
     <string name="error_app_not_found">Не найдено подходящих приложений</string>
@@ -31,5 +31,15 @@
     <string name="update_loading">Загрузка обновления…</string>
     <string name="use_as_default">Запомнить выбор</string>
     <string name="xwalk_download_crosswalk">Прямая загрузка</string>
-    <string name="xwalk_market_crosswalk">Google Play</string>
+    <string name="crosswalk_install_title">Установка Crosswalk</string>
+    <string name="download_failed_message">"Ошибка загрузки"</string>
+    <string name="download_progress_message">"Выполняется загрузка Crosswalk…"</string>
+    <string name="unsupported_store_message">На устройстве не найден сервис Crosswalk. Для работы приложения необходимо установить его.</string>
+    <string name="startup_architecture_mismatch_title">Установка Crosswalk</string>
+    <string name="startup_architecture_mismatch_message">Необходимо обновить Crosswalk для соотвествия архитектуре устройства. Установите сервис и перезапустите приложение APP_NAME.</string>
+    <string name="xwalk_get_crosswalk">Загрузить Crosswalk</string>
+    <string name="xwalk_cancel">Отмена</string>
+    <string name="xwalk_continue">Продолжить</string>
+    <string name="xwalk_close">Отмена</string>
+    <string name="xwalk_retry">Повтор</string>
 </resources>
