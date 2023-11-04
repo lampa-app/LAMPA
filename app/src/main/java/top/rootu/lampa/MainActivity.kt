@@ -923,9 +923,14 @@ class MainActivity : AppCompatActivity(),
                         } else {
                             intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
                         }
+                        if (listUrls.size > 0) {
+                            intent.putStringArrayListExtra("videoList", listUrls)
+                        } else {
+                            intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
+                        }
                         intent.putExtra("playlistPosition", playIndex)
 
-                        if (haveQuality) {
+                        if (haveQuality && listUrls.size == 1) {
                             var qualitySet = ""
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
@@ -952,12 +957,6 @@ class MainActivity : AppCompatActivity(),
                                 "groupPosition",
                                 if (qualityIndex < 1) 0 else qualityIndex
                             )
-                        } else {
-                            if (listUrls.size > 0) {
-                                intent.putStringArrayListExtra("videoList", listUrls)
-                            } else {
-                                intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
-                            }
                         }
                     }
                 }
