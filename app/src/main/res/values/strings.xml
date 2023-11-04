@@ -32,6 +32,17 @@
     <string name="update_loading">Downloading the update…</string>
     <string name="use_as_default">Remember choice</string>
     <string name="xwalk_download_crosswalk">Direct Download</string>
+    <string name="crosswalk_install_title">Crosswalk Project Install</string>
+    <string name="download_failed_message">Download failed</string>
+    <string name="download_progress_message">Downloading the Crosswalk Project Service from remote host...</string>
+    <string name="unsupported_store_message">The application stores on your device don\'t support Crosswalk Project Service. Please download Crosswalk Project Service manually from the official website (https://crosswalk-project.org/).</string>
+    <string name="startup_architecture_mismatch_title">Mismatch of CPU Architecture</string>
+    <string name="startup_architecture_mismatch_message">The Crosswalk Project Service must be updated to match the CPU architecture of the device. Please install it from the app store, then restart APP_NAME.</string>
+    <string name="xwalk_get_crosswalk">Get Crosswalk</string>
+    <string name="xwalk_cancel">Cancel</string>
+    <string name="xwalk_continue">Continue</string>
+    <string name="xwalk_close">Close</string>
+    <string name="xwalk_retry">Retry</string>
     <string name="xwalk_market_crosswalk" translatable="false">Google Play</string>
     <string name="xwalk_apk_link" translatable="false">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
 </resources>

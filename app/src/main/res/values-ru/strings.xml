@@ -33,7 +33,7 @@
     <string name="xwalk_download_crosswalk">Прямая загрузка</string>
     <string name="crosswalk_install_title">Установка Crosswalk</string>
     <string name="download_failed_message">"Ошибка загрузки"</string>
-    <string name="download_progress_message">"Выполняется загрузка Crosswalk…"</string>
+    <string name="download_progress_message">Выполняется загрузка Crosswalk…</string>
     <string name="unsupported_store_message">На устройстве не найден сервис Crosswalk. Для работы приложения необходимо установить его.</string>
     <string name="startup_architecture_mismatch_title">Установка Crosswalk</string>
     <string name="startup_architecture_mismatch_message">Необходимо обновить Crosswalk для соотвествия архитектуре устройства. Установите сервис и перезапустите приложение APP_NAME.</string>
