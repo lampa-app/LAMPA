@@ -12,6 +12,7 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
+import android.os.Build;
 import android.widget.Button;
 
 import java.util.ArrayList;
@@ -546,21 +547,37 @@ public class MyXWalkDialogManager {
     }
 
     private AlertDialog buildAlertDialog() {
-        int dialogTheme = R.style.AlertDialog;
-        AlertDialog dialog = new AlertDialog.Builder(mContext, dialogTheme).create();
-        dialog.setIcon(android.R.drawable.ic_dialog_alert);
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        return dialog;
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+            int dialogTheme = R.style.AlertDialog;
+            AlertDialog dialog = new AlertDialog.Builder(mContext, dialogTheme).create();
+            dialog.setIcon(android.R.drawable.ic_dialog_alert);
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            return dialog;
+        } else {
+            AlertDialog dialog = new AlertDialog.Builder(mContext).create();
+            dialog.setIcon(android.R.drawable.ic_dialog_alert);
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            return dialog;
+        }
     }
 
     private ProgressDialog buildProgressDialog() {
-        int dialogTheme = R.style.AlertDialog;
-        ProgressDialog dialog = new ProgressDialog(mContext, dialogTheme);
-        dialog.setIndeterminate(true);
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        return dialog;
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+            int dialogTheme = R.style.AlertDialog;
+            ProgressDialog dialog = new ProgressDialog(mContext, dialogTheme);
+            dialog.setIndeterminate(true);
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            return dialog;
+        } else {
+            ProgressDialog dialog = new ProgressDialog(mContext);
+            dialog.setIndeterminate(true);
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            return dialog;
+        }
     }
 
     private void setTitle(AlertDialog dialog, int resourceId) {

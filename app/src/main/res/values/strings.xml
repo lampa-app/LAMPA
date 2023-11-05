@@ -42,6 +42,7 @@
     <string name="crosswalk_install_title">Crosswalk Project Install</string>
     <string name="download_failed_message">Download failed</string>
     <string name="download_progress_message">Downloading the Crosswalk Project Service from remote host...</string>
+    <string name="select_store_message">Please install the Crosswalk Project Service from STORE_NAME</string>
     <string name="unsupported_store_message">The application stores on your device don\'t support Crosswalk Project Service. Please download Crosswalk Project Service manually from this website (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0).</string>
     <string name="xwalk_download_crosswalk">Direct Download</string>
     <string name="xwalk_get_crosswalk">Get Crosswalk</string>

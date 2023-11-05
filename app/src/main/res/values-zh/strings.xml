@@ -41,6 +41,7 @@
     <string name="crosswalk_install_title">Crosswalk 项目安装</string>
     <string name="download_failed_message">下载失败</string>
     <string name="download_progress_message">正在从远程主机下载 Crosswalk...</string>
+    <string name="select_store_message">请安装 STORE_NAME 的 Crosswalk</string>
     <string name="unsupported_store_message">您设备上的应用商店不支持 Crosswalk。 请从该网站手动下载 Crosswalk (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0)。</string>
     <string name="xwalk_download_crosswalk">直接下载</string>
     <string name="xwalk_get_crosswalk">得到 Сrosswalk</string>
