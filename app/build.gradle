@@ -40,6 +40,7 @@ android {
         targetSdkVersion 28
         versionCode getVersionCode()
         versionName getVersionName()
+        // Required when setting minSdkVersion to 20 or lower
         multiDexEnabled = true
         // Use SupportLibrary for vectors
         vectorDrawables.useSupportLibrary = true
@@ -74,14 +75,17 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+        // Sets Java compatibility to Java 8
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     packagingOptions {
         resources.excludes += "DebugProbesKt.bin"
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
 
     // gradle 4.6 migration: disable dimensions mechanism
@@ -102,6 +106,9 @@ android {
 }
 
 dependencies {
+    // https://developer.android.com/studio/write/java8-support#library-desugaring
+    // For AGP 7.4+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.14'
@@ -132,8 +139,7 @@ dependencies {
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
-    def lottieVersion = "3.4.0"
-    implementation "com.airbnb.android:lottie:$lottieVersion"
+    implementation 'com.airbnb.android:lottie:6.1.0'
     // tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
