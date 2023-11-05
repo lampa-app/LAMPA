@@ -8,7 +8,7 @@ import android.widget.LinearLayout
 class LottieLoader(context: Context): Dialog(context) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.fragment_loader)
+        setContentView(R.layout.loader)
         window?.setLayout(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.MATCH_PARENT
