@@ -1,7 +1,12 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     // https://developer.android.com/build/kotlin-support
-    ext.kotlin_version = '1.8.0'
+    // https://developer.android.com/build/releases/gradle-plugin
+    // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-gradle-plugin
+    // https://mvnrepository.com/artifact/com.android.tools/r8?repo=google
+    ext.kp_version = '1.8.22'
+    ext.gp_version = '7.4.2'
+    ext.tools_version = '4.0.63'
     repositories {
         google()
         mavenCentral()
@@ -10,10 +15,10 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.android.tools.build:gradle:$gp_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kp_version"
         //noinspection GradleDependency downgrade to 4.x release - 8.x have verify release issues on api19
-        classpath("com.android.tools:r8:4.0.63")
+        classpath("com.android.tools:r8:$tools_version")
     }
 }
 

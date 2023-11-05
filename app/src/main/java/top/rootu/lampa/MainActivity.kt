@@ -522,7 +522,7 @@ class MainActivity : AppCompatActivity(),
         menuDialog.show()
     }
 
-    private fun showUrlInputDialog() {
+    fun showUrlInputDialog() {
         val mainActivity = this
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
