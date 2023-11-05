@@ -16,6 +16,8 @@ import android.widget.Button;
 
 import java.util.ArrayList;
 
+import top.rootu.lampa.R;
+
 /**
  * <p>By <code>MyXWalkDialogManager</code>, you can customize what the dialog looks like when
  * initializing Crosswalk Project runtime. Please note that you can only specify how the dialog to
@@ -544,7 +546,8 @@ public class MyXWalkDialogManager {
     }
 
     private AlertDialog buildAlertDialog() {
-        AlertDialog dialog = new AlertDialog.Builder(mContext).create();
+        int dialogTheme = R.style.AlertDialog;
+        AlertDialog dialog = new AlertDialog.Builder(mContext, dialogTheme).create();
         dialog.setIcon(android.R.drawable.ic_dialog_alert);
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
@@ -552,7 +555,8 @@ public class MyXWalkDialogManager {
     }
 
     private ProgressDialog buildProgressDialog() {
-        ProgressDialog dialog = new ProgressDialog(mContext);
+        int dialogTheme = R.style.AlertDialog;
+        ProgressDialog dialog = new ProgressDialog(mContext, dialogTheme);
         dialog.setIndeterminate(true);
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
