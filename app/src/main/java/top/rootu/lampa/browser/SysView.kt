@@ -1,6 +1,7 @@
 package top.rootu.lampa.browser
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
 import android.view.View
@@ -11,10 +12,12 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.annotation.RequiresApi
+import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.R
 
 class SysView(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: WebView? = null
@@ -45,9 +48,57 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             settings?.mediaPlaybackRequiresUserGesture = false
         }
         browser?.webViewClient = object : WebViewClientCompat() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+            }
+
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 mainActivity.onBrowserPageFinished(view, url)
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceErrorCompat
+            ) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    super.onReceivedError(view, request, error)
+                    Log.d("LAMPA", "ERROR ${error.errorCode} ${error.description} on load ${request.url}")
+                    if (request.url.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
+                        val htmlData =
+                            "<html><body><div align=\"center\" style=\"color:#ff7373\"><br/><br/><br/>ERROR ${error.errorCode}<br/>${
+                                view.context.getString(R.string.download_failed_message)
+                            } ${request.url}<br/>${error.description}</div></body>"
+                        view.loadUrl("about:blank")
+                        view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                        view.invalidate()
+                        mainActivity.showUrlInputDialog()
+                    }
+                }
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onReceivedError(
+                view: WebView?,
+                errorCode: Int,
+                description: String?,
+                failingUrl: String?
+            ) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                    super.onReceivedError(view, errorCode, description, failingUrl)
+                    //Log.d("LAMPA", "ERROR $errorCode $description on load $failingUrl")
+                    if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
+                        val htmlData =
+                            "<html><body><div align=\"center\" style=\"color:#ff7373\"><br/><br/><br/>ERROR $errorCode<br/>${
+                                App.context.getString(R.string.download_failed_message)
+                            } $failingUrl<br/>$description</div></body>"
+                        view?.loadUrl("about:blank")
+                        view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                        view?.invalidate()
+                        mainActivity.showUrlInputDialog()
+                    }
+                }
             }
 
             override fun shouldOverrideUrlLoading(
@@ -55,14 +106,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 request: WebResourceRequest
             ): Boolean {
                 view.loadUrl(request.toString())
-                return true
+                return false
             }
 
-            @Deprecated("Deprecated in Java")
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
-                view?.loadUrl(url)
-                return true
-            }
+//            @Deprecated("Deprecated in Java")
+//            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
+//                view?.loadUrl(url)
+//                return true
+//            }
         }
         if (BuildConfig.DEBUG)
             browser?.webChromeClient = object : WebChromeClient() {
@@ -137,4 +188,5 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     override fun goBack() {
         browser?.goBack()
     }
+
 }
