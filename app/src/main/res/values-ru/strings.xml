@@ -41,7 +41,7 @@
     <string name="crosswalk_install_title">Установка Crosswalk</string>
     <string name="download_failed_message">Ошибка загрузки</string>
     <string name="download_progress_message">Выполняется загрузка Crosswalk…</string>
-    <string name="select_store_message">Установите службу Crosswalk Project Service из STORE_NAME</string>
+    <string name="select_store_message">Установите сервис Crosswalk из STORE_NAME</string>
     <string name="unsupported_store_message">На устройстве не найден сервис Crosswalk. Для работы приложения необходимо установить его вручную, загрузив с этого адреса (https://github.com/lampa-app/LAMPA/releases/tag/1.1.0).</string>
     <string name="xwalk_download_crosswalk">Прямая загрузка</string>
     <string name="xwalk_get_crosswalk">Загрузить Crosswalk</string>
