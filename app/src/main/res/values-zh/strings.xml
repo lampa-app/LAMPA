@@ -49,4 +49,5 @@
     <string name="xwalk_continue">继续</string>
     <string name="xwalk_close">关闭</string>
     <string name="xwalk_retry">重试</string>
+    <string name="xwalk_apk_link">https://ghproxy.com/https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
 </resources>
