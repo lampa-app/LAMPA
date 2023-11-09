@@ -59,6 +59,7 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
 import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -532,7 +533,7 @@ class MainActivity : AppCompatActivity(),
         input.setSingleLine()
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-        val margin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        val margin = dp2px(mainActivity, 14.5f) // resources.getDimensionPixelSize(R.dimen.dialog_margin)
         val params = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT

@@ -11,6 +11,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.LocaleList
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -79,6 +80,11 @@ object Helpers {
         } else {
             isConnectedOld(context)
         }
+    }
+
+    fun dp2px(context: Context, dip: Float): Int {
+        val dm = context.resources.displayMetrics
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, dm).toInt()
     }
 
     private val deviceName: String

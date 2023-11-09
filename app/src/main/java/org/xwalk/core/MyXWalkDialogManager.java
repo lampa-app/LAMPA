@@ -550,7 +550,7 @@ public class MyXWalkDialogManager {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
             int dialogTheme = R.style.AlertDialog;
             AlertDialog dialog = new AlertDialog.Builder(mContext, dialogTheme).create();
-            dialog.setIcon(android.R.drawable.ic_dialog_alert);
+            //dialog.setIcon(android.R.drawable.ic_dialog_alert);
             dialog.setCancelable(false);
             dialog.setCanceledOnTouchOutside(false);
             return dialog;
