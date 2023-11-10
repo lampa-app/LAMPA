@@ -12,10 +12,11 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginBottom="6dp"
+        android:layout_marginTop="3dp"
         android:fitsSystemWindows="true"
         android:includeFontPadding="false"
         android:text="@string/select_player"
-        android:textColor="@color/tv_white"
+        android:textColor="?attr/colorPrimary"
         android:textSize="24sp"
         android:textStyle="bold" />
 

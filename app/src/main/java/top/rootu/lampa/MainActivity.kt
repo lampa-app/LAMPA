@@ -28,6 +28,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebView
 import android.widget.LinearLayout
+import android.widget.ListAdapter
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -454,8 +455,8 @@ class MainActivity : AppCompatActivity(),
     private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<CharSequence>(4)
-        val menuItemsAction = arrayOfNulls<String>(4)
+        val menuItemsTitle = arrayOfNulls<String?>(4)
+        val menuItemsAction = arrayOfNulls<String?>(4)
 
         menuItemsTitle[0] = getString(R.string.close_menu_title)
         menuItemsAction[0] = "closeMenu"
@@ -466,8 +467,16 @@ class MainActivity : AppCompatActivity(),
         menuItemsTitle[3] = getString(R.string.exit)
         menuItemsAction[3] = "appExit"
 
+        val icons = arrayOf(
+            R.drawable.round_close_24,
+            R.drawable.round_link_24,
+            R.drawable.round_explorer_24,
+            R.drawable.round_exit_to_app_24
+        )
+        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+
         menu.setTitle(getString(R.string.menu_title))
-        menu.setItems(menuItemsTitle) { dialog, which ->
+        menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
                 "showUrlInputDialog" -> showUrlInputDialog()
@@ -482,8 +491,9 @@ class MainActivity : AppCompatActivity(),
     private fun showBrowserInputDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle: Array<CharSequence?>
+        val menuItemsTitle: Array<String?>
         val menuItemsAction: Array<String?>
+        var icons: Array<Int>
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
@@ -499,6 +509,10 @@ class MainActivity : AppCompatActivity(),
                 menuItemsTitle[1] =
                     "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
             }
+            icons = arrayOf(
+                R.drawable.round_explorer_24,
+                R.drawable.round_explorer_24
+            )
         } else {
             menuItemsTitle = arrayOfNulls(1)
             menuItemsAction = arrayOfNulls(1)
@@ -509,10 +523,11 @@ class MainActivity : AppCompatActivity(),
             } else {
                 menuItemsTitle[0] = getString(R.string.engine_crosswalk)
             }
+            icons = arrayOf(R.drawable.round_explorer_24)
         }
-
+        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
         menu.setTitle(getString(R.string.change_engine_title))
-        menu.setItems(menuItemsTitle) { dialog, which ->
+        menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
                 mSettings.edit().putString(APP_BROWSER, menuItemsAction[which]).apply()
