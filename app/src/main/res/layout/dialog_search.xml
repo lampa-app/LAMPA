@@ -59,7 +59,7 @@
         android:nextFocusUp="@id/btnVoiceSearch"
         android:popupBackground="@android:color/transparent"
         android:textColor="@color/tv_white"
-        android:textSize="20sp" />
+        android:textSize="18sp" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

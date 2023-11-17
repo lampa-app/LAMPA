@@ -546,7 +546,7 @@ class MainActivity : AppCompatActivity(),
         val wrapper = TextInputLayout(this)
         val input = TextInputEditText(wrapper.context)
         input.setSingleLine()
-        input.textSize = 20f
+        input.textSize = 18f
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
         val margin = dp2px(mainActivity, 14.5f) // resources.getDimensionPixelSize(R.dimen.dialog_margin)
