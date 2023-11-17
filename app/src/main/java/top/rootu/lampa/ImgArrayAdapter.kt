@@ -53,6 +53,8 @@ class ImgArrayAdapter : ArrayAdapter<String?> {
             12f,
             context.resources.displayMetrics
         ).toInt()
+        textView.textSize = 20f
+        textView.setLines(2)
         return view
     }
 }
