@@ -436,12 +436,15 @@ class MainActivity : AppCompatActivity(),
                 "'change'," +
                         "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
             )
-            runVoidJsFunc(
-                "AndroidJS.StorageChange",
-                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
-            )
             Log.d("*****", "onBrowserPageFinished processIntent")
             processIntent(intent, 3000)
+            lifecycleScope.launch {
+                delay(5000)
+                runVoidJsFunc(
+                    "AndroidJS.StorageChange",
+                    "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+                )
+            }
             runJsStorageChangeField("player_timecode")
             runJsStorageChangeField("playlist_next")
             runJsStorageChangeField("torrserver_preload")
