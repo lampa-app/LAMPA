@@ -1,8 +1,11 @@
 package top.rootu.lampa.tmdb
 
 import androidx.core.text.isDigitsOnly
+import com.google.gson.Gson
 import okhttp3.Request
+import top.rootu.lampa.tmdb.models.content_ratings.ContentRatingsModel
 import top.rootu.lampa.tmdb.models.entity.Entity
+import top.rootu.lampa.tmdb.models.release_dates.ReleaseDatesModel
 
 object Certifications {
 
@@ -116,39 +119,36 @@ object Certifications {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        val releases = Gson().fromJson(body, ReleaseDatesModel::class.java)
+        releases?.results?.filter { it.iso_3166_1.lowercase() == TMDB.getLang() }?.apply {
+            if (isNotEmpty()) {
+                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
+                    return it.certification
+                }
+            }
+        }
+        releases?.results?.filter { it.iso_3166_1.lowercase() == "us" }?.apply {
+            if (isNotEmpty()) {
+                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
+                    return it.certification
+                }
+            }
+        }
+        releases?.results?.filter { it.iso_3166_1.lowercase() == "gb" }?.apply {
+            if (isNotEmpty()) {
+                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
+                    return it.certification
+                }
+            }
+        }
+        releases?.results?.forEach { r ->
+            r.release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
+                return it.certification
+            }
+        }
         return ""
     }
-//        val releases = Gson().fromJson(body, ReleaseDatesModel::class.java)
-//        releases?.results?.filter { it.iso_3166_1.lowercase() == TMDB.getLang() }?.apply {
-//            if (isNotEmpty()) {
-//                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
-//                    return it.certification
-//                }
-//            }
-//        }
-//
-//        releases?.results?.filter { it.iso_3166_1.lowercase() == "us" }?.apply {
-//            if (isNotEmpty()) {
-//                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
-//                    return it.certification
-//                }
-//            }
-//        }
-//
-//        releases?.results?.filter { it.iso_3166_1.lowercase() == "gb" }?.apply {
-//            if (isNotEmpty()) {
-//                this.first().release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
-//                    return it.certification
-//                }
-//            }
-//        }
-//
-//        releases?.results?.forEach { r ->
-//            r.release_dates.firstOrNull { it.certification.isNotBlank() }?.let {
-//                return it.certification
-//            }
-//        }
-//        return ""
 
     private fun getTV(ent: Entity): String {
         // /tv/{tv_id}/content_ratings
@@ -169,27 +169,24 @@ object Certifications {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        val ratings = Gson().fromJson(body, ContentRatingsModel::class.java)
+        ratings?.results?.filter { it.iso_3166_1.lowercase() == TMDB.getLang() }?.apply {
+            if (isNotEmpty())
+                return this.first().rating
+        }
+        ratings?.results?.filter { it.iso_3166_1.lowercase() == "us" }?.apply {
+            if (isNotEmpty())
+                return this.first().rating
+        }
+        ratings?.results?.filter { it.iso_3166_1.lowercase() == "gb" }?.apply {
+            if (isNotEmpty())
+                return this.first().rating
+        }
+        ratings?.results?.forEach {
+            if (it.rating.isNotBlank())
+                return it.rating
+        }
         return ""
     }
 }
-//        val ratings = Gson().fromJson(body, ContentRatingsModel::class.java)
-//        ratings?.results?.filter { it.iso_3166_1.lowercase() == TMDB.getLang() }?.apply {
-//            if (isNotEmpty())
-//                return this.first().rating
-//        }
-//
-//        ratings?.results?.filter { it.iso_3166_1.lowercase() == "us" }?.apply {
-//            if (isNotEmpty())
-//                return this.first().rating
-//        }
-//
-//        ratings?.results?.filter { it.iso_3166_1.lowercase() == "gb" }?.apply {
-//            if (isNotEmpty())
-//                return this.first().rating
-//        }
-//
-//        ratings?.results?.forEach {
-//            if (it.rating.isNotBlank())
-//                return it.rating
-//        }
-//        return ""

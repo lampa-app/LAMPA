@@ -28,7 +28,7 @@ object Images {
 
         val link = urlBuilder.build().toString()
 
-        var body: String? = ""
+        var body: String? = null
         try {
             val request = Request.Builder()
                     .url(link)

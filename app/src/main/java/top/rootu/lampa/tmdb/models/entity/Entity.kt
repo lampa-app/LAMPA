@@ -3,13 +3,6 @@ package top.rootu.lampa.tmdb.models.entity
 import top.rootu.lampa.tmdb.models.titles.AlternativeTitles
 import top.rootu.lampa.tmdb.models.trailers.Trailers
 
-data class Entities(
-    var page: Int,
-    var total_results: Int,
-    var total_pages: Int,
-    var results: List<Entity>
-)
-
 //fun Entity.toTmdbID(): TmdbId {
 //    var g = genres?.map { it?.id }
 //    if (g.isNullOrEmpty())
@@ -73,5 +66,7 @@ data class Entity(
     var year: String?,
     var videos: Trailers?,
 ) {
-    override fun toString(): String = (id?.toString() ?: "-1") + ": " + (title ?: "") + " " + (original_title ?: "") + " " + (year ?: "")
+    override fun toString(): String =
+        (id?.toString() ?: "-1") + ": " + (title ?: "") + " " + (original_title ?: "") + " " + (year
+            ?: "")
 }
