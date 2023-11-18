@@ -42,9 +42,12 @@ import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.setMargins
+import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
@@ -438,7 +441,7 @@ class MainActivity : AppCompatActivity(),
                 "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
             )
             Log.d("*****", "onBrowserPageFinished processIntent")
-            processIntent(intent)
+            processIntent(intent, 3000)
             runJsStorageChangeField("player_timecode")
             runJsStorageChangeField("playlist_next")
             runJsStorageChangeField("torrserver_preload")
@@ -470,7 +473,7 @@ class MainActivity : AppCompatActivity(),
         processIntent(intent)
     }
 
-    fun processIntent(intent: Intent?) {
+    fun processIntent(intent: Intent?, delay: Long = 0) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "***** processIntent: " + intent?.toUri(0))
             intent?.extras?.let {
@@ -500,10 +503,14 @@ class MainActivity : AppCompatActivity(),
                         idTMDB = ids?.toInt() ?: -1
                         mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
-                    runVoidJsFunc(
-                        "Lampa.Activity.push",
-                        "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
-                    )
+                    lifecycleScope.launch {
+                        if (delay > 0)
+                            delay(delay)
+                        runVoidJsFunc(
+                            "Lampa.Activity.push",
+                            "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                        )
+                    }
                 } catch (_: Exception) {
                 }
             }
