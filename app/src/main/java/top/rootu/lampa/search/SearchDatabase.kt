@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.media.Rating
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.App.Companion.emptyPosterPath
 import java.io.IOException
@@ -60,7 +61,7 @@ object SearchDatabase {
         th4.join()
         th5.join()
         th6.join()
-//        ents.sortWith(compareBy({ Utils.getDistance(it, query) }, { -(it.year?.toIntOrNull() ?: 9999) }))
+        ents.sortWith(compareBy({ Utils.getDistance(it, query) }, { -(it.year?.toIntOrNull() ?: 9999) }))
         return ents
     }
 
@@ -127,7 +128,6 @@ object SearchDatabase {
         } else {
             ent.poster_path
         } ?: emptyPosterPath
-
         return arrayOf(
             ent.id ?: "",
             ent.title ?: "",

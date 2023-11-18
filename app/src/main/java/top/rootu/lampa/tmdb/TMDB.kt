@@ -215,14 +215,23 @@ object TMDB {
 
         if (ent.original_title.isNullOrEmpty() && !ent.original_name.isNullOrEmpty())
             ent.original_title = ent.original_name
-
+        // genres
         if (ent.genres?.isEmpty() == true && ent.genre_ids?.isNotEmpty() == true) {
             if (ent.media_type == "movie")
                 ent.genres = movieGenres.filter { mg -> mg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
             else if (ent.media_type == "tv")
                 ent.genres = tvGenres.filter { tg -> tg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
         }
+        // release_date
+        if (!ent.release_date.isNullOrEmpty() && ent.release_date?.length!! >= 4)
+            ent.year = ent.release_date?.substring(0, 4) ?: ""
+        else if (!ent.first_air_date.isNullOrEmpty() && ent.first_air_date?.length!! >= 4)
+            ent.year = ent.first_air_date?.substring(0, 4) ?: ""
+        if (ent.release_date.isNullOrEmpty() && !ent.first_air_date.isNullOrEmpty())
+            ent.release_date = ent.first_air_date
         // images
+        ent.poster_path = imageUrl(ent.poster_path).replace("original", "w342")
+        ent.backdrop_path = imageUrl(ent.backdrop_path).replace("original", "w1280")
         ent.images?.let { img ->
             for (i in img.backdrops.indices)
                 ent.images!!.backdrops[i].file_path = imageUrl(img.backdrops[i].file_path).replace("original", "w1280")
@@ -242,7 +251,7 @@ object TMDB {
         }
     }
 
-    private fun imageUrl(path: String?): String {
+    fun imageUrl(path: String?): String {
         path?.let {
             if (it.startsWith("http"))
                 return it

@@ -4,6 +4,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.util.Log
 import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.openSearch
 import top.rootu.lampa.helpers.Helpers.openSettings
@@ -13,6 +14,7 @@ import java.util.Locale
 
 object SearchCommand {
     fun exec(query: String): Cursor? {
+        if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand exec($query)")
 //        if (query.lowercase(Locale.getDefault())
 //                .contains(App.context.getString(R.string.update_all))
 //        ) {

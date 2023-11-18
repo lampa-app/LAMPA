@@ -614,14 +614,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onPause() {
-        super.onPause()
         if (browserInit) {
             browser?.pauseTimers()
         }
+        super.onPause()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         if (browserInit) {
             browser?.destroy()
         }
@@ -629,6 +628,7 @@ class MainActivity : AppCompatActivity(),
             Speech.getInstance()?.shutdown()
         } catch (_: Exception) {
         }
+        super.onDestroy()
     }
 
     override fun onResume() {
@@ -646,11 +646,11 @@ class MainActivity : AppCompatActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         Log.d(TAG, "onUserLeaveHint()")
-        super.onUserLeaveHint()
         if (browserInit) {
             browser?.pauseTimers()
             browser?.clearCache(true)
         }
+        super.onUserLeaveHint()
     }
 
     // handle configuration changes (language / screen orientation)
