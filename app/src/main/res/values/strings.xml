@@ -21,6 +21,7 @@
     <string name="select_player">Player selection</string>
     <string name="select_player_reset">The selected player has been reset</string>
     <string name="not_found_speech">Failed to start voice input</string>
+    <string name="search_label">Search</string>
     <string name="search_is_empty">Enter your search phrase</string>
     <string name="search_no_voice_recognizer">No voice recognition apps</string>
     <string name="search_requires_record_audio">The app requires permission to record audio to use this feature!</string>
@@ -52,4 +53,8 @@
     <string name="xwalk_retry">Retry</string>
     <string name="xwalk_market_crosswalk" translatable="false">Google Play</string>
     <string name="xwalk_apk_link" translatable="false">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
+    <string name="open_search">open lampa search</string>
+    <string name="open_settings">open lampa settings</string>
+    <string name="lampa_suxx">lampa suxx</string>
+
 </resources>

@@ -452,7 +452,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showMenuDialog() {
+    fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<String?>(4)
