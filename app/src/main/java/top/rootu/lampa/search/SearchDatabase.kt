@@ -11,12 +11,10 @@ import java.io.IOException
 import java.util.*
 import kotlin.concurrent.thread
 import top.rootu.lampa.tmdb.TMDB
+import top.rootu.lampa.tmdb.TMDB.useAltTMDBImageHost
 import top.rootu.lampa.tmdb.models.entity.Entity
 
 object SearchDatabase {
-
-    const val useAltTMDBImageHost = true
-
     fun search(query: String): List<Entity> {
         val ents = mutableListOf<Entity>()
         val th1 = thread {
