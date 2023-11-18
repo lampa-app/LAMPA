@@ -430,7 +430,7 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
-            Log.d("*****","LAMPA onLoadFinished $url")
+            Log.d("*****", "LAMPA onLoadFinished $url")
             runVoidJsFunc(
                 "Lampa.Storage.listener.add",
                 "'change'," +
@@ -444,14 +444,14 @@ class MainActivity : AppCompatActivity(),
                     "AndroidJS.StorageChange",
                     "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
                 )
+                runJsStorageChangeField("player_timecode")
+                runJsStorageChangeField("playlist_next")
+                runJsStorageChangeField("torrserver_preload")
+                runJsStorageChangeField("internal_torrclient")
+                runJsStorageChangeField("language")
+                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+                delayedVoidJsFunc.clear()
             }
-            runJsStorageChangeField("player_timecode")
-            runJsStorageChangeField("playlist_next")
-            runJsStorageChangeField("torrserver_preload")
-            runJsStorageChangeField("internal_torrclient")
-            runJsStorageChangeField("language")
-            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-            delayedVoidJsFunc.clear()
         }
     }
 
@@ -617,7 +617,8 @@ class MainActivity : AppCompatActivity(),
         input.textSize = 18f
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-        val margin = dp2px(mainActivity, 14.5f) // resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        val margin =
+            dp2px(mainActivity, 14.5f) // resources.getDimensionPixelSize(R.dimen.dialog_margin)
         val params = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT

@@ -5,15 +5,13 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.media.Rating
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.App.Companion.emptyPosterPath
+import top.rootu.lampa.tmdb.TMDB
+import top.rootu.lampa.tmdb.models.entity.Entity
 import java.io.IOException
 import java.util.*
 import kotlin.concurrent.thread
-import top.rootu.lampa.tmdb.TMDB
-import top.rootu.lampa.tmdb.TMDB.useAltTMDBImageHost
-import top.rootu.lampa.tmdb.models.entity.Entity
 
 object SearchDatabase {
     fun search(query: String): List<Entity> {
@@ -123,11 +121,7 @@ object SearchDatabase {
             }.toString()
         }?.let { info.add(it) }
         // TODO: cache posters with enabled proxy
-        val poster = if (useAltTMDBImageHost) {
-            ent.poster_path?.replace(TMDB.imgHost, TMDB.proxyImageHost, true)
-        } else {
-            ent.poster_path
-        } ?: emptyPosterPath
+        val poster = ent.poster_path ?: emptyPosterPath
         return arrayOf(
             ent.id ?: "",
             ent.title ?: "",

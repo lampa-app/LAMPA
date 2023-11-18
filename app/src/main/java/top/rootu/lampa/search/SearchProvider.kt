@@ -98,26 +98,35 @@ class SearchProvider : ContentProvider() {
         private const val AUTHORITY = "top.rootu.lampa.atvsearch"
         private const val SEARCH_SUGGEST = 1
 
-        val queryProjection = arrayOf(
-            BaseColumns._ID,
-            SearchDatabase.KEY_NAME,
-            SearchDatabase.KEY_DESCRIPTION,
-            SearchDatabase.KEY_ICON,
-            SearchDatabase.KEY_DATA_TYPE,
-            SearchDatabase.KEY_IS_LIVE,
-            SearchDatabase.KEY_VIDEO_WIDTH,
-            SearchDatabase.KEY_VIDEO_HEIGHT,
-            SearchDatabase.KEY_AUDIO_CHANNEL_CONFIG,
-            SearchDatabase.KEY_PURCHASE_PRICE,
-            SearchDatabase.KEY_RENTAL_PRICE,
-            SearchDatabase.KEY_RATING_STYLE,
-            SearchDatabase.KEY_RATING_SCORE,
-            SearchDatabase.KEY_PRODUCTION_YEAR,
-            SearchDatabase.KEY_COLUMN_DURATION,
-            SearchDatabase.KEY_ACTION,
-            SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
-            SearchManager.SUGGEST_COLUMN_INTENT_EXTRA_DATA
-        )
+        val queryProjection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            arrayOf(
+                BaseColumns._ID,
+                SearchDatabase.KEY_NAME,
+                SearchDatabase.KEY_DESCRIPTION,
+                SearchDatabase.KEY_ICON,
+                SearchDatabase.KEY_DATA_TYPE,
+                SearchDatabase.KEY_IS_LIVE,
+                SearchDatabase.KEY_VIDEO_WIDTH,
+                SearchDatabase.KEY_VIDEO_HEIGHT,
+                SearchDatabase.KEY_AUDIO_CHANNEL_CONFIG,
+                SearchDatabase.KEY_PURCHASE_PRICE,
+                SearchDatabase.KEY_RENTAL_PRICE,
+                SearchDatabase.KEY_RATING_STYLE,
+                SearchDatabase.KEY_RATING_SCORE,
+                SearchDatabase.KEY_PRODUCTION_YEAR,
+                SearchDatabase.KEY_COLUMN_DURATION,
+                SearchDatabase.KEY_ACTION,
+                SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
+                SearchManager.SUGGEST_COLUMN_INTENT_EXTRA_DATA
+            ) else
+            arrayOf(
+                BaseColumns._ID,
+                SearchDatabase.KEY_NAME,
+                SearchDatabase.KEY_DESCRIPTION,
+                SearchDatabase.KEY_ACTION,
+                SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
+                SearchManager.SUGGEST_COLUMN_INTENT_EXTRA_DATA
+            )
 
         private fun buildUriMatcher(): UriMatcher {
             val uriMatcher = UriMatcher(UriMatcher.NO_MATCH)

@@ -1,7 +1,6 @@
 package top.rootu.lampa.tmdb
 
 import android.net.Uri
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import okhttp3.HttpUrl
@@ -23,16 +22,30 @@ object TMDB {
     // todo: get from lampa tmdb params
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
     const val apiHost = "api.themoviedb.org"
-    const val imgHost = "image.tmdb.org" // image.tmdb.org 403 forbidden from RU
-    const val proxyImageHost = "imagetmdb.com"
-    const val useAltTMDBImageHost = false
+    // const val imgHost = "image.tmdb.org" // image.tmdb.org 403 forbidden from RU
 
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
 
+    /* return lowercase 2-digit lang tag */
     fun getLang(): String {
-        // todo: get from prefs
-        val lang: String = Locale.getDefault().language
+        val appLang = App.context.getSharedPreferences(
+            MainActivity.APP_PREFERENCES,
+            AppCompatActivity.MODE_PRIVATE
+        ).getString(MainActivity.APP_LANG, Locale.getDefault().language)
+        if (!appLang.isNullOrEmpty())
+            appLang.apply {
+                val languageCode = this
+                var loc = Locale(languageCode.lowercase())
+                if (languageCode.split("-").size > 1) {
+                    val language = languageCode.split("-")[0].lowercase()
+                    val country = languageCode.split("-")[1].uppercase()
+                    loc = Locale(language, country)
+                }
+                return loc.language
+            }
+
+        val lang = Locale.getDefault().language
         return when {
             lang.equals("IW", ignoreCase = true) -> {
                 "he"
@@ -148,11 +161,11 @@ object TMDB {
     }
 
     private fun video(endpoint: String): Entity? {
-        val osLang = getLang()
-        val entity = videoDetail(endpoint)
-//        entity?.let {
-//            Certifications.get(entity)
-//        }
+        val appLang = getLang()
+        val entity = videoDetail(endpoint, appLang)
+        entity?.let {
+            Certifications.get(entity)
+        }
         return entity
     }
 
@@ -262,16 +275,16 @@ object TMDB {
         }
         if (path.isNullOrEmpty())
             return ""
-        val imgHost = App.context.getSharedPreferences(
+
+        val imgUrl = App.context.getSharedPreferences(
             MainActivity.APP_PREFERENCES,
             AppCompatActivity.MODE_PRIVATE
         ).getString(MainActivity.TMDB_IMG, "https://image.tmdb.org").toString()
         // "https://image.tmdb.org/t/p/original$path"
-        val authority = if (useAltTMDBImageHost)
-            proxyImageHost else Uri.parse(imgHost).authority // imgHost
-        Log.d("*****", "imageUrl authority $authority")
+        val authority = Uri.parse(imgUrl).authority
+        val scheme = Uri.parse(imgUrl).scheme
         return Uri.Builder()
-            .scheme("https")
+            .scheme(scheme)
             .authority(authority)
             .path("/t/p/original$path")
             .build().toString()
