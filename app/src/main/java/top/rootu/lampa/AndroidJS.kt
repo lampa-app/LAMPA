@@ -42,7 +42,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
-            "proxy_tmdb" -> {
+            "proxy_tmdb", "tmdb_protocol" -> {
                 mainActivity.changeTmdbImageUrl()
             }
             "baseUrlImageTMDB" -> {
