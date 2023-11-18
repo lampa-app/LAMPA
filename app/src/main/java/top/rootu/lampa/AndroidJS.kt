@@ -43,7 +43,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
             "proxy_tmdb", "tmdb_protocol" -> {
-                mainActivity.changeTmdbImageUrl()
+                mainActivity.changeTmdbUrls()
+            }
+            "baseUrlApiTMDB" -> {
+                MainActivity.baseUrlApiTMDB = eo.optString("value", MainActivity.baseUrlApiTMDB)
+                mainActivity.storeTmdbImageUrl(eo.optString("value", MainActivity.baseUrlApiTMDB))
+                Log.d("*****", "baseUrlApiTMDB: ${eo.optString("value", MainActivity.baseUrlApiTMDB)}")
             }
             "baseUrlImageTMDB" -> {
                 MainActivity.baseUrlImageTMDB = eo.optString("value", MainActivity.baseUrlImageTMDB)

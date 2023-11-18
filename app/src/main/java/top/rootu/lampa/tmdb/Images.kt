@@ -1,6 +1,7 @@
 package top.rootu.lampa.tmdb
 
 import android.net.Uri
+import android.os.Build
 import com.google.gson.Gson
 import okhttp3.Request
 import java.io.IOException
@@ -17,9 +18,11 @@ object Images {
         params["language"] = TMDB.getLang()
         params["include_image_language"] = "${TMDB.getLang()},en,null"
 
+        val authority = Uri.parse(TMDB.apiUrl).authority
+        val scheme = Uri.parse(TMDB.apiUrl).scheme
         val urlBuilder = Uri.Builder()
-                .scheme("https")
-                .authority(TMDB.apiHost)
+                .scheme(scheme)
+                .authority(authority)
                 .path("/3/${entity.media_type}/${entity.id}/images")
 
         for (param in params) {
@@ -33,7 +36,8 @@ object Images {
             val request = Request.Builder()
                     .url(link)
                     .build()
-            val client = TMDB.startWithQuad9DNS()
+            val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                TMDB.startWithQuad9DNS() else TMDB.permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Unexpected code $response")
                 body = response.body()?.string()

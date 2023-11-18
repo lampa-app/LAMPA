@@ -1,6 +1,7 @@
 package top.rootu.lampa.tmdb
 
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import okhttp3.HttpUrl
@@ -9,6 +10,7 @@ import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
 import top.rootu.lampa.App
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.entity.Genre
@@ -19,22 +21,25 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object TMDB {
-    // todo: get from lampa tmdb params
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
-    const val apiHost = "api.themoviedb.org"
-    // const val imgHost = "image.tmdb.org" // image.tmdb.org 403 forbidden from RU
+    var imgUrl = MainActivity.baseUrlImageTMDB
+    var apiUrl = MainActivity.baseUrlApiTMDB
+    var appLang: String? = Locale.getDefault().language
+
+    // const val apiHost = "api.themoviedb.org"
+    // const val imgHost = "image.tmdb.org"
 
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
 
     /* return lowercase 2-digit lang tag */
     fun getLang(): String {
-        val appLang = App.context.getSharedPreferences(
+        appLang = App.context.getSharedPreferences(
             MainActivity.APP_PREFERENCES,
             AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.APP_LANG, Locale.getDefault().language)
+        ).getString(MainActivity.APP_LANG, appLang)
         if (!appLang.isNullOrEmpty())
-            appLang.apply {
+            appLang?.apply {
                 val languageCode = this
                 var loc = Locale(languageCode.lowercase())
                 if (languageCode.split("-").size > 1) {
@@ -109,13 +114,23 @@ object TMDB {
             .build()
     }
 
+    fun permissiveOkHttp(): OkHttpClient {
+        val timeout = 30000
+        return HttpHelper.getOkHttpClient(timeout)
+    }
+
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
         params["api_key"] = apiKey
         params["language"] = getLang()
-
+        apiUrl = App.context.getSharedPreferences(
+            MainActivity.APP_PREFERENCES,
+            AppCompatActivity.MODE_PRIVATE
+        ).getString(MainActivity.TMDB_API, apiUrl).toString()
+        val authority = Uri.parse(apiUrl).authority
+        val scheme = Uri.parse(apiUrl).scheme
         val urlBuilder = Uri.Builder()
-            .scheme("https")
-            .authority(apiHost)
+            .scheme(scheme)
+            .authority(authority)
             .path("/3/$endpoint")
 
         for (param in params) {
@@ -125,18 +140,19 @@ object TMDB {
         var body: String? = null
         val link = urlBuilder.build().toString()
         try {
-                val request = Request.Builder()
-                    .url(link)
-                    .build()
-                val client = startWithQuad9DNS()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                    body = response.body()?.string()
-                    response.body()?.close()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            val request = Request.Builder()
+                .url(link)
+                .build()
+            val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                startWithQuad9DNS() else permissiveOkHttp()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                body = response.body()?.string()
+                response.body()?.close()
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         if (body.isNullOrEmpty())
             return null
@@ -176,9 +192,16 @@ object TMDB {
             params["language"] = getLang()
         else params["language"] = lang
 
+        apiUrl = App.context.getSharedPreferences(
+            MainActivity.APP_PREFERENCES,
+            AppCompatActivity.MODE_PRIVATE
+        ).getString(MainActivity.TMDB_API, apiUrl).toString()
+
+        val authority = Uri.parse(apiUrl).authority
+        val scheme = Uri.parse(apiUrl).scheme
         val urlBuilder = Uri.Builder()
-            .scheme("https")
-            .authority(apiHost)
+            .scheme(scheme)
+            .authority(authority)
             .path("/3/$endpoint")
 
         params["append_to_response"] = "videos,images,alternative_titles"
@@ -194,7 +217,8 @@ object TMDB {
             val request = Request.Builder()
                 .url(link)
                 .build()
-            val client = startWithQuad9DNS()
+            val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                startWithQuad9DNS() else permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Unexpected code $response")
                 body = response.body()?.string()
@@ -235,9 +259,12 @@ object TMDB {
         // genres
         if (ent.genres?.isEmpty() == true && ent.genre_ids?.isNotEmpty() == true) {
             if (ent.media_type == "movie")
-                ent.genres = movieGenres.filter { mg -> mg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
+                ent.genres = movieGenres.filter { mg ->
+                    mg?.let { ent.genre_ids!!.contains(it.id) } ?: false
+                }
             else if (ent.media_type == "tv")
-                ent.genres = tvGenres.filter { tg -> tg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
+                ent.genres =
+                    tvGenres.filter { tg -> tg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
         }
         // release_date
         if (!ent.release_date.isNullOrEmpty() && ent.release_date?.length!! >= 4)
@@ -251,10 +278,12 @@ object TMDB {
         ent.backdrop_path = imageUrl(ent.backdrop_path).replace("original", "w1280")
         ent.images?.let { img ->
             for (i in img.backdrops.indices)
-                ent.images!!.backdrops[i].file_path = imageUrl(img.backdrops[i].file_path).replace("original", "w1280")
+                ent.images!!.backdrops[i].file_path =
+                    imageUrl(img.backdrops[i].file_path).replace("original", "w1280")
 
             for (i in img.posters.indices)
-                ent.images!!.posters[i].file_path = imageUrl(img.posters[i].file_path).replace("original", "w342")
+                ent.images!!.posters[i].file_path =
+                    imageUrl(img.posters[i].file_path).replace("original", "w342")
         }
         ent.production_companies?.let {
             it.forEach { co ->
@@ -269,6 +298,10 @@ object TMDB {
     }
 
     fun imageUrl(path: String?): String {
+        imgUrl = App.context.getSharedPreferences(
+            MainActivity.APP_PREFERENCES,
+            AppCompatActivity.MODE_PRIVATE
+        ).getString(MainActivity.TMDB_IMG, imgUrl).toString()
         path?.let {
             if (it.startsWith("http"))
                 return it
@@ -276,10 +309,6 @@ object TMDB {
         if (path.isNullOrEmpty())
             return ""
 
-        val imgUrl = App.context.getSharedPreferences(
-            MainActivity.APP_PREFERENCES,
-            AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.TMDB_IMG, MainActivity.baseUrlImageTMDB).toString()
         // "https://image.tmdb.org/t/p/original$path"
         val authority = Uri.parse(imgUrl).authority
         val scheme = Uri.parse(imgUrl).scheme

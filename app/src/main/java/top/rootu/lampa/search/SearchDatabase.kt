@@ -122,7 +122,8 @@ object SearchDatabase {
         }?.let { info.add(it) }
         // TODO: cache posters with enabled proxy
         val poster = ent.poster_path ?: emptyPosterPath
-        return arrayOf(
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            arrayOf(
             ent.id ?: "",
             ent.title ?: "",
             info.joinToString(" · "),
@@ -141,6 +142,14 @@ object SearchDatabase {
             "GLOBALSEARCH",
             ent.id ?: "",
             ent.media_type ?: ""
+        ) else arrayOf(
+            ent.id ?: "",
+            ent.title ?: "",
+            info.joinToString(" · "),
+            poster,
+            "GLOBALSEARCH",
+            ent.id ?: "",
+            ent.media_type ?: "",
         )
     }
 }

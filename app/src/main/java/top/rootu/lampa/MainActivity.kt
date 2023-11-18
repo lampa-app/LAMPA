@@ -97,7 +97,8 @@ class MainActivity : AppCompatActivity(),
         const val APP_PLAYER = "player"
         const val APP_BROWSER = "browser"
         const val APP_LANG = "lang"
-        const val TMDB_IMG = "tmdb_image_host"
+        const val TMDB_API = "tmdb_api_url"
+        const val TMDB_IMG = "tmdb_image_url"
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity(),
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
+        var baseUrlApiTMDB: String = "https://api.themoviedb.org/3/"
         var baseUrlImageTMDB: String = "https://image.tmdb.org/"
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -438,7 +440,7 @@ class MainActivity : AppCompatActivity(),
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
-                changeTmdbImageUrl()
+                changeTmdbUrls()
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
@@ -471,8 +473,12 @@ class MainActivity : AppCompatActivity(),
         processIntent(intent)
     }
 
-    fun changeTmdbImageUrl() {
+    fun changeTmdbUrls() {
         lifecycleScope.launch {
+            runVoidJsFunc(
+                "AndroidJS.StorageChange",
+                "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
+            )
             runVoidJsFunc(
                 "AndroidJS.StorageChange",
                 "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"

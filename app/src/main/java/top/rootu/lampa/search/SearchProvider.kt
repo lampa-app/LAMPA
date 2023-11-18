@@ -123,7 +123,9 @@ class SearchProvider : ContentProvider() {
                 BaseColumns._ID,
                 SearchDatabase.KEY_NAME,
                 SearchDatabase.KEY_DESCRIPTION,
+                SearchDatabase.KEY_ICON,
                 SearchDatabase.KEY_ACTION,
+//                SearchManager.SUGGEST_COLUMN_INTENT_DATA,
                 SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
                 SearchManager.SUGGEST_COLUMN_INTENT_EXTRA_DATA
             )

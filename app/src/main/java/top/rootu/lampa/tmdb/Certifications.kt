@@ -1,5 +1,6 @@
 package top.rootu.lampa.tmdb
 
+import android.os.Build
 import androidx.core.text.isDigitsOnly
 import com.google.gson.Gson
 import okhttp3.Request
@@ -104,13 +105,14 @@ object Certifications {
     private fun getMovie(ent: Entity): String {
         // /movie/{movie_id}/release_dates
         val link =
-            "https://${TMDB.apiHost}/3/${ent.media_type}/${ent.id}/release_dates?api_key=${TMDB.apiKey}"
+            "${TMDB.apiUrl}${ent.media_type}/${ent.id}/release_dates?api_key=${TMDB.apiKey}"
         var body: String? = null
         try {
             val request = Request.Builder()
                 .url(link)
                 .build()
-            val client = TMDB.startWithQuad9DNS()
+            val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                TMDB.startWithQuad9DNS() else TMDB.permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return ""
                 body = response.body()?.string()
@@ -153,14 +155,15 @@ object Certifications {
     private fun getTV(ent: Entity): String {
         // /tv/{tv_id}/content_ratings
         val link =
-            "https://${TMDB.apiHost}/3/${ent.media_type}/${ent.id}/content_ratings?api_key=${TMDB.apiKey}"
+            "${TMDB.apiUrl}${ent.media_type}/${ent.id}/content_ratings?api_key=${TMDB.apiKey}"
 
         var body: String? = null
         try {
             val request = Request.Builder()
                 .url(link)
                 .build()
-            val client = TMDB.startWithQuad9DNS()
+            val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                TMDB.startWithQuad9DNS() else TMDB.permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return ""
                 body = response.body()?.string()
