@@ -2,6 +2,7 @@ package top.rootu.lampa
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.SearchManager
 import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_POSITIVE
@@ -65,6 +66,7 @@ import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
+import top.rootu.lampa.tmdb.models.entity.Entity
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -81,6 +83,8 @@ class MainActivity : AppCompatActivity(),
     private lateinit var mLastPlayed: SharedPreferences
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+    private var idTMDB = -1
+    private var mediaType = ""
 
     companion object {
         private const val TAG = "APP_MAIN"
@@ -91,6 +95,7 @@ class MainActivity : AppCompatActivity(),
         const val APP_PLAYER = "player"
         const val APP_BROWSER = "browser"
         const val APP_LANG = "lang"
+        const val TMDB_IMG = "tmdb_image_host"
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -104,6 +109,7 @@ class MainActivity : AppCompatActivity(),
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
+        var baseUrlImageTMDB: String = "https://image.tmdb.org/"
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
         private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
@@ -421,12 +427,18 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
-            println("LAMPA onLoadFinished $url")
+            Log.d("*****","LAMPA onLoadFinished $url")
             runVoidJsFunc(
                 "Lampa.Storage.listener.add",
                 "'change'," +
                         "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
             )
+            runVoidJsFunc(
+                "AndroidJS.StorageChange",
+                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+            )
+            Log.d("*****", "onBrowserPageFinished processIntent")
+            processIntent(intent)
             runJsStorageChangeField("player_timecode")
             runJsStorageChangeField("playlist_next")
             runJsStorageChangeField("torrserver_preload")
@@ -449,6 +461,52 @@ class MainActivity : AppCompatActivity(),
             showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        Log.d("*****", "onNewIntent() processIntent")
+        super.onNewIntent(intent)
+        processIntent(intent)
+    }
+
+    fun processIntent(intent: Intent?) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "***** processIntent: " + intent?.toUri(0))
+            intent?.extras?.let {
+                for (key in it.keySet()) {
+                    Log.d(
+                        TAG,
+                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+                    )
+                }
+            }
+        }
+        intent?.data?.let {
+            if (intent.hasExtra("id"))
+                idTMDB = intent.getIntExtra("id", -1)
+
+            if (intent.hasExtra("media_type"))
+                mediaType = intent.getStringExtra("media_type") ?: ""
+
+            if (intent.action == "GLOBALSEARCH") {
+                Log.d("*****", "got GLOBALSEARCH data: $it")
+                try {
+                    val uri = it
+                    val ids = uri.lastPathSegment
+                    if (uri.lastPathSegment == "update_channel")
+                        idTMDB = -1
+                    else {
+                        idTMDB = ids?.toInt() ?: -1
+                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
+                    }
+                    runVoidJsFunc(
+                        "Lampa.Activity.push",
+                        "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                    )
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 
@@ -493,7 +551,7 @@ class MainActivity : AppCompatActivity(),
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle: Array<String?>
         val menuItemsAction: Array<String?>
-        var icons: Array<Int>
+        val icons: Array<Int>
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
@@ -695,6 +753,10 @@ class MainActivity : AppCompatActivity(),
     fun setLang(lang: String) {
         mSettings.edit().putString(APP_LANG, lang).apply()
         Helpers.setLocale(this, lang)
+    }
+
+    fun setTmdbImageUrl(url: String) {
+        mSettings.edit().putString(TMDB_IMG, url).apply()
     }
 
     fun setPlayerPackage(packageName: String) {

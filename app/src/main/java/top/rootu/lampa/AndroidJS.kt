@@ -41,6 +41,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
+            "baseUrlImageTMDB" -> {
+                MainActivity.baseUrlImageTMDB = eo.optString("value", MainActivity.baseUrlImageTMDB)
+                mainActivity.setTmdbImageUrl(eo.optString("value", MainActivity.baseUrlImageTMDB))
+                Log.d("*****", "baseUrlImageTMDB: ${eo.optString("value", MainActivity.baseUrlImageTMDB)}")
+            }
         }
     }
 

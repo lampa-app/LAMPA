@@ -1,11 +1,15 @@
 package top.rootu.lampa.tmdb
 
 import android.net.Uri
+import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
+import top.rootu.lampa.App
+import top.rootu.lampa.MainActivity
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.entity.Genre
@@ -21,7 +25,7 @@ object TMDB {
     const val apiHost = "api.themoviedb.org"
     const val imgHost = "image.tmdb.org" // image.tmdb.org 403 forbidden from RU
     const val proxyImageHost = "imagetmdb.com"
-    const val useAltTMDBImageHost = true
+    const val useAltTMDBImageHost = false
 
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
@@ -258,9 +262,14 @@ object TMDB {
         }
         if (path.isNullOrEmpty())
             return ""
+        val imgHost = App.context.getSharedPreferences(
+            MainActivity.APP_PREFERENCES,
+            AppCompatActivity.MODE_PRIVATE
+        ).getString(MainActivity.TMDB_IMG, "https://image.tmdb.org").toString()
         // "https://image.tmdb.org/t/p/original$path"
         val authority = if (useAltTMDBImageHost)
-            proxyImageHost else imgHost
+            proxyImageHost else Uri.parse(imgHost).authority // imgHost
+        Log.d("*****", "imageUrl authority $authority")
         return Uri.Builder()
             .scheme("https")
             .authority(authority)
