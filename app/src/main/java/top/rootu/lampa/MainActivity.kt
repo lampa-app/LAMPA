@@ -69,7 +69,6 @@ import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.net.HttpHelper
-import top.rootu.lampa.tmdb.models.entity.Entity
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -431,19 +430,15 @@ class MainActivity : AppCompatActivity(),
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
             Log.d("*****", "LAMPA onLoadFinished $url")
-            runVoidJsFunc(
-                "Lampa.Storage.listener.add",
-                "'change'," +
-                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-            )
-            Log.d("*****", "onBrowserPageFinished processIntent")
             processIntent(intent, 3000)
             lifecycleScope.launch {
                 delay(5000)
                 runVoidJsFunc(
-                    "AndroidJS.StorageChange",
-                    "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+                    "Lampa.Storage.listener.add",
+                    "'change'," +
+                            "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
+                changeTmdbImageUrl()
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
@@ -474,6 +469,15 @@ class MainActivity : AppCompatActivity(),
         Log.d("*****", "onNewIntent() processIntent")
         super.onNewIntent(intent)
         processIntent(intent)
+    }
+
+    fun changeTmdbImageUrl() {
+        lifecycleScope.launch {
+            runVoidJsFunc(
+                "AndroidJS.StorageChange",
+                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+            )
+        }
     }
 
     fun processIntent(intent: Intent?, delay: Long = 0) {
@@ -766,7 +770,7 @@ class MainActivity : AppCompatActivity(),
         Helpers.setLocale(this, lang)
     }
 
-    fun setTmdbImageUrl(url: String) {
+    fun storeTmdbImageUrl(url: String) {
         mSettings.edit().putString(TMDB_IMG, url).apply()
     }
 

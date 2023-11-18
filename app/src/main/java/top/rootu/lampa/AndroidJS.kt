@@ -21,6 +21,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             JSONObject(str)
         }
         if (!eo.has("name") || !eo.has("value")) return
+
         val name = eo.optString("name")
         when (name) {
             "player_timecode" -> {
@@ -41,9 +42,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
+            "proxy_tmdb" -> {
+                mainActivity.changeTmdbImageUrl()
+            }
             "baseUrlImageTMDB" -> {
                 MainActivity.baseUrlImageTMDB = eo.optString("value", MainActivity.baseUrlImageTMDB)
-                mainActivity.setTmdbImageUrl(eo.optString("value", MainActivity.baseUrlImageTMDB))
+                mainActivity.storeTmdbImageUrl(eo.optString("value", MainActivity.baseUrlImageTMDB))
                 Log.d("*****", "baseUrlImageTMDB: ${eo.optString("value", MainActivity.baseUrlImageTMDB)}")
             }
         }

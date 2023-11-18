@@ -279,7 +279,7 @@ object TMDB {
         val imgUrl = App.context.getSharedPreferences(
             MainActivity.APP_PREFERENCES,
             AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.TMDB_IMG, "https://image.tmdb.org").toString()
+        ).getString(MainActivity.TMDB_IMG, MainActivity.baseUrlImageTMDB).toString()
         // "https://image.tmdb.org/t/p/original$path"
         val authority = Uri.parse(imgUrl).authority
         val scheme = Uri.parse(imgUrl).scheme
