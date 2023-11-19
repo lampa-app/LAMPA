@@ -33,7 +33,7 @@ object Prefs {
     val Context.appUrl: String
         get() {
             val pref = this.appPrefs
-            return pref.getString(APP_URL, MainActivity.LAMPA_URL) ?: MainActivity.LAMPA_URL
+            return pref.getString(APP_URL, "") ?: ""
         }
 
     fun Context.setAppUrl(url: String) {
