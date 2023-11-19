@@ -4,6 +4,8 @@ import android.net.Uri
 import android.os.Build
 import com.google.gson.Gson
 import okhttp3.Request
+import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import java.io.IOException
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.entity.Images
@@ -18,8 +20,8 @@ object Images {
         params["language"] = TMDB.getLang()
         params["include_image_language"] = "${TMDB.getLang()},en,null"
 
-        val authority = Uri.parse(TMDB.apiUrl).authority
-        val scheme = Uri.parse(TMDB.apiUrl).scheme
+        val authority = Uri.parse(App.context.tmdbApiUrl).authority
+        val scheme = Uri.parse(App.context.tmdbApiUrl).scheme
         val urlBuilder = Uri.Builder()
                 .scheme(scheme)
                 .authority(authority)

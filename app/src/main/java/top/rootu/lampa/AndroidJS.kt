@@ -8,6 +8,10 @@ import org.json.JSONException
 import org.json.JSONObject
 import android.webkit.JavascriptInterface
 import top.rootu.lampa.browser.Browser
+import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
+import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
+import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
+import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
@@ -42,18 +46,16 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
-            "proxy_tmdb", "tmdb_protocol" -> {
+            "proxy_tmdb", "tmdb_protocol", "protocol" -> {
                 mainActivity.changeTmdbUrls()
             }
             "baseUrlApiTMDB" -> {
-                MainActivity.baseUrlApiTMDB = eo.optString("value", MainActivity.baseUrlApiTMDB)
-                mainActivity.storeTmdbImageUrl(eo.optString("value", MainActivity.baseUrlApiTMDB))
-                Log.d("*****", "baseUrlApiTMDB: ${eo.optString("value", MainActivity.baseUrlApiTMDB)}")
+                mainActivity.setTmdbApiUrl(eo.optString("value", mainActivity.tmdbApiUrl))
+                if (BuildConfig.DEBUG) Log.d("*****", "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}")
             }
             "baseUrlImageTMDB" -> {
-                MainActivity.baseUrlImageTMDB = eo.optString("value", MainActivity.baseUrlImageTMDB)
-                mainActivity.storeTmdbImageUrl(eo.optString("value", MainActivity.baseUrlImageTMDB))
-                Log.d("*****", "baseUrlImageTMDB: ${eo.optString("value", MainActivity.baseUrlImageTMDB)}")
+                mainActivity.setTmdbImgUrl(eo.optString("value", mainActivity.tmdbImgUrl))
+                if (BuildConfig.DEBUG) Log.d("*****", "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}")
             }
         }
     }

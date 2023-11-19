@@ -2,14 +2,16 @@ package top.rootu.lampa.tmdb
 
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
+import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
 import top.rootu.lampa.App
-import top.rootu.lampa.MainActivity
+import top.rootu.lampa.helpers.Prefs.appLang
+import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
+import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
@@ -22,24 +24,15 @@ import java.util.concurrent.TimeUnit
 
 object TMDB {
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
-    var imgUrl = MainActivity.baseUrlImageTMDB
-    var apiUrl = MainActivity.baseUrlApiTMDB
-    var appLang: String? = Locale.getDefault().language
-
-    // const val apiHost = "api.themoviedb.org"
-    // const val imgHost = "image.tmdb.org"
 
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
 
     /* return lowercase 2-digit lang tag */
     fun getLang(): String {
-        appLang = App.context.getSharedPreferences(
-            MainActivity.APP_PREFERENCES,
-            AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.APP_LANG, appLang)
-        if (!appLang.isNullOrEmpty())
-            appLang?.apply {
+        val appLang = App.context.appLang
+        if (appLang.isNotEmpty())
+            appLang.apply {
                 val languageCode = this
                 var loc = Locale(languageCode.lowercase())
                 if (languageCode.split("-").size > 1) {
@@ -97,7 +90,7 @@ object TMDB {
         val bootstrapClient = OkHttpClient.Builder().build()
         val okUrl = HttpUrl.parse("https://dns.quad9.net/dns-query")
 
-        val dns = okUrl?.let {
+        var dns: Dns? = okUrl?.let {
             DnsOverHttps.Builder().client(bootstrapClient)
                 .url(it)
                 .bootstrapDnsHosts(
@@ -107,10 +100,12 @@ object TMDB {
                 )
                 .build()
         }
+        if (dns == null)
+            dns = Dns.SYSTEM
 
         return bootstrapClient.newBuilder()
             .connectTimeout(15000L, TimeUnit.MILLISECONDS)
-            .dns(dns)
+            .dns(dns!!)
             .build()
     }
 
@@ -122,10 +117,7 @@ object TMDB {
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
         params["api_key"] = apiKey
         params["language"] = getLang()
-        apiUrl = App.context.getSharedPreferences(
-            MainActivity.APP_PREFERENCES,
-            AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.TMDB_API, apiUrl).toString()
+        val apiUrl = App.context.tmdbApiUrl
         val authority = Uri.parse(apiUrl).authority
         val scheme = Uri.parse(apiUrl).scheme
         val urlBuilder = Uri.Builder()
@@ -136,7 +128,6 @@ object TMDB {
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
-
         var body: String? = null
         val link = urlBuilder.build().toString()
         try {
@@ -179,9 +170,9 @@ object TMDB {
     private fun video(endpoint: String): Entity? {
         val appLang = getLang()
         val entity = videoDetail(endpoint, appLang)
-        entity?.let {
-            Certifications.get(entity)
-        }
+//        entity?.let {
+//            Certifications.get(entity)
+//        }
         return entity
     }
 
@@ -191,12 +182,7 @@ object TMDB {
         if (lang.isBlank())
             params["language"] = getLang()
         else params["language"] = lang
-
-        apiUrl = App.context.getSharedPreferences(
-            MainActivity.APP_PREFERENCES,
-            AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.TMDB_API, apiUrl).toString()
-
+        val apiUrl = App.context.tmdbApiUrl
         val authority = Uri.parse(apiUrl).authority
         val scheme = Uri.parse(apiUrl).scheme
         val urlBuilder = Uri.Builder()
@@ -298,10 +284,7 @@ object TMDB {
     }
 
     fun imageUrl(path: String?): String {
-        imgUrl = App.context.getSharedPreferences(
-            MainActivity.APP_PREFERENCES,
-            AppCompatActivity.MODE_PRIVATE
-        ).getString(MainActivity.TMDB_IMG, imgUrl).toString()
+        val imgUrl = App.context.tmdbImgUrl
         path?.let {
             if (it.startsWith("http"))
                 return it

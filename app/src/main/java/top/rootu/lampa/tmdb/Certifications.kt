@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.core.text.isDigitsOnly
 import com.google.gson.Gson
 import okhttp3.Request
+import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.tmdb.models.content_ratings.ContentRatingsModel
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.release_dates.ReleaseDatesModel
@@ -105,7 +107,7 @@ object Certifications {
     private fun getMovie(ent: Entity): String {
         // /movie/{movie_id}/release_dates
         val link =
-            "${TMDB.apiUrl}${ent.media_type}/${ent.id}/release_dates?api_key=${TMDB.apiKey}"
+            "${App.context.tmdbApiUrl}${ent.media_type}/${ent.id}/release_dates?api_key=${TMDB.apiKey}"
         var body: String? = null
         try {
             val request = Request.Builder()
@@ -155,7 +157,7 @@ object Certifications {
     private fun getTV(ent: Entity): String {
         // /tv/{tv_id}/content_ratings
         val link =
-            "${TMDB.apiUrl}${ent.media_type}/${ent.id}/content_ratings?api_key=${TMDB.apiKey}"
+            "${App.context.tmdbApiUrl}${ent.media_type}/${ent.id}/content_ratings?api_key=${TMDB.apiKey}"
 
         var body: String? = null
         try {
