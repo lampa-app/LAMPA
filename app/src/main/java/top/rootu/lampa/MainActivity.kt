@@ -2,6 +2,7 @@ package top.rootu.lampa
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.SearchManager
 import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_POSITIVE
@@ -41,9 +42,12 @@ import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.setMargins
+import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
@@ -64,6 +68,15 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
+import top.rootu.lampa.helpers.Prefs.appBrowser
+import top.rootu.lampa.helpers.Prefs.appLang
+import top.rootu.lampa.helpers.Prefs.appPlayer
+import top.rootu.lampa.helpers.Prefs.appUrl
+import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
+import top.rootu.lampa.helpers.Prefs.setAppBrowser
+import top.rootu.lampa.helpers.Prefs.setAppLang
+import top.rootu.lampa.helpers.Prefs.setAppPlayer
+import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.net.HttpHelper
 import java.util.Locale
 import java.util.regex.Pattern
@@ -77,20 +90,14 @@ class MainActivity : AppCompatActivity(),
     private var browser: Browser? = null
     private lateinit var progressBar: LottieAnimationView // CircularProgressIndicator
     private var browserInit = false
-    private lateinit var mSettings: SharedPreferences
-    private lateinit var mLastPlayed: SharedPreferences
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+    private var idTMDB = -1
+    private var mediaType = ""
 
     companion object {
         private const val TAG = "APP_MAIN"
         const val RESULT_ERROR = 4
-        const val APP_LAST_PLAYED = "last_played"
-        const val APP_PREFERENCES = "settings"
-        const val APP_URL = "url"
-        const val APP_PLAYER = "player"
-        const val APP_BROWSER = "browser"
-        const val APP_LANG = "lang"
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -131,18 +138,14 @@ class MainActivity : AppCompatActivity(),
                 browser?.goBack()
             }
         }
-        mSettings = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
-        LAMPA_URL = mSettings.getString(APP_URL, LAMPA_URL).toString()
-        SELECTED_PLAYER = mSettings.getString(APP_PLAYER, SELECTED_PLAYER)
+        LAMPA_URL = this.appUrl
+        SELECTED_PLAYER = this.appPlayer
+        Helpers.setLocale(this, this.appLang)
 
-        val lang = mSettings.getString(APP_LANG, Locale.getDefault().language)
-        Helpers.setLocale(this, lang)
-
-        mLastPlayed = getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)
-        playIndex = mLastPlayed.getInt("playIndex", playIndex)
-        playVideoUrl = mLastPlayed.getString("playVideoUrl", playVideoUrl)!!
+        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
+        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
-            JSONArray(mLastPlayed.getString("playJSONArray", "[]"))
+            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
         } catch (e: Exception) {
             JSONArray()
         }
@@ -333,7 +336,7 @@ class MainActivity : AppCompatActivity(),
             }
         }
 
-        SELECTED_BROWSER = mSettings.getString(APP_BROWSER, SELECTED_BROWSER)
+        SELECTED_BROWSER = this.appBrowser
         if (!Helpers.isWebViewAvailable(this)
             || (SELECTED_BROWSER.isNullOrEmpty() && playVideoUrl.isNotEmpty())
         ) {
@@ -421,19 +424,24 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
-            println("LAMPA onLoadFinished $url")
-            runVoidJsFunc(
-                "Lampa.Storage.listener.add",
-                "'change'," +
-                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-            )
-            runJsStorageChangeField("player_timecode")
-            runJsStorageChangeField("playlist_next")
-            runJsStorageChangeField("torrserver_preload")
-            runJsStorageChangeField("internal_torrclient")
-            runJsStorageChangeField("language")
-            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-            delayedVoidJsFunc.clear()
+            Log.d("*****", "LAMPA onLoadFinished $url")
+            processIntent(intent, 3000)
+            lifecycleScope.launch {
+                delay(5000)
+                runVoidJsFunc(
+                    "Lampa.Storage.listener.add",
+                    "'change'," +
+                            "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+                )
+                changeTmdbUrls()
+                runJsStorageChangeField("player_timecode")
+                runJsStorageChangeField("playlist_next")
+                runJsStorageChangeField("torrserver_preload")
+                runJsStorageChangeField("internal_torrclient")
+                runJsStorageChangeField("language")
+                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+                delayedVoidJsFunc.clear()
+            }
         }
     }
 
@@ -452,7 +460,70 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showMenuDialog() {
+    override fun onNewIntent(intent: Intent?) {
+        Log.d("*****", "onNewIntent() processIntent")
+        super.onNewIntent(intent)
+        processIntent(intent)
+    }
+
+    fun changeTmdbUrls() {
+        lifecycleScope.launch {
+            runVoidJsFunc(
+                "AndroidJS.StorageChange",
+                "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
+            )
+            runVoidJsFunc(
+                "AndroidJS.StorageChange",
+                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+            )
+        }
+    }
+
+    private fun processIntent(intent: Intent?, delay: Long = 0) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "***** processIntent: " + intent?.toUri(0))
+            intent?.extras?.let {
+                for (key in it.keySet()) {
+                    Log.d(
+                        TAG,
+                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+                    )
+                }
+            }
+        }
+        intent?.data?.let {
+            if (intent.hasExtra("id"))
+                idTMDB = intent.getIntExtra("id", -1)
+
+            if (intent.hasExtra("media_type"))
+                mediaType = intent.getStringExtra("media_type") ?: ""
+
+            if (intent.action == "GLOBALSEARCH") {
+                Log.d("*****", "got GLOBALSEARCH data: $it")
+                try {
+                    val uri = it
+                    val ids = uri.lastPathSegment
+                    if (uri.lastPathSegment == "update_channel")
+                        idTMDB = -1
+                    else {
+                        idTMDB = ids?.toInt() ?: -1
+                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
+                    }
+                    lifecycleScope.launch {
+                        if (delay > 0)
+                            delay(delay)
+                        runVoidJsFunc(
+                            "Lampa.Activity.push",
+                            "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                        )
+                    }
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<String?>(4)
@@ -493,7 +564,7 @@ class MainActivity : AppCompatActivity(),
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle: Array<String?>
         val menuItemsAction: Array<String?>
-        var icons: Array<Int>
+        val icons: Array<Int>
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
@@ -530,7 +601,7 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                mSettings.edit().putString(APP_BROWSER, menuItemsAction[which]).apply()
+                menuItemsAction[which]?.let { this.setAppBrowser(it) }
                 mainActivity.recreate()
             }
         }
@@ -549,7 +620,8 @@ class MainActivity : AppCompatActivity(),
         input.textSize = 18f
         input.inputType = InputType.TYPE_CLASS_TEXT
         input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-        val margin = dp2px(mainActivity, 14.5f) // resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        val margin =
+            dp2px(mainActivity, 14.5f)
         val params = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -564,8 +636,8 @@ class MainActivity : AppCompatActivity(),
             LAMPA_URL = input.text.toString()
             if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
-                if (mSettings.getString(APP_URL, "") != LAMPA_URL) {
-                    mSettings.edit().putString(APP_URL, LAMPA_URL).apply()
+                if (this.appUrl != LAMPA_URL) {
+                    this.setAppUrl(LAMPA_URL)
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
                 }
@@ -578,10 +650,10 @@ class MainActivity : AppCompatActivity(),
         }
         builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
             dialog.cancel()
-            if (LAMPA_URL.isEmpty() && mSettings.getString(APP_URL, LAMPA_URL).isNullOrEmpty()) {
+            if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
                 appExit()
             } else {
-                LAMPA_URL = mSettings.getString(APP_URL, LAMPA_URL).toString()
+                LAMPA_URL = this.appUrl
                 hideSystemUI()
             }
         }
@@ -614,14 +686,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onPause() {
-        super.onPause()
         if (browserInit) {
             browser?.pauseTimers()
         }
+        super.onPause()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         if (browserInit) {
             browser?.destroy()
         }
@@ -629,6 +700,7 @@ class MainActivity : AppCompatActivity(),
             Speech.getInstance()?.shutdown()
         } catch (_: Exception) {
         }
+        super.onDestroy()
     }
 
     override fun onResume() {
@@ -646,11 +718,11 @@ class MainActivity : AppCompatActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         Log.d(TAG, "onUserLeaveHint()")
-        super.onUserLeaveHint()
         if (browserInit) {
             browser?.pauseTimers()
             browser?.clearCache(true)
         }
+        super.onUserLeaveHint()
     }
 
     // handle configuration changes (language / screen orientation)
@@ -674,16 +746,6 @@ class MainActivity : AppCompatActivity(),
         window?.decorView?.fitsSystemWindows = false
     }
 
-//    @Suppress("DEPRECATION")
-//    private fun hideSystemUI() {
-//        window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-//                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-//                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-//                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-//                or View.SYSTEM_UI_FLAG_FULLSCREEN
-//                or View.SYSTEM_UI_FLAG_LOW_PROFILE)
-//    }
-
     fun appExit() {
         browser?.let {
             it.clearCache(true)
@@ -693,17 +755,18 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun setLang(lang: String) {
-        mSettings.edit().putString(APP_LANG, lang).apply()
+        this.setAppLang(lang)
         Helpers.setLocale(this, lang)
     }
 
     fun setPlayerPackage(packageName: String) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
-        mSettings.edit().putString(APP_PLAYER, SELECTED_PLAYER).apply()
+        if (!SELECTED_PLAYER.isNullOrEmpty())
+            this.setAppPlayer(SELECTED_PLAYER!!)
     }
 
     private fun saveLastPlayed() {
-        val editor = mLastPlayed.edit()
+        val editor = this.lastPlayedPrefs.edit()
         editor?.apply {
             putInt("playIndex", playIndex)
             putString("playVideoUrl", playVideoUrl)

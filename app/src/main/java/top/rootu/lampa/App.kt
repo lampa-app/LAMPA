@@ -18,13 +18,16 @@ import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Updater
 
 class App : MultiDexApplication() {
-
     init {
         // use vectors on pre-LP devices
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
     }
 
     companion object {
+        // some const
+        const val mainHost = "https://github.com/lampa-app/LAMPA/blob/main"
+        const val emptyPosterPath = "$mainHost/empty_poster.png"
+
         private val TAG: String = App::class.java.simpleName
         private lateinit var appContext: Context
         var inForeground: Boolean = false

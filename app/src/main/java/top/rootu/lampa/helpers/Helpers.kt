@@ -2,12 +2,15 @@ package top.rootu.lampa.helpers
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
 import android.util.Log
@@ -18,7 +21,9 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
+import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
 import java.util.*
 
@@ -43,6 +48,31 @@ object Helpers {
         }
     }
 
+    fun uninstallSelf() {
+        val pm = App.context.packageManager
+        pm.setComponentEnabledSetting(
+            ComponentName(App.context, MainActivity::class.java),
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+        val intent = Intent(Intent.ACTION_DELETE)
+        intent.data = Uri.parse("package:" + App.context.packageName)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        App.context.startActivity(intent)
+    }
+
+    fun openSearch(): Boolean {
+        val intent = Intent(App.context, MainActivity::class.java)
+        intent.putExtra("cmd", "open_search")
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        App.context.startActivity(intent)
+        return true
+    }
+    fun openSettings(): Boolean {
+        val intent = Intent(App.context, MainActivity::class.java)
+        intent.putExtra("cmd", "open_settings")
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        App.context.startActivity(intent)
+        return true
+    }
     fun setLocale(activity: Activity, languageCode: String?) {
         if (BuildConfig.DEBUG) Log.d("APP_MAIN", "set Locale to [$languageCode]")
         val locale = languageCode?.let { Locale(it) } ?: return

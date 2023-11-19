@@ -20,6 +20,7 @@
     <string name="select_player">选择播放器</string>
     <string name="select_player_reset">重置选择的播放器</string>
     <string name="not_found_speech">语音输入失败</string>
+    <string name="search_label">搜索</string>
     <string name="search_is_empty">请输入搜索关键字</string>
     <string name="search_no_voice_recognizer">没有语音识别应用</string>
     <string name="search_requires_record_audio">应用需要录音权限才能使用此功能！</string>
@@ -50,4 +51,7 @@
     <string name="xwalk_close">关闭</string>
     <string name="xwalk_retry">重试</string>
     <string name="xwalk_apk_link">https://ghproxy.com/https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
+    <string name="open_search">open lampa search</string>
+    <string name="open_settings">open lampa settings</string>
+    <string name="lampa_suxx">lampa suxx</string>
 </resources>

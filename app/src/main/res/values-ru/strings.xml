@@ -20,6 +20,7 @@
     <string name="select_player">Выбор плеера</string>
     <string name="select_player_reset">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
+    <string name="search_label">Поиск</string>
     <string name="search_is_empty">Введите поисковую фразу</string>
     <string name="search_no_voice_recognizer">Нет приложений для распознавания голоса</string>
     <string name="search_requires_record_audio">Приложению требуется разрешение на запись звука, чтобы использовать эту функцию!</string>
@@ -49,4 +50,7 @@
     <string name="xwalk_continue">Продолжить</string>
     <string name="xwalk_close">Отмена</string>
     <string name="xwalk_retry">Повтор</string>
+    <string name="open_search">открой поиск в ламп</string>
+    <string name="open_settings">открой настройки ламп</string>
+    <string name="lampa_suxx">лампа говно</string>
 </resources>
