@@ -3,19 +3,6 @@ package top.rootu.lampa.tmdb.models.entity
 import top.rootu.lampa.tmdb.models.titles.AlternativeTitles
 import top.rootu.lampa.tmdb.models.trailers.Trailers
 
-//fun Entity.toTmdbID(): TmdbId {
-//    var g = genres?.map { it?.id }
-//    if (g.isNullOrEmpty())
-//        g = genre_ids
-//    val c = production_countries?.map { it.iso_3166_1 } ?: this.origin_country
-//    var d = release_date
-//    if (d?.isEmpty() == true)
-//        d = first_air_date
-//    if (d?.isEmpty() == true)
-//        d = null
-//    return TmdbId(id ?: 0, media_type ?: "", g, vote_average, vote_count, c, d)
-//}
-
 data class Entity(
     var adult: Boolean?,
     var alternative_titles: AlternativeTitles?,

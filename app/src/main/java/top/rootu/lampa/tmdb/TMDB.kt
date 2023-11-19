@@ -15,7 +15,6 @@ import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
-import top.rootu.lampa.tmdb.models.entity.Genre
 import java.io.IOException
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -24,9 +23,6 @@ import java.util.concurrent.TimeUnit
 
 object TMDB {
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
-
-    private var movieGenres: List<Genre?> = emptyList()
-    private var tvGenres: List<Genre?> = emptyList()
 
     /* return lowercase 2-digit lang tag */
     fun getLang(): String {
@@ -66,24 +62,6 @@ object TMDB {
             }
         }
     }
-
-    fun initGenres() {
-        try {
-            // https://developers.themoviedb.org/3/genres/get-movie-list
-            var ent = video("genre/movie/list")
-            ent?.genres?.let {
-                movieGenres = it
-            }
-            // https://developers.themoviedb.org/3/genres/get-tv-list
-            ent = video("genre/tv/list")
-            ent?.genres?.let {
-                tvGenres = it
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     // Quad9 over HTTPS resolver
     fun startWithQuad9DNS(): OkHttpClient {
 
@@ -108,7 +86,7 @@ object TMDB {
             .dns(dns!!)
             .build()
     }
-
+    // For KitKat
     fun permissiveOkHttp(): OkHttpClient {
         val timeout = 30000
         return HttpHelper.getOkHttpClient(timeout)
@@ -169,11 +147,7 @@ object TMDB {
 
     private fun video(endpoint: String): Entity? {
         val appLang = getLang()
-        val entity = videoDetail(endpoint, appLang)
-//        entity?.let {
-//            Certifications.get(entity)
-//        }
-        return entity
+        return videoDetail(endpoint, appLang)
     }
 
     private fun videoDetail(endpoint: String, lang: String = ""): Entity? {
@@ -220,38 +194,24 @@ object TMDB {
         val gson = Gson()
         val ent = gson.fromJson(body, Entity::class.java)
         fixEntity(ent)
-//        ent.videos?.results?.forEach {
-//            Trailers.fixTrailers(it)
-//        }
         return ent
     }
 
     private fun fixEntity(ent: Entity) {
         if (ent.title == null && ent.name == null)
             return
-
+        // media types
         if (ent.media_type.isNullOrEmpty()) {
             if (ent.title.isNullOrEmpty())
                 ent.media_type = "tv"
             else if (ent.name.isNullOrEmpty())
                 ent.media_type = "movie"
         }
-
+        // titles
         if (ent.title.isNullOrEmpty() && !ent.name.isNullOrEmpty())
             ent.title = ent.name
-
         if (ent.original_title.isNullOrEmpty() && !ent.original_name.isNullOrEmpty())
             ent.original_title = ent.original_name
-        // genres
-        if (ent.genres?.isEmpty() == true && ent.genre_ids?.isNotEmpty() == true) {
-            if (ent.media_type == "movie")
-                ent.genres = movieGenres.filter { mg ->
-                    mg?.let { ent.genre_ids!!.contains(it.id) } ?: false
-                }
-            else if (ent.media_type == "tv")
-                ent.genres =
-                    tvGenres.filter { tg -> tg?.let { ent.genre_ids!!.contains(it.id) } ?: false }
-        }
         // release_date
         if (!ent.release_date.isNullOrEmpty() && ent.release_date?.length!! >= 4)
             ent.year = ent.release_date?.substring(0, 4) ?: ""
