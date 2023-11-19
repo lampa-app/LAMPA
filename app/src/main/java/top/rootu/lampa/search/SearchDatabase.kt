@@ -6,7 +6,8 @@ import android.database.MatrixCursor
 import android.media.Rating
 import android.os.Build
 import androidx.annotation.RequiresApi
-import top.rootu.lampa.App.Companion.emptyPosterPath
+import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.tmdb.TMDB
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.io.IOException
@@ -120,7 +121,7 @@ object SearchDatabase {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
             }.toString()
         }?.let { info.add(it) }
-        // TODO: cache posters with enabled proxy
+        val emptyPosterPath = App.context.appUrl + "/img/video_poster.png"
         val poster = ent.poster_path ?: emptyPosterPath
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             arrayOf(

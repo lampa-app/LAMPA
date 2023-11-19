@@ -24,9 +24,6 @@ class App : MultiDexApplication() {
     }
 
     companion object {
-        // some const
-        const val mainHost = "https://github.com/lampa-app/LAMPA/blob/main"
-        const val emptyPosterPath = "$mainHost/empty_poster.png"
 
         private val TAG: String = App::class.java.simpleName
         private lateinit var appContext: Context
