@@ -7,7 +7,7 @@ package com.btr.proxy.selector.pac;
  ***************************************************************************/
 public interface ScriptMethods {
 
-	public boolean isPlainHostName(String host);
+	boolean isPlainHostName(String host);
 
 	/*************************************************************************
 	 * Tests if an URL is in a given domain.
@@ -19,7 +19,7 @@ public interface ScriptMethods {
 	 * @return true if the domain of host name matches.
 	 ************************************************************************/
 
-	public boolean dnsDomainIs(String host, String domain);
+    boolean dnsDomainIs(String host, String domain);
 
 	/*************************************************************************
 	 * Is true if the host name matches exactly the specified host name, or if
@@ -33,7 +33,7 @@ public interface ScriptMethods {
 	 * @return true if matches else false.
 	 ************************************************************************/
 
-	public boolean localHostOrDomainIs(String host, String domain);
+    boolean localHostOrDomainIs(String host, String domain);
 
 	/*************************************************************************
 	 * Tries to resolve the host name. Returns true if succeeds.
@@ -43,7 +43,7 @@ public interface ScriptMethods {
 	 * @return true if resolvable else false.
 	 ************************************************************************/
 
-	public boolean isResolvable(String host);
+    boolean isResolvable(String host);
 
 	/*************************************************************************
 	 * Tries to resolve the host name. Returns true if succeeds to resolve the
@@ -54,7 +54,7 @@ public interface ScriptMethods {
 	 * @return true if resolvable else false.
 	 ************************************************************************/
 
-	public boolean isResolvableEx(String host);
+    boolean isResolvableEx(String host);
 
 	/*************************************************************************
 	 * Returns true if the IP address of the host matches the specified IP
@@ -76,7 +76,7 @@ public interface ScriptMethods {
 	 * @return true if it matches else false.
 	 ************************************************************************/
 
-	public boolean isInNet(String host, String pattern, String mask);
+    boolean isInNet(String host, String pattern, String mask);
 
 	/*************************************************************************
 	 * Extension of the isInNet method to support IPv6.
@@ -90,7 +90,7 @@ public interface ScriptMethods {
 	 * @return true if the host is in the given subnet, else false.
 	 ************************************************************************/
 
-	public boolean isInNetEx(String ipAddress, String ipPrefix);
+    boolean isInNetEx(String ipAddress, String ipPrefix);
 
 	/*************************************************************************
 	 * Resolves the given DNS host name into an IP address, and returns it in
@@ -101,7 +101,7 @@ public interface ScriptMethods {
 	 * @return the resolved IP, empty string if not resolvable.
 	 ************************************************************************/
 
-	public String dnsResolve(String host);
+    String dnsResolve(String host);
 
 	/*************************************************************************
 	 * @param host
@@ -110,7 +110,7 @@ public interface ScriptMethods {
 	 *         resolves to, empty string if not resolvable.
 	 ************************************************************************/
 
-	public String dnsResolveEx(String host);
+    String dnsResolveEx(String host);
 
 	/*************************************************************************
 	 * Returns the IP address of the host that the process is running on, as a
@@ -119,7 +119,7 @@ public interface ScriptMethods {
 	 * @return an IP as string.
 	 ************************************************************************/
 
-	public String myIpAddress();
+    String myIpAddress();
 
 	/*************************************************************************
 	 * Returns a list of IP4 and IP6 addresses of the host that the process is
@@ -128,7 +128,7 @@ public interface ScriptMethods {
 	 * @return the list, empty string if not available.
 	 ************************************************************************/
 
-	public String myIpAddressEx();
+    String myIpAddressEx();
 
 	/*************************************************************************
 	 * Returns the number of DNS domain levels (number of dots) in the host
@@ -139,7 +139,7 @@ public interface ScriptMethods {
 	 * @return number of DNS domain levels.
 	 ************************************************************************/
 
-	public int dnsDomainLevels(String host);
+    int dnsDomainLevels(String host);
 
 	/*************************************************************************
 	 * Returns true if the string matches the specified shell expression.
@@ -153,7 +153,7 @@ public interface ScriptMethods {
 	 * @return true if the string matches, else false.
 	 ************************************************************************/
 
-	public boolean shExpMatch(String str, String shexp);
+    boolean shExpMatch(String str, String shexp);
 
 	/*************************************************************************
 	 * Only the first parameter is mandatory. Either the second, the third, or
@@ -174,7 +174,7 @@ public interface ScriptMethods {
 	 * @return true if current day matches the criteria.
 	 ************************************************************************/
 
-	public boolean weekdayRange(String wd1, String wd2, String gmt);
+    boolean weekdayRange(String wd1, String wd2, String gmt);
 
 	/*************************************************************************
 	 * Only the first parameter is mandatory. All other parameters can be left
@@ -204,7 +204,7 @@ public interface ScriptMethods {
 	 * @return true if the current date matches the given range.
 	 ************************************************************************/
 
-	public boolean dateRange(Object day1, Object month1, Object year1,
+    boolean dateRange(Object day1, Object month1, Object year1,
 			Object day2, Object month2, Object year2, Object gmt);
 
 	/*************************************************************************
@@ -240,7 +240,7 @@ public interface ScriptMethods {
 	 * @return true if the current time matches the given range.
 	 ************************************************************************/
 
-	public boolean timeRange(Object hour1, Object min1, Object sec1,
+    boolean timeRange(Object hour1, Object min1, Object sec1,
 			Object hour2, Object min2, Object sec2, Object gmt);
 
 	/*************************************************************************
@@ -252,7 +252,7 @@ public interface ScriptMethods {
 	 * @return the sorted list, empty string if sort is not possible
 	 ************************************************************************/
 
-	public String sortIpAddressList(String ipAddressList);
+    String sortIpAddressList(String ipAddressList);
 
 	/*************************************************************************
 	 * Gets the version of the PAC extension that is available.
@@ -260,6 +260,6 @@ public interface ScriptMethods {
 	 * @return the extension version, currently 1.0
 	 ************************************************************************/
 
-	public String getClientVersion();
+    String getClientVersion();
 
 }

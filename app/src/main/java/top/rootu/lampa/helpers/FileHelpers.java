@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -162,7 +163,7 @@ public class FileHelpers {
                     }
                 }
             }
-            return deleteRoot ? sourceLocation.delete() : true;
+            return !deleteRoot || sourceLocation.delete();
         } else if (sourceLocation != null && sourceLocation.isFile()) {
             return sourceLocation.delete();
         } else {
@@ -342,7 +343,7 @@ public class FileHelpers {
             return null;
         }
 
-        return new ByteArrayInputStream(content.getBytes(Charset.forName("UTF8")));
+        return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }
 
     public static void closeStream(Closeable fos) {
