@@ -19,14 +19,14 @@ object SearchCommand {
         if (query.lowercase(Locale.getDefault())
                 .contains(App.context.getString(R.string.open_lampa))
         ) {
-            Log.d("*****", "SearchCommand matched - openLampa()")
+            if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand matched - openLampa()")
             openLampa()
             return MatrixCursor(queryProjection, 0)
         }
         if (query.lowercase(Locale.getDefault())
                 .contains(App.context.getString(R.string.open_settings))
         ) {
-            Log.d("*****", "SearchCommand matched - openSettings()")
+            if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand matched - openSettings()")
             openSettings()
             return MatrixCursor(queryProjection, 0)
         }

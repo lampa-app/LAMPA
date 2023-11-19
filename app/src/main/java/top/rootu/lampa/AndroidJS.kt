@@ -26,8 +26,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
         if (!eo.has("name") || !eo.has("value")) return
 
-        val name = eo.optString("name")
-        when (name) {
+        when (eo.optString("name")) {
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
@@ -172,7 +171,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     requestContent = data.toString()
                 }
             }
-            if (!requestContent.isEmpty()) {
+            if (requestContent.isNotEmpty()) {
                 if (headers == null) {
                     headers = JSONObject()
                     headers.put("Content-Type", contentType)
@@ -191,7 +190,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
-            class LampaAsyncTask : CSyncTask<Void?, String?, String>("LampaAsyncTask") {
+            class LampaAsyncTask : LampaSyncTask<Void?, String?, String>("LampaAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
                     var s: String
                     var action = "complite"

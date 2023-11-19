@@ -527,7 +527,7 @@ class MyXWalkLibraryLoader {
         private final DownloadListener mListener;
         private final Context mContext;
         private final File XWALK_DOWNLOAD_DIR;
-        private String mDownloadUrl;
+        private final String mDownloadUrl;
         private File mDownloadedFile;
         private long mProgressUpdateTime;
 

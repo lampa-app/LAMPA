@@ -11,7 +11,7 @@ enum class Status {
     FINISHED
 }
 
-abstract class CSyncTask<Params, Progress, Result>(private val taskName: String) {
+abstract class LampaSyncTask<Params, Progress, Result>(private val taskName: String) {
 
     private val TAG by lazy {
         javaClass.simpleName

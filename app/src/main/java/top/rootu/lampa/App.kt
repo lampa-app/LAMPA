@@ -89,7 +89,7 @@ class App : MultiDexApplication() {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                 }
             }
         }

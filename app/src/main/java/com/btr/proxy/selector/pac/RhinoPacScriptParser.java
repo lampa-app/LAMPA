@@ -39,7 +39,7 @@ public class RhinoPacScriptParser extends ScriptableObject implements
 			"localHostOrDomainIs", "weekdayRange", "dateRange", "timeRange" };
 
 	private Scriptable scope;
-	private PacScriptSource source;
+	private final PacScriptSource source;
 	private static final PacScriptMethods SCRIPT_METHODS = new PacScriptMethods();
 
 	/*************************************************************************
