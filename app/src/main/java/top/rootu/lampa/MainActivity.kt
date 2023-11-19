@@ -462,8 +462,8 @@ class MainActivity : AppCompatActivity(),
 
     override fun onNewIntent(intent: Intent?) {
         Log.d("*****", "onNewIntent() processIntent")
-        super.onNewIntent(intent)
         processIntent(intent)
+        super.onNewIntent(intent)
     }
 
     fun changeTmdbUrls() {
@@ -481,7 +481,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent: " + intent?.toUri(0))
+            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
                 for (key in it.keySet()) {
                     Log.d(
@@ -498,27 +498,37 @@ class MainActivity : AppCompatActivity(),
             if (intent.hasExtra("media_type"))
                 mediaType = intent.getStringExtra("media_type") ?: ""
 
-            if (intent.action == "GLOBALSEARCH") {
-                Log.d("*****", "got GLOBALSEARCH data: $it")
-                try {
-                    val uri = it
-                    val ids = uri.lastPathSegment
-                    if (uri.lastPathSegment == "update_channel")
-                        idTMDB = -1
-                    else {
-                        idTMDB = ids?.toInt() ?: -1
-                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
-                    }
-                    lifecycleScope.launch {
-                        if (delay > 0)
+            when (intent.action) {
+                "GLOBALSEARCH" -> {
+                    try {
+                        val uri = it
+                        val ids = uri.lastPathSegment
+                        if (uri.lastPathSegment == "update_channel")
+                            idTMDB = -1
+                        else {
+                            idTMDB = ids?.toInt() ?: -1
+                            mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
+                        }
+                        lifecycleScope.launch {
                             delay(delay)
-                        runVoidJsFunc(
-                            "Lampa.Activity.push",
-                            "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
-                        )
+                            runVoidJsFunc(
+                                "Lampa.Activity.push",
+                                "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                            )
+                        }
+                    } catch (_: Exception) {
                     }
-                } catch (_: Exception) {
                 }
+                else -> {}
+            }
+        }
+        val cmd = intent?.getStringExtra("cmd")
+        if (!cmd.isNullOrBlank()) {
+            when (cmd) {
+                "open_settings" -> {
+                    showMenuDialog()
+                }
+                else -> {}
             }
         }
     }

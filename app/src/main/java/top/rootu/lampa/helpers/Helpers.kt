@@ -49,6 +49,7 @@ object Helpers {
     }
 
     fun uninstallSelf() {
+        App.toast("Hooray!")
         val pm = App.context.packageManager
         pm.setComponentEnabledSetting(
             ComponentName(App.context, MainActivity::class.java),
@@ -59,9 +60,8 @@ object Helpers {
         App.context.startActivity(intent)
     }
 
-    fun openSearch(): Boolean {
+    fun openLampa(): Boolean {
         val intent = Intent(App.context, MainActivity::class.java)
-        intent.putExtra("cmd", "open_search")
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         App.context.startActivity(intent)
         return true

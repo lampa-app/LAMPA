@@ -50,7 +50,7 @@
     <string name="xwalk_continue">Продолжить</string>
     <string name="xwalk_close">Отмена</string>
     <string name="xwalk_retry">Повтор</string>
-    <string name="open_search">открой поиск в ламп</string>
+    <string name="open_lampa">открой ламп</string>
     <string name="open_settings">открой настройки ламп</string>
     <string name="lampa_suxx">лампа говно</string>
 </resources>
