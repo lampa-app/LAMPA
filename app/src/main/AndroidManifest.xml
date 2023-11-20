@@ -121,6 +121,14 @@
             android:authorities="${applicationId}.atvsearch"
             android:exported="true"
             tools:ignore="ExportedContentProvider" />
+        <service
+            android:name=".sched.CardJobService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".sched.CardAlarmManager"
+            android:enabled="true" />
     </application>
 
 </manifest>

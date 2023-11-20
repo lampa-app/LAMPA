@@ -21,10 +21,12 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
+import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.models.TmdbId
 import java.util.*
 
 
@@ -142,12 +144,35 @@ object Helpers {
         }
     }
 
+    fun buildPendingIntent(tmdbId: TmdbId, providerName: String?): Intent {
+        val intent = Intent(App.context, MainActivity::class.java)
+        intent.putExtra("id", tmdbId.id)
+        intent.putExtra("media_type", tmdbId.media_type)
+        val idStr = Gson().toJson(tmdbId)
+        intent.putExtra("TmdbIDJS", idStr)
+        providerName?.let { intent.putExtra("Provider", it) }
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.action = tmdbId.id.toString()
+        return intent
+    }
+
     @JvmStatic
     val isGenymotion: Boolean
         get() {
             val deviceName = deviceName
             return deviceName.contains("(vbox86p)")
         }
+
+    val isAndroidTV: Boolean
+        get() {
+            return App.context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+
+    val isAmazonDev: Boolean
+        get() {
+            return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
+        }
+
     /* NOTE! must be called after setContentView */
     fun Activity.hideSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

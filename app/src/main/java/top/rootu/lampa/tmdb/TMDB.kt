@@ -145,7 +145,7 @@ object TMDB {
         return entities
     }
 
-    private fun video(endpoint: String): Entity? {
+    fun video(endpoint: String): Entity? {
         val appLang = getLang()
         return videoDetail(endpoint, appLang)
     }
