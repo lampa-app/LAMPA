@@ -745,9 +745,6 @@ class MainActivity : AppCompatActivity(),
     override fun onUserLeaveHint() {
         Log.d(TAG, "onUserLeaveHint()")
         if (browserInit) {
-            if (browser?.canGoBack() == true) {
-                browser?.goBack()
-            }
             browser?.pauseTimers()
             browser?.clearCache(true)
         }
