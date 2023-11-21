@@ -130,6 +130,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-process:2.6.2'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.recommendation:recommendation:1.0.0'
+    implementation 'androidx.tvprovider:tvprovider:1.0.0'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
     // material-ui

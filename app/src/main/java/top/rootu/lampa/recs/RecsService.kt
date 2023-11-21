@@ -1,9 +1,11 @@
 package top.rootu.lampa.recs
 
 import android.app.NotificationManager
+import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -16,12 +18,13 @@ import kotlinx.coroutines.launch
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
+import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.isAmazonDev
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.appUrl
-import top.rootu.lampa.models.TmdbId
+import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.models.getEntity
 import java.io.IOException
 import java.net.URL
@@ -31,6 +34,7 @@ import kotlin.math.min
 
 object RecsService {
 
+    const val MAX_RECS_CAP = 20
     private var bitmap: Bitmap? = null
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -51,6 +55,13 @@ object RecsService {
             val cardWidth = dp2px(this, 170f)
             val cardHeight = dp2px(this, 300f)
             val emptyPosterPath = this.appUrl + "/img/video_poster.png"
+            val resourceId = R.drawable.empty_poster // in-app poster
+            val emptyPoster = Uri.Builder()
+                .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+                .authority(this.resources.getResourcePackageName(resourceId))
+                .appendPath(this.resources.getResourceTypeName(resourceId))
+                .appendPath(this.resources.getResourceEntryName(resourceId))
+                .build()
 
             val ids = getRecs()
             val entities = ids.mapNotNull { it.getEntity() }
@@ -162,8 +173,9 @@ object RecsService {
         }
     }
 
-    fun getRecs(): List<TmdbId> {
-        return emptyList()
+    fun getRecs(): List<TmdbID> {
+        // TODO: filter viewed
+        return LampaProvider.get(LampaProvider.Recs, false)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     // https://stackoverflow.com/questions/8992964/android-load-from-url-to-bitmap

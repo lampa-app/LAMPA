@@ -26,7 +26,7 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
-import top.rootu.lampa.models.TmdbId
+import top.rootu.lampa.models.TmdbID
 import java.util.*
 
 
@@ -144,7 +144,7 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(tmdbId: TmdbId, providerName: String?): Intent {
+    fun buildPendingIntent(tmdbId: TmdbID, providerName: String?): Intent {
         val intent = Intent(App.context, MainActivity::class.java)
         intent.putExtra("id", tmdbId.id)
         intent.putExtra("media_type", tmdbId.media_type)

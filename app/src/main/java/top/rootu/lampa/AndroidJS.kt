@@ -2,20 +2,33 @@ package top.rootu.lampa
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.text.TextUtils
 import android.util.Log
+import android.webkit.JavascriptInterface
+import androidx.annotation.RequiresApi
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
-import android.webkit.JavascriptInterface
 import top.rootu.lampa.browser.Browser
+import top.rootu.lampa.channels.LampaChannels.updateBookChannel
+import top.rootu.lampa.channels.LampaChannels.updateHistChannel
+import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
+import top.rootu.lampa.models.Favorite
+import top.rootu.lampa.models.LampaRec
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
+
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun StorageChange(str: String) {
@@ -30,31 +43,67 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
+
             "file_view" -> {
                 MainActivity.playerFileView = eo.optJSONObject("value")
             }
+
             "playlist_next" -> {
                 MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
             }
+
             "torrserver_preload" -> {
                 MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
             }
+
             "internal_torrclient" -> {
                 MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
             }
+
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
             }
-            "proxy_tmdb", "tmdb_protocol", "protocol" -> {
+
+            "proxy_tmdb", "protocol" -> {
                 mainActivity.changeTmdbUrls()
             }
+
             "baseUrlApiTMDB" -> {
                 mainActivity.setTmdbApiUrl(eo.optString("value", mainActivity.tmdbApiUrl))
-                if (BuildConfig.DEBUG) Log.d("*****", "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}")
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}"
+                )
             }
+
             "baseUrlImageTMDB" -> {
                 mainActivity.setTmdbImgUrl(eo.optString("value", mainActivity.tmdbImgUrl))
-                if (BuildConfig.DEBUG) Log.d("*****", "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}")
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}"
+                )
+            }
+
+            "favorite" -> {
+                FAV = Gson().fromJson(eo.optString("value", ""), Favorite::class.java)
+                Log.d("*****", "FAV changed ${eo.optString("value", "")}")
+//                Log.d("*****", "cards: ${FAV.card?.size}")
+//                Log.d("*****", "book: ${FAV.book}")
+//                Log.d("*****", "like: ${FAV.like}")
+//                Log.d("*****", "wath: ${FAV.wath}")
+//                Log.d("*****", "history: ${FAV.history}")
+//                Log.d("*****", "look ${FAV.look}")
+//                Log.d("*****", "viewed ${FAV.viewed}")
+//                Log.d("*****", "scheduled ${FAV.scheduled}")
+//                Log.d("*****", "continued ${FAV.continued}")
+//                Log.d("*****", "thrown ${FAV.thrown}")
+            }
+
+            "recomends_list" -> {
+                val json = eo.optString("value", "")
+                Log.d("*****", "RCS changed ${eo.optString("value", "")}")
+                if (json.isNotBlank() && json != "undefined")
+                    RCS = Gson().fromJson(json, Array<LampaRec>::class.java).toList()
             }
         }
     }
@@ -175,7 +224,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 if (headers == null) {
                     headers = JSONObject()
                     headers.put("Content-Type", contentType)
-                } else if(!headers.has("Content-Type")) {
+                } else if (!headers.has("Content-Type")) {
                     if (headers.has("Content-type")) {
                         contentType = headers.optString("Content-type", contentType)
                         headers.remove("Content-type")
@@ -225,9 +274,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '"
                                 + result.toString()
-                                    .replace("\\", "\\\\")
-                                    .replace("'", "\\'")
-                                    .replace("\n", "\\\n")
+                            .replace("\\", "\\\\")
+                            .replace("'", "\\'")
+                            .replace("\n", "\\\n")
                                 + "')")
                         browser.evaluateJavascript(js) { value -> Log.i("JSRV", value) }
                     }
@@ -296,17 +345,35 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
         // todo https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null) {
             Log.d(TAG, "updateChannel $where")
+            when (where) {
+                LampaProvider.Hist -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(5000)
+                        updateHistChannel()
+                    }
+                }
+
+                LampaProvider.Book -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(5000)
+                        updateBookChannel()
+                    }
+                }
+            }
         }
     }
 
     companion object {
         private const val TAG = "AndroidJS"
         var reqResponse: MutableMap<String, String> = HashMap()
+        lateinit var FAV: Favorite
+        lateinit var RCS: List<LampaRec>
     }
 }

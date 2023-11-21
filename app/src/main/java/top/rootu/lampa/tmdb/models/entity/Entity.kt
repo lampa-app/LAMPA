@@ -1,6 +1,6 @@
 package top.rootu.lampa.tmdb.models.entity
 
-import top.rootu.lampa.models.TmdbId
+import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.tmdb.models.titles.AlternativeTitles
 import top.rootu.lampa.tmdb.models.trailers.Trailers
 
@@ -57,16 +57,15 @@ data class Entity(
         (id?.toString() ?: "-1") + ": " + (title ?: "") + " " + (original_title ?: "") + " " + (year
             ?: "")
 
-    fun toTmdbID(): TmdbId {
+    fun toTmdbID(): TmdbID {
         var g = genres?.map { it?.id }
         if (g.isNullOrEmpty())
             g = genre_ids
-        val c = production_countries?.map { it.iso_3166_1 } ?: this.origin_country
         var d = release_date
         if (d?.isEmpty() == true)
             d = first_air_date
         if (d?.isEmpty() == true)
             d = null
-        return TmdbId(id ?: 0, media_type ?: "", g, vote_average, vote_count, c, d)
+        return TmdbID(id ?: 0, media_type ?: "", g, vote_average, vote_count, d)
     }
 }

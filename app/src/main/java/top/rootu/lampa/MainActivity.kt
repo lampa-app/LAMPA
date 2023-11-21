@@ -7,7 +7,6 @@ import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.res.Configuration
@@ -46,6 +45,8 @@ import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.gotev.speech.GoogleVoiceTypingDisabledException
@@ -63,6 +64,7 @@ import org.xwalk.core.XWalkPreferences
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
+import top.rootu.lampa.channels.LampaChannels.updateRecsChannel
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
@@ -72,12 +74,14 @@ import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
+import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.net.HttpHelper
+import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -381,6 +385,11 @@ class MainActivity : AppCompatActivity(),
 
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
+
+        if (this.firstRun) // TODO: initialize channels with data
+            CoroutineScope(Dispatchers.IO).launch {
+                Scheduler.scheduleUpdate(true)
+            }
     }
 
     override fun onXWalkInitStarted() {
@@ -433,12 +442,13 @@ class MainActivity : AppCompatActivity(),
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
-                changeTmdbUrls()
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
                 runJsStorageChangeField("internal_torrclient")
                 runJsStorageChangeField("language")
+                runJsStorageChangeField("recomends_list") // force update recs var
+                changeTmdbUrls()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
             }
@@ -461,9 +471,9 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onNewIntent(intent: Intent?) {
-        Log.d("*****", "onNewIntent() processIntent")
-        processIntent(intent)
         super.onNewIntent(intent)
+        if (BuildConfig.DEBUG) Log.d("*****", "onNewIntent() processIntent")
+        processIntent(intent)
     }
 
     fun changeTmdbUrls() {
@@ -491,43 +501,46 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+
+        if (intent?.hasExtra("id") == true)
+            idTMDB = intent.getIntExtra("id", -1)
+
+        if (intent?.hasExtra("media_type") == true)
+            mediaType = intent.getStringExtra("media_type") ?: ""
+
         intent?.data?.let {
-            if (intent.hasExtra("id"))
-                idTMDB = intent.getIntExtra("id", -1)
-
-            if (intent.hasExtra("media_type"))
-                mediaType = intent.getStringExtra("media_type") ?: ""
-
             when (intent.action) {
                 "GLOBALSEARCH" -> {
-                    try {
-                        val uri = it
-                        val ids = uri.lastPathSegment
-                        if (uri.lastPathSegment == "update_channel")
-                            idTMDB = -1
-                        else {
-                            idTMDB = ids?.toInt() ?: -1
-                            mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
-                        }
-                        lifecycleScope.launch {
-                            delay(delay)
-                            runVoidJsFunc(
-                                "Lampa.Activity.push",
-                                "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
-                            )
-                        }
-                    } catch (_: Exception) {
+                    val uri = it
+                    val ids = uri.lastPathSegment
+                    if (uri.lastPathSegment == "update_channel")
+                        idTMDB = -1
+                    else {
+                        idTMDB = ids?.toInt() ?: -1
+                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
                 }
+
                 else -> {}
             }
         }
+
+        if (idTMDB >= 0 && mediaType.isNotEmpty())
+            lifecycleScope.launch {
+                delay(delay)
+                runVoidJsFunc(
+                    "Lampa.Activity.push",
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                )
+            }
+
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {
             when (cmd) {
                 "open_settings" -> {
                     showMenuDialog()
                 }
+
                 else -> {}
             }
         }
@@ -560,6 +573,10 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
+                "closeMenu" -> if (VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    updateRecsChannel()
+                }
+
                 "showUrlInputDialog" -> showUrlInputDialog()
                 "showBrowserInputDialog" -> showBrowserInputDialog()
                 "appExit" -> appExit()

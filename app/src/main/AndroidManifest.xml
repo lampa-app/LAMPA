@@ -3,10 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- use older sdk -->
-    <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech" />
+    <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech, androidx.recommendation, androidx.tvprovider" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"
+    <uses-permission
+        android:name="android.permission.ACCESS_WIFI_STATE"
         tools:ignore="LeanbackUsesWifi" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -16,10 +17,14 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Android 8.0 updater fix -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android TV Channels -->
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
 
     <queries>
         <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.google.android.katniss" />
+
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
@@ -64,8 +69,9 @@
         android:screenOrientation="userLandscape"
         android:supportsRtl="true"
         android:theme="@style/Theme.LAMPA"
-        tools:targetApi="n"
-        tools:ignore="RtlEnabled">
+        tools:ignore="RtlEnabled"
+        tools:targetApi="n">
+
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
@@ -95,6 +101,7 @@
                 <data android:pathPattern="/tv/.*" />
 
             </intent-filter>
+
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
@@ -104,9 +111,36 @@
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
             android:theme="@style/Theme.LAMPA" />
+
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
+
+        <receiver
+            android:name=".receivers.BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receivers.HomeWatch"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+                <action android:name="android.media.tv.action.PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT" />
+                <action android:name="android.media.tv.action.WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED" />
+                <action android:name="android.media.tv.action.PREVIEW_PROGRAM_BROWSABLE_DISABLED" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.update_provider"
@@ -121,6 +155,7 @@
             android:authorities="${applicationId}.atvsearch"
             android:exported="true"
             tools:ignore="ExportedContentProvider" />
+
         <service
             android:name=".sched.CardJobService"
             android:enabled="true"

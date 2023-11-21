@@ -5,6 +5,7 @@ import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import java.util.Locale
 
@@ -98,6 +99,22 @@ object Prefs {
         val pref = this.appPrefs
         pref.edit().putString(TMDB_IMG, url).apply()
     }
+
+    val Context.useWatchNext: Boolean
+        get() {
+            val pref = this.appPrefs
+            return true
+        }
+
+    val Context.firstRun: Boolean
+        get() {
+            val pref = PreferenceManager.getDefaultSharedPreferences(this)
+            val lrv = pref.getString("last_run_version", "") ?: ""
+            val firstRun = BuildConfig.VERSION_NAME != lrv
+            if (firstRun)
+                pref.edit().putString("last_run_version", BuildConfig.VERSION_NAME).apply()
+            return firstRun
+        }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> get(name: String, def: T): T {

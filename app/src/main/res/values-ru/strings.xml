@@ -53,4 +53,8 @@
     <string name="open_lampa">открой ламп</string>
     <string name="open_settings">открой настройки ламп</string>
     <string name="lampa_suxx">лампа говно</string>
+    <!--Channels-->
+    <string name="ch_recs">Рекомендации</string>
+    <string name="ch_history">История</string>
+    <string name="ch_bookmarks">Закладки</string>
 </resources>

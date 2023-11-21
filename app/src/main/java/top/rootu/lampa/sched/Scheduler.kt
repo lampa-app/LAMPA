@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.recs.RecsService
 import java.util.concurrent.TimeUnit
@@ -34,21 +35,6 @@ object Scheduler {
             jobScheduler(sync)
         else
             alarmScheduler()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun updateCards(sync: Boolean) {
-        synchronized(lock) {
-            if (isUpdate)
-                return
-            isUpdate = true
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
-            RecsService.updateRecs()
-//        else
-//            Channels.update(sync)
-        isUpdate = false
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -80,4 +66,20 @@ object Scheduler {
             alarmIntent
         )
     }
+
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    fun updateCards(sync: Boolean) {
+        synchronized(lock) {
+            if (isUpdate)
+                return
+            isUpdate = true
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            RecsService.updateRecs()
+        else
+            LampaChannels.update(sync)
+        isUpdate = false
+    }
+
 }
