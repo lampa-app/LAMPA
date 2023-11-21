@@ -9,7 +9,6 @@ import androidx.annotation.RequiresApi
 import androidx.tvprovider.media.tv.Channel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,7 +70,8 @@ object ChannelManager {
 
             CoroutineScope(Dispatchers.IO).launch {// "UpdateChannelsItems"
                 list.forEachIndexed { index, entity ->
-                    val prg = getProgram(ch.id, name, entity, list.size - index) ?: return@forEachIndexed
+                    val prg =
+                        getProgram(ch.id, name, entity, list.size - index) ?: return@forEachIndexed
                     App.context.contentResolver.insert(
                         Uri.parse("content://android.media.tv/preview_program"),
                         prg.toContentValues()
@@ -115,12 +115,11 @@ object ChannelManager {
     }
 
 //    @SuppressLint("RestrictedApi")
-//    fun getEntityFromPreviewProgramId(previewProgramId: Long): Entity? {
+//    fun getInternalIdFromPreviewProgramId(previewProgramId: Long): String? {
 //        if (BuildConfig.DEBUG)
-//            Log.d(TAG, "getEntityFromPreviewProgramId($previewProgramId)")
+//            Log.d(TAG, "getInternalIdFromPreviewProgramId($previewProgramId)")
 //        val curProgramUri = TvContractCompat.buildPreviewProgramUri(previewProgramId)
 //        var previewProgram: PreviewProgram? = null
-//        var entity: Entity? = null
 //        App.context.contentResolver.query(
 //            curProgramUri, null, null, null, null
 //        ).use { cursor ->
@@ -129,56 +128,16 @@ object ChannelManager {
 //                previewProgram = PreviewProgram.fromCursor(cursor)
 //            }
 //        }
-//        try {
-//            val intent = previewProgram?.intent
-//            val entJs = intent?.getStringExtra("EntityJS")
-//            if (!entJs.isNullOrEmpty())
-//                entity = Gson().fromJson(entJs, Entity::class.java)
-//            val idJs = intent?.getStringExtra("TmdbIDJS")
-//            if (entity == null && !idJs.isNullOrEmpty()) {
-//                val tmdbid = Gson().fromJson(idJs, TmdbID::class.java)
-//                entity = tmdbid.getEntity()
-//            }
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//        if (BuildConfig.DEBUG)
-//            Log.d(TAG, "got entity ${entity.toString()}")
-//        return entity
+//        return previewProgram?.internalProviderId
 //    }
 
     @SuppressLint("RestrictedApi")
-    fun getTmdbIdFromPreviewProgramId(previewProgramId: Long): TmdbID? {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "getTmdbIdFromPreviewProgramId($previewProgramId)")
-        val curProgramUri = TvContractCompat.buildPreviewProgramUri(previewProgramId)
-        var previewProgram: PreviewProgram? = null
-        var tmdbID: TmdbID? = null
-        App.context.contentResolver.query(
-            curProgramUri, null, null, null, null
-        ).use { cursor ->
-            if (cursor != null && cursor.count != 0) {
-                cursor.moveToFirst()
-                previewProgram = PreviewProgram.fromCursor(cursor)
-            }
-        }
-        try {
-            val intent = previewProgram?.intent
-            val idJs = intent?.getStringExtra("TmdbIDJS")
-            if (!idJs.isNullOrEmpty()) {
-                tmdbID = Gson().fromJson(idJs, TmdbID::class.java)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "got tmdbID ${tmdbID.toString()}")
-        return tmdbID
-    }
-
-
-    @SuppressLint("RestrictedApi")
-    private fun getProgram(channelId: Long, provName: String, id: TmdbID, weight: Int): PreviewProgram? {
+    private fun getProgram(
+        channelId: Long,
+        provName: String,
+        id: TmdbID,
+        weight: Int
+    ): PreviewProgram? {
         val info = mutableListOf<String>()
 
         val ent = id.getEntity() ?: return null

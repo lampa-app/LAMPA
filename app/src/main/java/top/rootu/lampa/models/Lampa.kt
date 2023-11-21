@@ -19,7 +19,7 @@ data class LampaCard (
     val source: String, //"KP","TMDB","cub" etc
     val type: String?, //"movie","tv","Scripted" etc
     val adult: Boolean?,
-    val id: String, // "KP_1227897", "84958"
+    val id: String, //"KP_1227897", "84958"
     val name: String?, //"Топ Гир: Лучшее",
     val original_name: String?, //"Top Gear: Best of",
     val title: String?, //"Топ Гир: Лучшее",
@@ -28,7 +28,7 @@ data class LampaCard (
     val img: String?, //"https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
     val background_image: String?,
     val genres: List<Genre?>?,
-    // val genres_ids: List<Int?>?,
+    // genres_ids: List<Int?>?,
     val popularity: Float?,
     val production_companies: List<ProductionCompany>?,
     val production_countries: List<ProductionCountry>?,
@@ -41,7 +41,7 @@ data class LampaCard (
     val first_air_date: String?, //2006, 1989-12-17
     val last_air_date: String?, //2014, 2023-11-19
     val number_of_seasons: Int?, //1,
-//    "seasons": [{...}],
+   // "seasons": [{...}],
     val number_of_episodes: Int?, //12,
     val persons: Persons?,
     val simular: Simular?,
@@ -77,13 +77,11 @@ data class LampaRec(
 ) {
     fun toTmdbID(): TmdbID {
         val g = genre_ids
-//        val c = production_countries?.map { it.iso_3166_1 } ?:  this.origin_country
         var d = release_date
         if (d.isNullOrEmpty())
             d = first_air_date
         if (d.isNullOrEmpty())
             d = null
-        Log.d("*****", "LampaRec.toTmdbID() id: $id, media_type: $media_type genres: $g date: $d")
         return TmdbID(id, media_type, g, vote_average, vote_count, d)
     }
 }

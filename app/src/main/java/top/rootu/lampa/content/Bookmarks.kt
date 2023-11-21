@@ -2,12 +2,7 @@ package top.rootu.lampa.content
 
 import android.util.Log
 import top.rootu.lampa.AndroidJS
-import top.rootu.lampa.App
-import top.rootu.lampa.channels.WatchNext
-import top.rootu.lampa.helpers.Prefs.useWatchNext
 import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.models.getEntity
-import top.rootu.lampa.tmdb.models.entity.Entity
 
 class Bookmarks : LampaProviderI() {
 
@@ -15,36 +10,21 @@ class Bookmarks : LampaProviderI() {
         return ReleaseID(Bookmarks.get())
     }
 
-//    fun add(ent: Entity) {
-//        Bookmarks.add(ent)
-//        if (App.context.useWatchNext)
-//            WatchNext.add(ent)
-//    }
-
-//    fun rem(ent: Entity) {
-//        Bookmarks.rem(ent)
-//        if (App.context.useWatchNext)
-//            WatchNext.rem(ent)
-//    }
-
-//    fun isInFavorite(ent: Entity): Boolean {
-//        return get().items?.find { it.id == ent.id } != null
-//    }
-
-    fun add(tmdbID: TmdbID) {
+    fun add(tmdbID: String?) {
         Bookmarks.add(tmdbID)
-        if (App.context.useWatchNext)
-            tmdbID.getEntity()?.let { WatchNext.add(it) }
     }
 
-    fun rem(tmdbID: TmdbID) {
+    fun rem(tmdbID: String?) {
         Bookmarks.rem(tmdbID)
-        if (App.context.useWatchNext)
-            WatchNext.rem(tmdbID.id)
     }
 
-    fun isBookmarked(tmdbID: TmdbID): Boolean {
-        return get().items?.find { it.id == tmdbID.id } != null
+    fun isBookmarked(tmdbID: String?): Boolean {
+        return get().items?.find { it.id.toString() == tmdbID } != null
+    }
+
+    fun isInWatchNext(tmdbID: String?): Boolean {
+        val nxt = AndroidJS.FAV.wath
+        return nxt?.contains(tmdbID) == true
     }
     companion object {
         fun get(): List<TmdbID> {
@@ -59,11 +39,19 @@ class Bookmarks : LampaProviderI() {
             return emptyList()
         }
 
-        fun add(tmdbID: TmdbID) {
+        fun add(tmdbID: String?) {
             // TODO
         }
 
-        fun rem(tmdbID: TmdbID) {
+        fun rem(tmdbID: String?) {
+            // TODO
+        }
+
+        fun addToWatchNext(it: String?) {
+            // TODO
+        }
+
+        fun remFromWatchNext(it: String?) {
             // TODO
         }
     }

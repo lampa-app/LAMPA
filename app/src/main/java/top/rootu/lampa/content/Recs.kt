@@ -19,9 +19,7 @@ class Recs : LampaProviderI() {
                 .shuffled()
             if (BuildConfig.DEBUG) Log.d("*****", "Recs cards total: ${cards.size} | filter: ${filter.size}")
             if (filter.isNotEmpty()) {
-                // lst.clear()
                 filter.forEach { r ->
-                    //Log.d("*****", "toTmdbID: ${r.toTmdbID()}")
                     lst.add(r.toTmdbID())
                 }
             }

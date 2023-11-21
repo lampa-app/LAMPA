@@ -1,12 +1,12 @@
 package top.rootu.lampa.channels
 
+//import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
 import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
-//import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
@@ -17,7 +17,6 @@ import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.models.getEntity
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.util.*
 
@@ -60,16 +59,7 @@ object WatchNext {
             }
         }
     }
-
-//    fun rem(ent: Entity) {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
-//            ent.id?.let { id ->
-//                deleteFromWatchNext(id)
-//            }
-//        }
-//    }
-
-    fun rem(tmdbID: Int?) {
+    fun rem(tmdbID: String?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
             tmdbID?.let { id ->
                 deleteFromWatchNext(id)
@@ -79,37 +69,22 @@ object WatchNext {
 
     // https://github.com/googlecodelabs/tv-watchnext/blob/master/step_final/src/main/java/com/example/android/watchnextcodelab/channels/WatchNextTvProvider.kt
 
-//    @SuppressLint("RestrictedApi")
-//    fun getEntityFromWatchNextProgramId(watchNextId: Long): Entity? {
-//        if (BuildConfig.DEBUG)
-//            Log.d(TAG, "getEntityFromWatchNextProgramId($watchNextId)")
-//        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
-//        var watchNextProgram: WatchNextProgram? = null
-//        var entity: Entity? = null
-//        App.context.contentResolver.query(
-//            curWatchNextUri, null, null, null, null
-//        ).use { cursor ->
-//            if (cursor != null && cursor.count != 0) {
-//                cursor.moveToFirst()
-//                watchNextProgram = WatchNextProgram.fromCursor(cursor)
-//            }
-//        }
-//        try {
-//            val intent = watchNextProgram?.intent
-//            val entJs = intent?.getStringExtra("EntityJS")
-//            if (!entJs.isNullOrEmpty())
-//                entity = Gson().fromJson(entJs, Entity::class.java)
-//            val idJs = intent?.getStringExtra("TmdbIDJS")
-//            if (entity == null && !idJs.isNullOrEmpty())
-//                entity = Gson().fromJson(idJs, TmdbID::class.java)
-//                    .getEntity()
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//        if (BuildConfig.DEBUG)
-//            Log.d(TAG, "got entity ${entity.toString()}")
-//        return entity
-//    }
+    @SuppressLint("RestrictedApi")
+    fun getInternalIdFromWatchNextProgramId(watchNextId: Long): String? {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "getTmdbIdFromWatchNextProgramId($watchNextId)")
+        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
+        var watchNextProgram: WatchNextProgram? = null
+        App.context.contentResolver.query(
+            curWatchNextUri, null, null, null, null
+        ).use { cursor ->
+            if (cursor != null && cursor.count != 0) {
+                cursor.moveToFirst()
+                watchNextProgram = WatchNextProgram.fromCursor(cursor)
+            }
+        }
+        return watchNextProgram?.internalProviderId
+    }
 
     @SuppressLint("RestrictedApi")
     fun getTmdbIdFromWatchNextProgramId(watchNextId: Long): TmdbID? {
@@ -131,7 +106,6 @@ object WatchNext {
             val idJs = intent?.getStringExtra("TmdbIDJS")
             if (!idJs.isNullOrEmpty())
                 tmdbID = Gson().fromJson(idJs, TmdbID::class.java)
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -141,8 +115,8 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    fun deleteFromWatchNext(entId: Int) {
-        entId.toString().let {
+    fun deleteFromWatchNext(entId: String?) {
+        entId?.let {
             val program = findProgramByMovieId(movieId = it)
             if (program != null) {
                 if (BuildConfig.DEBUG)
