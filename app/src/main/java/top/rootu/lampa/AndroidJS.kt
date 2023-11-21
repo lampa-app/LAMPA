@@ -85,8 +85,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "favorite" -> {
-                FAV = Gson().fromJson(eo.optString("value", ""), Favorite::class.java)
-                Log.d("*****", "FAV changed ${eo.optString("value", "")}")
+                val json = eo.optString("value", "")
+                Log.d("*****", "FAV changed $json")
+                if (json.isNotBlank() && json != "undefined")
+                    FAV = Gson().fromJson(json, Favorite::class.java)
 //                Log.d("*****", "cards: ${FAV.card?.size}")
 //                Log.d("*****", "book: ${FAV.book}")
 //                Log.d("*****", "like: ${FAV.like}")
@@ -101,7 +103,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "recomends_list" -> {
                 val json = eo.optString("value", "")
-                Log.d("*****", "RCS changed ${eo.optString("value", "")}")
+                Log.d("*****", "RCS changed $json")
                 if (json.isNotBlank() && json != "undefined")
                     RCS = Gson().fromJson(json, Array<LampaRec>::class.java).toList()
             }

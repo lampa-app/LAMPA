@@ -55,6 +55,8 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateRecsChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            return
         synchronized(lock) {
             val list = LampaProvider.get(LampaProvider.Recs, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Recs, list)
@@ -63,6 +65,8 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateHistChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            return
         synchronized(lock) {
             val list = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Hist, list)
@@ -71,6 +75,8 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateBookChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            return
         synchronized(lock) {
             val list = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Book, list)
