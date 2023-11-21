@@ -10,13 +10,13 @@ class Bookmarks : LampaProviderI() {
         return ReleaseID(Bookmarks.get())
     }
 
-    fun add(tmdbID: String?) {
-        Bookmarks.add(tmdbID)
-    }
-
-    fun rem(tmdbID: String?) {
-        Bookmarks.rem(tmdbID)
-    }
+//    fun add(tmdbID: String?) {
+//        Bookmarks.add(tmdbID)
+//    }
+//
+//    fun rem(tmdbID: String?) {
+//        Bookmarks.rem(tmdbID)
+//    }
 
     fun isBookmarked(tmdbID: String?): Boolean {
         return get().items?.find { it.id.toString() == tmdbID } != null
@@ -28,15 +28,17 @@ class Bookmarks : LampaProviderI() {
     }
     companion object {
         fun get(): List<TmdbID> {
+            val lst = mutableListOf<TmdbID>()
             val bookmarks = AndroidJS.FAV.book
             val cards = AndroidJS.FAV.card
-            bookmarks?.let {
-                Log.d("*****","Bookmarks.get() list: $bookmarks")
-            }
+            Log.d("*****","Bookmarks.get() list: $bookmarks")
             val found = cards?.filter { bookmarks?.contains(it.id) == true }
-            //Log.d("*****", "Bookmarks cards found: ${found?.toString()}")
-
-            return emptyList()
+            Log.d("*****", "Bookmarks cards found: ${found?.toString()}")
+            found?.forEach { card ->
+                if (card.id !== "0")
+                    lst.add(card.toTmdbID())
+            }
+            return lst
         }
 
         fun add(tmdbID: String?) {
@@ -47,11 +49,11 @@ class Bookmarks : LampaProviderI() {
             // TODO
         }
 
-        fun addToWatchNext(it: String?) {
+        fun addToWatchNext(tmdbID: String?) {
             // TODO
         }
 
-        fun remFromWatchNext(it: String?) {
+        fun remFromWatchNext(tmdbID: String?) {
             // TODO
         }
     }

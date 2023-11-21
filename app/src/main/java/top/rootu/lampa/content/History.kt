@@ -13,15 +13,17 @@ class History : LampaProviderI() {
 
     companion object {
         fun get(): List<TmdbID> {
+            val lst = mutableListOf<TmdbID>()
             val history = AndroidJS.FAV.history
             val cards = AndroidJS.FAV.card
-            history?.let {
-                Log.d("*****","History.get() list: $history")
-            }
+            Log.d("*****","History.get() list: $history")
             val found = cards?.filter { history?.contains(it.id) == true }
-            //Log.d("*****", "History cards found: ${found?.toString()}")
-            // TODO
-            return emptyList()
+            Log.d("*****", "History cards found: ${found?.toString()}")
+            found?.forEach { card ->
+                if (card.id !== "0")
+                    lst.add(card.toTmdbID())
+            }
+            return lst
         }
 
         fun add(ent: Entity) {

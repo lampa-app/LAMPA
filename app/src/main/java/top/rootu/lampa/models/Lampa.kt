@@ -48,11 +48,25 @@ data class LampaCard (
     val runtime: Int?, //0,
     val release_date: String?, //"2006", "2023-07-19"
     val release_year: String?, //"2006", "2023"
-)
-// {
-//    override fun toString(): String =
-//        (id ?: "-1") + ": " + (name ?: "") + " " + (original_name ?: "") + " " + (type ?: "")
-// }
+) {
+    // FIXME: it's ugly hack
+    fun toTmdbID(): TmdbID {
+        val i = id.toIntOrNull() ?: 0
+        var mt = type ?: ""
+        if (mt.isEmpty() == true)
+            mt = "movie"
+        if (mt.contains("miniseries", true))
+            mt = "tv"
+        val g = genres?.map { it?.id }
+        var d = release_date
+        if (d?.isEmpty() == true)
+            d = first_air_date
+        if (d?.isEmpty() == true)
+            d = null
+    Log.d("*****","toTmdbID: $i, $mt, $g, $vote_average, $vote_count, $d")
+        return TmdbID(i, mt, g, vote_average, vote_count, d)
+    }
+}
 
 
 data class LampaRec(
@@ -76,13 +90,12 @@ data class LampaRec(
     val video: Boolean?, // false
 ) {
     fun toTmdbID(): TmdbID {
-        val g = genre_ids
         var d = release_date
         if (d.isNullOrEmpty())
             d = first_air_date
         if (d.isNullOrEmpty())
             d = null
-        return TmdbID(id, media_type, g, vote_average, vote_count, d)
+        return TmdbID(id, media_type, genre_ids, vote_average, vote_count, d)
     }
 }
 data class Genre(

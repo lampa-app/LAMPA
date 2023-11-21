@@ -37,29 +37,31 @@ class HomeWatch : BroadcastReceiver() {
             }
 
             TvContractCompat.ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT -> {
+
+                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
+                if (BuildConfig.DEBUG)
+                    Log.d(
+                        TAG,
+                        "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId tmdb $tmdbID"
+                    )
                 try {
-                    val tmdbID = WatchNext.getTmdbIdFromWatchNextProgramId(watchNextId)
-                    if (BuildConfig.DEBUG)
-                        Log.d(
-                            TAG,
-                            "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId tmdb ${tmdbID?.id}"
-                        )
                     tmdbID?.let {
-                        if (!Bookmarks().isInWatchNext(it.id.toString()))
-                            Bookmarks.addToWatchNext(it.toString())
+                        if (!Bookmarks().isInWatchNext(it))
+                            Bookmarks.addToWatchNext(it)
                     }
                 } catch (_: Exception) {
                 }
             }
 
             TvContractCompat.ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED -> {
-                try {
-                    val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
-                    if (BuildConfig.DEBUG)
+
+                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
+                if (BuildConfig.DEBUG)
                     Log.d(
                         TAG,
                         "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId tmdb $tmdbID"
                     )
+                try {
                     tmdbID?.let {
                         if (Bookmarks().isInWatchNext(it))
                             Bookmarks.remFromWatchNext(it)

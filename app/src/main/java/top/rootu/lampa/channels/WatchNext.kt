@@ -72,7 +72,7 @@ object WatchNext {
     @SuppressLint("RestrictedApi")
     fun getInternalIdFromWatchNextProgramId(watchNextId: Long): String? {
         if (BuildConfig.DEBUG)
-            Log.d(TAG, "getTmdbIdFromWatchNextProgramId($watchNextId)")
+            Log.d(TAG, "getInternalIdFromWatchNextProgramId($watchNextId)")
         val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
         var watchNextProgram: WatchNextProgram? = null
         App.context.contentResolver.query(
@@ -86,33 +86,6 @@ object WatchNext {
         return watchNextProgram?.internalProviderId
     }
 
-    @SuppressLint("RestrictedApi")
-    fun getTmdbIdFromWatchNextProgramId(watchNextId: Long): TmdbID? {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "getTmdbIdFromWatchNextProgramId($watchNextId)")
-        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
-        var watchNextProgram: WatchNextProgram? = null
-        var tmdbID: TmdbID? = null
-        App.context.contentResolver.query(
-            curWatchNextUri, null, null, null, null
-        ).use { cursor ->
-            if (cursor != null && cursor.count != 0) {
-                cursor.moveToFirst()
-                watchNextProgram = WatchNextProgram.fromCursor(cursor)
-            }
-        }
-        try {
-            val intent = watchNextProgram?.intent
-            val idJs = intent?.getStringExtra("TmdbIDJS")
-            if (!idJs.isNullOrEmpty())
-                tmdbID = Gson().fromJson(idJs, TmdbID::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "got tmdbID ${tmdbID.toString()}")
-        return tmdbID
-    }
 
     @SuppressLint("RestrictedApi")
     fun deleteFromWatchNext(entId: String?) {

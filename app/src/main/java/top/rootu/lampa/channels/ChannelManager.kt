@@ -9,9 +9,6 @@ import androidx.annotation.RequiresApi
 import androidx.tvprovider.media.tv.Channel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
@@ -19,6 +16,7 @@ import top.rootu.lampa.content.LampaProvider.Book
 import top.rootu.lampa.content.LampaProvider.Hist
 import top.rootu.lampa.content.LampaProvider.Recs
 import top.rootu.lampa.helpers.ChannelHelper
+import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.TmdbID
@@ -68,7 +66,7 @@ object ChannelManager {
                 channel.build().toContentValues(), null, null
             )
 
-            CoroutineScope(Dispatchers.IO).launch {// "UpdateChannelsItems"
+            Coroutines.launch("ChannelUpdateItems") {
                 list.forEachIndexed { index, entity ->
                     val prg =
                         getProgram(ch.id, name, entity, list.size - index) ?: return@forEachIndexed
@@ -113,23 +111,6 @@ object ChannelManager {
             }
         }
     }
-
-//    @SuppressLint("RestrictedApi")
-//    fun getInternalIdFromPreviewProgramId(previewProgramId: Long): String? {
-//        if (BuildConfig.DEBUG)
-//            Log.d(TAG, "getInternalIdFromPreviewProgramId($previewProgramId)")
-//        val curProgramUri = TvContractCompat.buildPreviewProgramUri(previewProgramId)
-//        var previewProgram: PreviewProgram? = null
-//        App.context.contentResolver.query(
-//            curProgramUri, null, null, null, null
-//        ).use { cursor ->
-//            if (cursor != null && cursor.count != 0) {
-//                cursor.moveToFirst()
-//                previewProgram = PreviewProgram.fromCursor(cursor)
-//            }
-//        }
-//        return previewProgram?.internalProviderId
-//    }
 
     @SuppressLint("RestrictedApi")
     private fun getProgram(
@@ -186,8 +167,8 @@ object ChannelManager {
             preview.setReviewRating((it.div(2)).toString())
         }
 
-        var usePoster = true // use backdrop on google tv
-        if (!ent.backdrop_path.isNullOrEmpty()) {
+        var usePoster = true // use backdrop for recs
+        if (!ent.backdrop_path.isNullOrEmpty() && provName == Recs) {
             val poster = ent.backdrop_path
             preview.setPosterArtUri(Uri.parse(poster))
                 .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)

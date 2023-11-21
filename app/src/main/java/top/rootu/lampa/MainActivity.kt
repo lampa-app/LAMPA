@@ -530,7 +530,7 @@ class MainActivity : AppCompatActivity(),
                 delay(delay)
                 runVoidJsFunc(
                     "Lampa.Activity.push",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
                 )
             }
 
