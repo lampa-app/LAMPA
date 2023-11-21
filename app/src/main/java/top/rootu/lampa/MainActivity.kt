@@ -447,14 +447,7 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("torrserver_preload")
                 runJsStorageChangeField("internal_torrclient")
                 runJsStorageChangeField("language")
-//                runJsStorageChangeField("recomends_list") // force update recs var
-                runVoidJsFunc(
-                    "AndroidJS.StorageChange",
-                    "JSON.stringify({" +
-                            "name: 'recomends_list'," +
-                            "value: Lampa.Storage.get('recomends_list', '[]')" +
-                            "})"
-                )
+                runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
@@ -1403,6 +1396,15 @@ class MainActivity : AppCompatActivity(),
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.field('${name}')" +
+                    "})"
+        )
+    }
+    private fun runJsStorageChangeField(name: String, default: String) {
+        runVoidJsFunc(
+            "AndroidJS.StorageChange",
+            "JSON.stringify({" +
+                    "name: '${name}'," +
+                    "value: Lampa.Storage.get('${name}', '$default')" +
                     "})"
         )
     }
