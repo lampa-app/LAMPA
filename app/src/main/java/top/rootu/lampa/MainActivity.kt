@@ -434,9 +434,9 @@ class MainActivity : AppCompatActivity(),
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
             Log.d("*****", "LAMPA onLoadFinished $url")
-            processIntent(intent, 3000)
+            processIntent(intent, 1000)
             lifecycleScope.launch {
-                delay(5000)
+                delay(3000)
                 runVoidJsFunc(
                     "Lampa.Storage.listener.add",
                     "'change'," +
@@ -530,8 +530,7 @@ class MainActivity : AppCompatActivity(),
                 delay(delay)
                 runVoidJsFunc(
                     "Lampa.Activity.push",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
-                )
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"                )
             }
 
         val cmd = intent?.getStringExtra("cmd")
@@ -746,6 +745,9 @@ class MainActivity : AppCompatActivity(),
     override fun onUserLeaveHint() {
         Log.d(TAG, "onUserLeaveHint()")
         if (browserInit) {
+            if (browser?.canGoBack() == true) {
+                browser?.goBack()
+            }
             browser?.pauseTimers()
             browser?.clearCache(true)
         }
@@ -1399,6 +1401,7 @@ class MainActivity : AppCompatActivity(),
                     "})"
         )
     }
+
     private fun runJsStorageChangeField(name: String, default: String) {
         runVoidJsFunc(
             "AndroidJS.StorageChange",
