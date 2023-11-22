@@ -1,22 +1,20 @@
 package top.rootu.lampa.channels
 
-//import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
 import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
+import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
-import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.util.*
 
@@ -88,12 +86,12 @@ object WatchNext {
 
 
     @SuppressLint("RestrictedApi")
-    fun deleteFromWatchNext(entId: String?) {
-        entId?.let {
+    fun deleteFromWatchNext(movieId: String) {
+        movieId.let {
             val program = findProgramByMovieId(movieId = it)
             if (program != null) {
                 if (BuildConfig.DEBUG)
-                    Log.d(TAG, "deleteFromWatchNext($entId) removeProgram(${program.id})")
+                    Log.d(TAG, "deleteFromWatchNext($movieId) removeProgram(${program.id})")
                 removeProgram(watchNextProgramId = program.id)
             }
         }
@@ -198,10 +196,9 @@ object WatchNext {
             wb.setPosterArtUri(Uri.parse(ent.poster_path))
                 .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
         }
-
-//        if (!ent.backdrop_path.isNullOrEmpty() && Prefs.enableBackdrop()) {
-//            wb.setThumbnailUri(Uri.parse(ent.backdrop_path)).setThumbnailAspectRatio(ASPECT_RATIO_16_9)
-//        }
+        if (!ent.backdrop_path.isNullOrEmpty()) {
+            wb.setThumbnailUri(Uri.parse(ent.backdrop_path)).setThumbnailAspectRatio(ASPECT_RATIO_16_9)
+        }
 
         return wb.build()
     }
