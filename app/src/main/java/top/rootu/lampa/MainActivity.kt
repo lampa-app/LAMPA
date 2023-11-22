@@ -501,7 +501,6 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
-
         if (intent?.hasExtra("id") == true)
             idTMDB = intent.getIntExtra("id", -1)
 
@@ -509,6 +508,17 @@ class MainActivity : AppCompatActivity(),
             mediaType = intent.getStringExtra("media_type") ?: ""
 
         intent?.data?.let {
+            if (it.host?.contains("themoviedb.org") == true && it.pathSegments.size >= 2) {
+                val videoType = it.pathSegments[0]
+                var id = it.pathSegments[1]
+                if (videoType == "movie" || videoType == "tv") {
+                    id = "\\d+".toRegex().find(id)?.value ?: "-1"
+                    if (id.isNotEmpty()) {
+                        idTMDB = id.toInt()
+                        mediaType = videoType
+                    }
+                }
+            }
             when (intent.action) {
                 "GLOBALSEARCH" -> {
                     val uri = it
@@ -520,7 +530,6 @@ class MainActivity : AppCompatActivity(),
                         mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
                 }
-
                 else -> {}
             }
         }

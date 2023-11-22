@@ -95,6 +95,7 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
+                <data android:scheme="lampa" />
                 <data android:host="www.themoviedb.org" />
                 <data android:host="themoviedb.org" />
                 <data android:pathPattern="/movie/.*" />
