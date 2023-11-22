@@ -45,7 +45,7 @@ object Prefs {
     val Context.appPlayer: String?
         get() {
             val pref = this.appPrefs
-            return pref.getString(APP_PLAYER, MainActivity.SELECTED_PLAYER)
+            return pref.getString(APP_PLAYER, "")
         }
 
     fun Context.setAppPlayer(player: String) {
@@ -56,7 +56,7 @@ object Prefs {
     val Context.tvPlayer: String?
         get() {
             val pref = this.appPrefs
-            return pref.getString(IPTV_PLAYER, MainActivity.SELECTED_PLAYER)
+            return pref.getString(IPTV_PLAYER, "")
         }
 
     fun Context.setTvPlayer(player: String) {
