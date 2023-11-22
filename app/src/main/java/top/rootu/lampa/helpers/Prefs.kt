@@ -14,6 +14,7 @@ object Prefs {
     const val APP_LAST_PLAYED = "last_played"
     const val APP_URL = "url"
     const val APP_PLAYER = "player"
+    const val IPTV_PLAYER = "iptv_player"
     const val APP_BROWSER = "browser"
     const val APP_LANG = "lang"
     const val TMDB_API = "tmdb_api_url"
@@ -50,6 +51,17 @@ object Prefs {
     fun Context.setAppPlayer(player: String) {
         val pref = this.appPrefs
         pref.edit().putString(APP_PLAYER, player).apply()
+    }
+
+    val Context.tvPlayer: String?
+        get() {
+            val pref = this.appPrefs
+            return pref.getString(IPTV_PLAYER, MainActivity.SELECTED_PLAYER)
+        }
+
+    fun Context.setTvPlayer(player: String) {
+        val pref = this.appPrefs
+        pref.edit().putString(IPTV_PLAYER, player).apply()
     }
 
     val Context.appBrowser: String?

@@ -7,7 +7,6 @@ import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.res.Configuration
@@ -71,11 +70,13 @@ import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
+import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
+import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.net.HttpHelper
 import java.util.Locale
@@ -769,9 +770,11 @@ class MainActivity : AppCompatActivity(),
         Helpers.setLocale(this, lang)
     }
 
-    fun setPlayerPackage(packageName: String) {
+    fun setPlayerPackage(packageName: String, isIPTV: Boolean) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
-        if (!SELECTED_PLAYER.isNullOrEmpty())
+        if (isIPTV)
+            this.setTvPlayer(SELECTED_PLAYER!!)
+        else
             this.setAppPlayer(SELECTED_PLAYER!!)
     }
 
@@ -829,7 +832,17 @@ class MainActivity : AppCompatActivity(),
 
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
+        runPlayer(jsonObject, "")
+    }
+    @SuppressLint("InflateParams")
+    fun runPlayer(jsonObject: JSONObject, launchPlayer: String) {
         val videoUrl = jsonObject.optString("url")
+        val isIPTV = jsonObject.optBoolean("iptv", false)
+        SELECTED_PLAYER =
+            if (launchPlayer.isNullOrEmpty())
+                if (isIPTV) this.tvPlayer else this.appPlayer
+            else
+                launchPlayer
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
@@ -881,10 +894,9 @@ class MainActivity : AppCompatActivity(),
             playerChooser.setAdapter(listAdapter) { dialog, which ->
                 val setDefaultPlayer = switch.isChecked
                 SELECTED_PLAYER = listAdapter.getItemPackage(which)
-                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString())
+                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString(), isIPTV)
                 dialog.dismiss()
-                runPlayer(jsonObject)
-                if (!setDefaultPlayer) SELECTED_PLAYER = ""
+                runPlayer(jsonObject, SELECTED_PLAYER!!)
             }
             val playerChooserDialog = playerChooser.create()
             playerChooserDialog.show()
