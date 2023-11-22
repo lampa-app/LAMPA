@@ -200,7 +200,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun clearDefaultPlayer() {
         mainActivity.runOnUiThread {
-            mainActivity.setPlayerPackage("")
+            mainActivity.setPlayerPackage("", false)
+            mainActivity.setPlayerPackage("", true)
             App.toast(R.string.select_player_reset)
         }
     }
