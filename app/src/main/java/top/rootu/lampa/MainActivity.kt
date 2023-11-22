@@ -163,17 +163,17 @@ class MainActivity : AppCompatActivity(),
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
-            val bundle = data?.extras
-            if (BuildConfig.DEBUG) {
-                bundle?.let { b ->
-                    for (key in b.keySet()) {
-                        Log.d(
-                            TAG,
-                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
-                        )
-                    }
-                }
-            }
+//            if (BuildConfig.DEBUG) {
+//                val bundle = data?.extras
+//                bundle?.let { b ->
+//                    for (key in b.keySet()) {
+//                        Log.d(
+//                            TAG,
+//                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
+//                        )
+//                    }
+//                }
+//            }
             val videoUrl: String = data?.data.toString()
             Log.i(TAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
@@ -490,17 +490,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
-            intent?.extras?.let {
-                for (key in it.keySet()) {
-                    Log.d(
-                        TAG,
-                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-                    )
-                }
-            }
-        }
+//        if (BuildConfig.DEBUG) {
+//            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+//            intent?.extras?.let {
+//                for (key in it.keySet()) {
+//                    Log.d(
+//                        TAG,
+//                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+//                    )
+//                }
+//            }
+//        }
         if (intent?.hasExtra("id") == true)
             idTMDB = intent.getIntExtra("id", -1)
 
@@ -538,8 +538,13 @@ class MainActivity : AppCompatActivity(),
             lifecycleScope.launch {
                 delay(delay)
                 runVoidJsFunc(
+                    "window.start_deep_link",
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                )
+                runVoidJsFunc(
                     "Lampa.Activity.push",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"                )
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                )
             }
 
         val cmd = intent?.getStringExtra("cmd")
@@ -554,7 +559,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    fun showMenuDialog() {
+    private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<String?>(4)
@@ -747,6 +752,13 @@ class MainActivity : AppCompatActivity(),
         mXWalkInitializer?.initAsync()
         if (browserInit) {
             browser?.resumeTimers()
+        }
+        // handle load from channels - onNewIntent() called after onStart()
+        if (intent?.data?.encodedPath?.contains("update_channel") == true) {
+            intent?.data?.encodedPath?.let {
+                val channel = it.substringAfterLast("/")
+                intent?.putExtra("channel", channel)
+            }
         }
     }
 
@@ -1202,18 +1214,17 @@ class MainActivity : AppCompatActivity(),
             }
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "INTENT: " + intent.toUri(0))
-                    intent.extras?.let {
-                        for (key in it.keySet()) {
-                            Log.d(
-                                TAG,
-                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                            )
-                        }
-                    }
-                }
-
+//                if (BuildConfig.DEBUG) {
+//                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+//                    intent.extras?.let {
+//                        for (key in it.keySet()) {
+//                            Log.d(
+//                                TAG,
+//                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+//                            )
+//                        }
+//                    }
+//                }
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, false)
