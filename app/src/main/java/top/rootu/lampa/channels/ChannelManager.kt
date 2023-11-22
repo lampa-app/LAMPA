@@ -18,6 +18,7 @@ import top.rootu.lampa.content.LampaProvider.Recs
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
+import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.models.getEntity
@@ -32,7 +33,7 @@ object ChannelManager {
             Recs -> App.context.getString(R.string.ch_recs)
             Book -> App.context.getString(R.string.ch_bookmarks)
             Hist -> App.context.getString(R.string.ch_history)
-            else -> name
+            else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString() }
         }
     }
 
@@ -49,12 +50,6 @@ object ChannelManager {
             if (ch == null)
                 return@synchronized
 
-            App.context.contentResolver.delete(
-                TvContractCompat.buildPreviewProgramsUriForChannel(ch.id),
-                null,
-                null
-            )
-
             val channel = Channel.Builder()
             channel.setDisplayName(displayName)
                 .setType(TvContractCompat.Channels.TYPE_PREVIEW)
@@ -67,6 +62,11 @@ object ChannelManager {
             )
 
             Coroutines.launch("ChannelUpdateItems") {
+                App.context.contentResolver.delete(
+                    TvContractCompat.buildPreviewProgramsUriForChannel(ch.id),
+                    null,
+                    null
+                )
                 list.forEachIndexed { index, entity ->
                     val prg =
                         getProgram(ch.id, name, entity, list.size - index) ?: return@forEachIndexed
@@ -91,12 +91,12 @@ object ChannelManager {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private fun removeLost() {
         synchronized(lock) {
-            //remove with null data
+            //remove channels with null data
             ChannelHelper.list().filter { it.internalProviderDataByteArray == null }.forEach {
                 ChannelHelper.rem(it)
             }
 
-            //remove duplicate
+            //remove duplicate channels
             val list = ChannelHelper.list()
             val del = mutableListOf<Channel>()
             for (i in list.indices) {

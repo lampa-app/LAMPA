@@ -23,7 +23,7 @@ class History : LampaProviderI() {
                 if (card.id !== "0")
                     lst.add(card.toTmdbID())
             }
-            return lst
+            return lst.reversed()
         }
 
         fun add(ent: Entity) {
