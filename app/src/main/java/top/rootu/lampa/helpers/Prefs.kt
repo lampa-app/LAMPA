@@ -9,7 +9,9 @@ import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.helpers.Prefs.saveRecs
 import top.rootu.lampa.models.Favorite
+import top.rootu.lampa.models.LampaRec
 import java.util.Locale
 
 object Prefs {
@@ -22,7 +24,8 @@ object Prefs {
     const val APP_LANG = "lang"
     const val TMDB_API = "tmdb_api_url"
     const val TMDB_IMG = "tmdb_image_url"
-    const val FAV_KEY = "favorite"
+    const val FAV_KEY = "fav"
+    const val REC_KEY = "rec"
 
     val Context.lastPlayedPrefs: SharedPreferences
         get() {
@@ -122,15 +125,25 @@ object Prefs {
 
     fun Context.saveFavorite(json: String) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val valid = try {
-            Gson().fromJson(json, Favorite::class.java)
-            true
-        } catch (e: Exception) {
-            false
-        }
-        if (valid)
             prefs.edit().putString(FAV_KEY, json).apply()
     }
+
+    val Context.favorite: String
+        get() {
+            return PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(FAV_KEY, "{}") ?: "{}"
+        }
+
+    fun Context.saveRecs(json: String) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+            prefs.edit().putString(REC_KEY, json).apply()
+    }
+
+    val Context.recs: String
+        get() {
+            return PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(REC_KEY, "{}") ?: "{}"
+        }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> get(name: String, def: T): T {

@@ -14,8 +14,8 @@ class History : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val history = AndroidJS.FAV.history
-            val cards = AndroidJS.FAV.card
+            val history = AndroidJS.FAV?.history
+            val cards = AndroidJS.FAV?.card
             Log.d("*****","History.get() list: $history")
             val found = cards?.filter { history?.contains(it.id) == true }
             Log.d("*****", "History cards found: ${found?.toString()}")

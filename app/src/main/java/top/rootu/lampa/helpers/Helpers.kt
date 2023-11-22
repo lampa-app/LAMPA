@@ -22,6 +22,7 @@ import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
@@ -174,14 +175,19 @@ object Helpers {
             return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
         }
 
-    fun isJson(json: String?): Boolean {
+    fun isValidJson(json: String?): Boolean {
         val gson = Gson()
         return try {
-            gson.fromJson(json, Any::class.java)
+            // gson.fromJson(json, Any::class.java)
+            parseStrict(json)
             true
         } catch (ex: JsonSyntaxException) {
             false
         }
+    }
+    private fun parseStrict(json: String?): JsonElement? {
+        // throws on almost any non-valid json
+        return Gson().getAdapter(JsonElement::class.java).fromJson(json)
     }
 
     // TODO

@@ -18,7 +18,11 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Prefs.favorite
+import top.rootu.lampa.helpers.Prefs.recs
 import top.rootu.lampa.helpers.Prefs.saveFavorite
+import top.rootu.lampa.helpers.Prefs.saveRecs
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
@@ -87,10 +91,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "favorite" -> {
                 val json = eo.optString("value", "")
-                App.context.saveFavorite(json)
+                if (isValidJson(json))
+                    App.context.saveFavorite(json)
                 Log.d("*****", "FAV changed $json")
-                if (json.isNotBlank() && json != "undefined")
-                    FAV = Gson().fromJson(json, Favorite::class.java)
+
+                FAV = Gson().fromJson(App.context.favorite, Favorite::class.java)
+
 //                Log.d("*****", "cards: ${FAV.card?.size}")
 //                Log.d("*****", "book: ${FAV.book}")
 //                Log.d("*****", "like: ${FAV.like}")
@@ -106,8 +112,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "recomends_list" -> {
                 val json = eo.optString("value", "")
                 Log.d("*****", "RCS changed $json")
-                if (json.isNotBlank() && json != "undefined")
-                    RCS = Gson().fromJson(json, Array<LampaRec>::class.java).toList()
+                if (isValidJson(json))
+                    App.context.saveRecs(json)
+
+                RCS = Gson().fromJson(App.context.recs, Array<LampaRec>::class.java).toList()
             }
         }
     }
@@ -381,7 +389,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     companion object {
         private const val TAG = "AndroidJS"
         var reqResponse: MutableMap<String, String> = HashMap()
-        lateinit var FAV: Favorite
-        lateinit var RCS: List<LampaRec>
+        var FAV: Favorite? = try {
+            Gson().fromJson(App.context.favorite, Favorite::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        var RCS: List<LampaRec>? = try {
+            Gson().fromJson(App.context.recs, Array<LampaRec>::class.java).toList()
+        } catch (e: Exception) {
+            null
+        }
     }
 }

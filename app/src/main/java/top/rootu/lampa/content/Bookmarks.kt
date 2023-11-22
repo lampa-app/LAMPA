@@ -23,8 +23,8 @@ class Bookmarks : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val bookmarks = AndroidJS.FAV.book
-            val cards = AndroidJS.FAV.card
+            val bookmarks = AndroidJS.FAV?.book
+            val cards = AndroidJS.FAV?.card
             Log.d("*****","Bookmarks.get() list: $bookmarks")
             val found = cards?.filter { bookmarks?.contains(it.id) == true }
             Log.d("*****", "Bookmarks cards found: ${found?.toString()}")
@@ -63,7 +63,7 @@ class Bookmarks : LampaProviderI() {
         }
 
         fun isInLampaWatchNext(tmdbID: String?): Boolean {
-            val nxt = AndroidJS.FAV.wath
+            val nxt = AndroidJS.FAV?.wath
             return nxt?.contains(tmdbID) == true
         }
     }

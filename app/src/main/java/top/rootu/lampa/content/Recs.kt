@@ -14,11 +14,11 @@ class Recs : LampaProviderI() {
         fun get(): List<TmdbID> {
             val cards = AndroidJS.RCS
             val lst = mutableListOf<TmdbID>()
-            val filter = cards.filter { it.media_type.isNotEmpty() }
-                .distinctBy { it.id }
-                .shuffled()
-            if (BuildConfig.DEBUG) Log.d("*****", "Recs cards total: ${cards.size} | filter: ${filter.size}")
-            if (filter.isNotEmpty()) {
+            val filter = cards?.filter { it.media_type.isNotEmpty() }
+                ?.distinctBy { it.id }
+                ?.shuffled()
+            if (BuildConfig.DEBUG) Log.d("*****", "Recs cards total: ${cards?.size} | filter: ${filter?.size}")
+            if (!filter.isNullOrEmpty()) {
                 filter.forEach { r ->
                     lst.add(r.toTmdbID())
                 }
