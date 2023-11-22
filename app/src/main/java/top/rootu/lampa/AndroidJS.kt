@@ -18,6 +18,7 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
@@ -86,6 +87,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "favorite" -> {
                 val json = eo.optString("value", "")
+                App.context.saveFavorite(json)
                 Log.d("*****", "FAV changed $json")
                 if (json.isNotBlank() && json != "undefined")
                     FAV = Gson().fromJson(json, Favorite::class.java)
@@ -351,9 +353,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
-        // todo https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
+        // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null) {
-            Log.d(TAG, "updateChannel $where")
+            Log.d(TAG, "***** updateChannel $where")
             when (where) {
                 LampaProvider.Hist -> {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -367,6 +369,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         delay(5000)
                         updateBookChannel()
                     }
+                }
+
+                "wath" -> {
+                    // TODO: handle WatchNext Changes
                 }
             }
         }

@@ -4,9 +4,12 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.models.Favorite
 import java.util.Locale
 
 object Prefs {
@@ -19,6 +22,7 @@ object Prefs {
     const val APP_LANG = "lang"
     const val TMDB_API = "tmdb_api_url"
     const val TMDB_IMG = "tmdb_image_url"
+    const val FAV_KEY = "favorite"
 
     val Context.lastPlayedPrefs: SharedPreferences
         get() {
@@ -115,6 +119,18 @@ object Prefs {
                 pref.edit().putString("last_run_version", BuildConfig.VERSION_NAME).apply()
             return firstRun
         }
+
+    fun Context.saveFavorite(json: String) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val valid = try {
+            Gson().fromJson(json, Favorite::class.java)
+            true
+        } catch (e: Exception) {
+            false
+        }
+        if (valid)
+            prefs.edit().putString(FAV_KEY, json).apply()
+    }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> get(name: String, def: T): T {

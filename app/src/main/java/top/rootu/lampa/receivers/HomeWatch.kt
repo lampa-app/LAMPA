@@ -38,7 +38,7 @@ class HomeWatch : BroadcastReceiver() {
 
             TvContractCompat.ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT -> {
 
-                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
+                val tmdbID = WatchNext.getTmdbIdFromWatchNextProgramId(watchNextId)
                 if (BuildConfig.DEBUG)
                     Log.d(
                         TAG,
@@ -46,7 +46,7 @@ class HomeWatch : BroadcastReceiver() {
                     )
                 try {
                     tmdbID?.let {
-                        if (!Bookmarks().isInWatchNext(it))
+                        if (!Bookmarks.isInLampaWatchNext(it.id.toString()))
                             Bookmarks.addToWatchNext(it)
                     }
                 } catch (_: Exception) {
@@ -63,7 +63,7 @@ class HomeWatch : BroadcastReceiver() {
                     )
                 try {
                     tmdbID?.let {
-                        if (Bookmarks().isInWatchNext(it))
+                        if (Bookmarks.isInLampaWatchNext(it))
                             Bookmarks.remFromWatchNext(it)
                     }
                 } catch (_: Exception) {

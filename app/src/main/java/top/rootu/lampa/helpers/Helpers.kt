@@ -22,6 +22,7 @@ import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
@@ -172,6 +173,25 @@ object Helpers {
         get() {
             return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
         }
+
+    fun isJson(json: String?): Boolean {
+        val gson = Gson()
+        return try {
+            gson.fromJson(json, Any::class.java)
+            true
+        } catch (ex: JsonSyntaxException) {
+            false
+        }
+    }
+
+    // TODO
+    fun manageFavorite(action: String?, catgoryName: String, id: String) {
+        // actions: add | remove
+        Log.d("*****", "manageFavorite($action, $catgoryName, $id)")
+        if (action != null) {
+            // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
+        }
+    }
 
     /* NOTE! must be called after setContentView */
     fun Activity.hideSystemUI() {

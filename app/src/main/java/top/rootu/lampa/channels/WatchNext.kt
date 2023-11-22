@@ -10,11 +10,13 @@ import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPEC
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
+import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.util.*
 
@@ -84,6 +86,33 @@ object WatchNext {
         return watchNextProgram?.internalProviderId
     }
 
+    @SuppressLint("RestrictedApi")
+    fun getTmdbIdFromWatchNextProgramId(watchNextId: Long): TmdbID? {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "getInternalIdFromWatchNextProgramId($watchNextId)")
+        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
+        var watchNextProgram: WatchNextProgram? = null
+        App.context.contentResolver.query(
+            curWatchNextUri, null, null, null, null
+        ).use { cursor ->
+            if (cursor != null && cursor.count != 0) {
+                cursor.moveToFirst()
+                watchNextProgram = WatchNextProgram.fromCursor(cursor)
+            }
+        }
+        var tmdbID: TmdbID? = null
+        try {
+            val intent = watchNextProgram?.intent
+            val idJs = intent?.getStringExtra("TmdbIDJS")
+            if (!idJs.isNullOrEmpty())
+                tmdbID = Gson().fromJson(idJs, TmdbID::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "got tmdbID ${tmdbID.toString()}")
+        return tmdbID
+    }
 
     @SuppressLint("RestrictedApi")
     fun deleteFromWatchNext(movieId: String) {

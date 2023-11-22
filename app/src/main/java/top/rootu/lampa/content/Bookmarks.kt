@@ -1,8 +1,14 @@
 package top.rootu.lampa.content
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.rootu.lampa.AndroidJS
+import top.rootu.lampa.channels.WatchNext
+import top.rootu.lampa.helpers.Helpers.manageFavorite
 import top.rootu.lampa.models.TmdbID
+import top.rootu.lampa.models.getEntity
 
 class Bookmarks : LampaProviderI() {
 
@@ -10,22 +16,10 @@ class Bookmarks : LampaProviderI() {
         return ReleaseID(Bookmarks.get())
     }
 
-//    fun add(tmdbID: String?) {
-//        Bookmarks.add(tmdbID)
-//    }
-//
-//    fun rem(tmdbID: String?) {
-//        Bookmarks.rem(tmdbID)
-//    }
-
     fun isBookmarked(tmdbID: String?): Boolean {
         return get().items?.find { it.id.toString() == tmdbID } != null
     }
 
-    fun isInWatchNext(tmdbID: String?): Boolean {
-        val nxt = AndroidJS.FAV.wath
-        return nxt?.contains(tmdbID) == true
-    }
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
@@ -42,19 +36,35 @@ class Bookmarks : LampaProviderI() {
         }
 
         fun add(tmdbID: String?) {
-            // TODO
+            manageFavorite("add", "book", tmdbID.toString())
         }
 
         fun rem(tmdbID: String?) {
-            // TODO
+            manageFavorite("rem", "book", tmdbID.toString())
         }
 
-        fun addToWatchNext(tmdbID: String?) {
-            // TODO
+        fun addToWatchNext(tmdbID: TmdbID) {
+            if (!isInLampaWatchNext(tmdbID.id.toString())) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val ent = tmdbID.getEntity()
+                    ent?.let {
+                        WatchNext.add(it)
+                    }
+                }
+            }
+            manageFavorite("add", "wath", tmdbID.id.toString())
         }
 
-        fun remFromWatchNext(tmdbID: String?) {
-            // TODO
+        fun remFromWatchNext(tmdbID: String) {
+            if (isInLampaWatchNext(tmdbID)) {
+                WatchNext.rem(tmdbID)
+            }
+            manageFavorite("rem", "wath", tmdbID)
+        }
+
+        fun isInLampaWatchNext(tmdbID: String?): Boolean {
+            val nxt = AndroidJS.FAV.wath
+            return nxt?.contains(tmdbID) == true
         }
     }
 }

@@ -50,13 +50,19 @@ data class LampaCard (
     val release_year: String?, //"2006", "2023"
 ) {
     // FIXME: it's ugly hack
+    // TODO: fix this media type mess
     fun toTmdbID(): TmdbID {
         val i = id.toIntOrNull() ?: 0
         var mt = type ?: ""
-        if (mt.isEmpty() == true)
-            mt = "movie"
+        if (mt.lowercase() == "scripted")
+            mt = if (release_date.isNullOrEmpty() || !name.isNullOrEmpty())
+                "tv"
+            else
+                "movie"
         if (mt.contains("miniseries", true))
             mt = "tv"
+        if (mt.isEmpty())
+            mt = "movie"
         val g = genres?.map { it?.id }
         var d = release_date
         if (d?.isEmpty() == true)
@@ -67,7 +73,6 @@ data class LampaCard (
         return TmdbID(i, mt, g, vote_average, vote_count, d)
     }
 }
-
 
 data class LampaRec(
     val adult: Boolean,
