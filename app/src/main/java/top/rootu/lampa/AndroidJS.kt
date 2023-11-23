@@ -12,12 +12,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
+import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.FAV
@@ -31,6 +33,7 @@ import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.models.Favorite
 import top.rootu.lampa.models.LampaRec
+import top.rootu.lampa.models.getEntity
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
@@ -386,7 +389,27 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 }
 
                 "wath" -> {
-                    // TODO: handle WatchNext Changes
+                    // Handle add to Watch Later in Lampa
+                    // TODO: find a better way to manage WatchNext
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(5000)
+                        val wathCards =
+                            App.context.FAV?.card?.filter { App.context.FAV?.wath?.contains(it.id) == true }
+                        wathCards?.forEach {
+                            val tmdbID = it.toTmdbID()
+                            val ent = tmdbID.getEntity()
+                            ent?.let {
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        if (BuildConfig.DEBUG) Log.d("*****", "Add ${tmdbID.id} to WatchNext")
+                                        WatchNext.add(it)
+                                    } catch (e: Exception) {
+                                        if (BuildConfig.DEBUG) Log.d("*****", "Error add ${tmdbID.id} to WatchNext: $e")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

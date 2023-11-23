@@ -14,9 +14,7 @@ class History : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val history = App.context.FAV?.history
-            val cards = App.context.FAV?.card
-            val found = cards?.filter { history?.contains(it.id) == true }
+            val found = App.context.FAV?.card?.filter { App.context.FAV?.history?.contains(it.id) == true }
             found?.forEach { card ->
                 if (card.id !== "0")
                     lst.add(card.toTmdbID())
