@@ -1,6 +1,13 @@
 package top.rootu.lampa.helpers
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 object Coroutines {
     private val scopeList = hashMapOf<String, Pair<Job, CoroutineScope>>()
@@ -17,6 +24,16 @@ object Coroutines {
         synchronized(scopeList) { scopeList[name] = Pair(job, sc) }
         jobList[name] = mutableListOf()
         return sc
+    }
+
+    fun running(name: String): Boolean {
+        //Log.d("*****", "joblist[$name]: ${jobList[name]}")
+        var active = false
+        val jobList = jobList[name]
+        jobList?.forEach { job ->
+            active = job.isActive
+        }
+        return active
     }
 
     fun launch(name: String, fn: suspend () -> Unit) {

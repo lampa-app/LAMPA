@@ -37,10 +37,19 @@ object ChannelManager {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @SuppressLint("RestrictedApi")
+    private val PREVIEW_PROGRAM_MAP_PROJECTION =
+        arrayOf(
+            TvContractCompat.BaseTvColumns._ID,
+            TvContractCompat.PreviewPrograms.COLUMN_INTERNAL_PROVIDER_ID,
+            TvContractCompat.PreviewPrograms.COLUMN_BROWSABLE
+        )
+
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
     fun update(name: String, list: List<TmdbID>) {
         if (BuildConfig.DEBUG) Log.d(TAG, "update($name, size:${list.size})")
-        removeLost()
+        removeLostChannels()
         synchronized(lock) {
             val displayName = getChannelDisplayName(name)
             var ch = ChannelHelper.get(name)
@@ -61,22 +70,60 @@ object ChannelManager {
                 channel.build().toContentValues(), null, null
             )
 
-            Coroutines.launch("ChannelUpdateItems") {
-                App.context.contentResolver.delete(
-                    TvContractCompat.buildPreviewProgramsUriForChannel(ch.id),
-                    null,
-                    null
-                )
-                list.forEachIndexed { index, entity ->
-                    val prg =
-                        getProgram(ch.id, name, entity, list.size - index) ?: return@forEachIndexed
-                    App.context.contentResolver.insert(
-                        Uri.parse("content://android.media.tv/preview_program"),
-                        prg.toContentValues()
+            if (!Coroutines.running("update_channel_$name")) { // fix duplicates
+                Coroutines.launch("update_channel_$name") {
+                    App.context.contentResolver.delete(
+                        TvContractCompat.buildPreviewProgramsUriForChannel(ch.id),
+                        null,
+                        null
                     )
+                    list.forEachIndexed { index, entity ->
+                        val prg =
+                            getProgram(ch.id, name, entity, list.size - index)
+                                ?: return@forEachIndexed
+                        if (!exist(ch.id, prg)) {
+                            App.context.contentResolver.insert(
+                                Uri.parse("content://android.media.tv/preview_program"),
+                                prg.toContentValues()
+                            )
+                        } else {
+                            if (BuildConfig.DEBUG)
+                                Log.d(
+                                    "*****",
+                                    "channel ${ch.displayName} already have program ${prg.internalProviderId}"
+                                )
+                        }
+                    }
                 }
+            } else {
+                if (BuildConfig.DEBUG) Log.d("*****", "scope update_channel_$name already active!")
             }
         }
+    }
+
+
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun exist(channelId: Long, pp: PreviewProgram?): Boolean {
+        val movieId = pp?.internalProviderId
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
+            PREVIEW_PROGRAM_MAP_PROJECTION,
+            null,
+            null
+        )
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val program = PreviewProgram.fromCursor(it)
+                    if (movieId == program.internalProviderId) {
+                        cursor.close()
+                        return true // program
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return false
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -89,7 +136,7 @@ object ChannelManager {
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun removeLost() {
+    private fun removeLostChannels() {
         synchronized(lock) {
             //remove channels with null data
             ChannelHelper.list().filter { it.internalProviderDataByteArray == null }.forEach {
