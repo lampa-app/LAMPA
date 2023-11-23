@@ -571,8 +571,9 @@ class MainActivity : AppCompatActivity(),
                         }
                         if (params != "") {
                             lifecycleScope.launch {
-                                delay(delay)
                                 runVoidJsFunc("window.start_deep_link = ", params)
+                                delay(delay)
+                                runVoidJsFunc("Lampa.Controller.toContent", "")
                                 runVoidJsFunc("Lampa.Activity.push", params)
                             }
                         }
@@ -583,11 +584,12 @@ class MainActivity : AppCompatActivity(),
         // open card
         if (idTMDB >= 0 && mediaType.isNotEmpty())
             lifecycleScope.launch {
-                delay(delay)
                 runVoidJsFunc(
                     "window.start_deep_link = ",
                     "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
                 )
+                delay(delay)
+                runVoidJsFunc("Lampa.Controller.toContent", "")
                 runVoidJsFunc(
                     "Lampa.Activity.push",
                     "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
