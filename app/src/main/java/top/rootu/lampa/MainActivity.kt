@@ -71,19 +71,18 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
-import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
-import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
-import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
+import top.rootu.lampa.helpers.Prefs.setTvPlayer
+import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
@@ -499,17 +498,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
-            intent?.extras?.let {
-                for (key in it.keySet()) {
-                    Log.d(
-                        TAG,
-                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-                    )
-                }
-            }
-        }
+//        if (BuildConfig.DEBUG) {
+//            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+//            intent?.extras?.let {
+//                for (key in it.keySet()) {
+//                    Log.d(
+//                        TAG,
+//                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+//                    )
+//                }
+//            }
+//        }
         if (intent?.hasExtra("id") == true)
             idTMDB = intent.getIntExtra("id", -1)
 
@@ -528,7 +527,7 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
             }
-            when (intent.action) {
+            when (intent.action) { // handle search
                 "GLOBALSEARCH" -> {
                     val uri = it
                     val ids = uri.lastPathSegment
@@ -540,31 +539,32 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
 
-                else -> {
-                   if (it.encodedPath?.contains("update_channel") == true) {
-                        it.encodedPath?.let {
-                            val channel = it.substringAfterLast("/")
-                            Log.d("*****", "processIntent: got intent from channel: $channel")
-                            when (channel) {
-                                LampaProvider.Recs -> {
-                                    // todo open recs
-                                }
-                                LampaProvider.Like -> {
-                                    // todo open likes
-                                }
-                                LampaProvider.Book -> {
-                                    // todo open book
-                                }
-                                LampaProvider.Hist -> {
-                                    // todo open hist
-                                }
+                else -> { // handle channels
+                    if (it.encodedPath?.contains("update_channel") == true) {
+                        val channel = it.encodedPath?.substringAfterLast("/")
+                        Log.d("*****", "processIntent: got intent from channel: $channel")
+                        when (channel) {
+                            LampaProvider.Recs -> {
+                                // todo open recs
+                            }
+
+                            LampaProvider.Like -> {
+                                // todo open likes
+                            }
+
+                            LampaProvider.Book -> {
+                                // todo open book
+                            }
+
+                            LampaProvider.Hist -> {
+                                // todo open hist
                             }
                         }
                     }
                 }
             }
         }
-
+        // open card
         if (idTMDB >= 0 && mediaType.isNotEmpty())
             lifecycleScope.launch {
                 delay(delay)
@@ -577,15 +577,13 @@ class MainActivity : AppCompatActivity(),
                     "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
                 )
             }
-
+        // process search cmd
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {
             when (cmd) {
                 "open_settings" -> {
                     showMenuDialog()
                 }
-
-                else -> {}
             }
         }
     }
@@ -911,10 +909,7 @@ class MainActivity : AppCompatActivity(),
         val videoUrl = jsonObject.optString("url")
         val isIPTV = jsonObject.optBoolean("iptv", false)
         SELECTED_PLAYER =
-            if (launchPlayer.isNullOrEmpty())
-                if (isIPTV) this.tvPlayer else this.appPlayer
-            else
-                launchPlayer
+            launchPlayer.ifEmpty { if (isIPTV) this.tvPlayer else this.appPlayer }
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
