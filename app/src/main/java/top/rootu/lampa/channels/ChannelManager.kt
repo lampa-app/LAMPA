@@ -64,7 +64,7 @@ object ChannelManager {
             val channel = Channel.Builder()
             channel.setDisplayName(displayName)
                 .setType(TvContractCompat.Channels.TYPE_PREVIEW)
-                .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$displayName"))
+                .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
                 .build()
 
             App.context.contentResolver.update(

@@ -43,7 +43,7 @@ object ChannelHelper {
         builder.setType(TvContractCompat.Channels.TYPE_PREVIEW)
             .setDisplayName(displayName)
             .setInternalProviderData(name)
-            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$displayName"))
+            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
 
         val channelUri = App.context.contentResolver.insert(
             TvContractCompat.Channels.CONTENT_URI,

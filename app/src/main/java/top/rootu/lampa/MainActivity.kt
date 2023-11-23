@@ -65,11 +65,13 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
 import top.rootu.lampa.channels.LampaChannels.updateRecsChannel
+import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
@@ -497,17 +499,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
-//        if (BuildConfig.DEBUG) {
-//            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
-//            intent?.extras?.let {
-//                for (key in it.keySet()) {
-//                    Log.d(
-//                        TAG,
-//                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-//                    )
-//                }
-//            }
-//        }
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+            intent?.extras?.let {
+                for (key in it.keySet()) {
+                    Log.d(
+                        TAG,
+                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+                    )
+                }
+            }
+        }
         if (intent?.hasExtra("id") == true)
             idTMDB = intent.getIntExtra("id", -1)
 
@@ -538,7 +540,28 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
 
-                else -> {}
+                else -> {
+                   if (it.encodedPath?.contains("update_channel") == true) {
+                        it.encodedPath?.let {
+                            val channel = it.substringAfterLast("/")
+                            Log.d("*****", "processIntent: got intent from channel: $channel")
+                            when (channel) {
+                                LampaProvider.Recs -> {
+                                    // todo open recs
+                                }
+                                LampaProvider.Like -> {
+                                    // todo open likes
+                                }
+                                LampaProvider.Book -> {
+                                    // todo open book
+                                }
+                                LampaProvider.Hist -> {
+                                    // todo open hist
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -764,12 +787,13 @@ class MainActivity : AppCompatActivity(),
             browser?.resumeTimers()
         }
         // handle load from channels - onNewIntent() called after onStart()
-        if (intent?.data?.encodedPath?.contains("update_channel") == true) {
-            intent?.data?.encodedPath?.let {
-                val channel = it.substringAfterLast("/")
-                intent?.putExtra("channel", channel)
-            }
-        }
+//        if (intent?.data?.encodedPath?.contains("update_channel") == true) {
+//            intent?.data?.encodedPath?.let {
+//                val channel = it.substringAfterLast("/")
+//                intent?.putExtra("channel", channel)
+//            }
+//        }
+//        Log.d("*****", "onResume() path ${intent?.data?.encodedPath}")
     }
 
     // handle user pressed Home
