@@ -28,6 +28,7 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.models.TmdbID
 import java.util.*
 
@@ -90,6 +91,27 @@ object Helpers {
         else
             config.locale = locale
         resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
+    fun Context.setLanguage() {
+        if (this.appLang.isNotBlank())
+            this.appLang.apply {
+                val languageCode = this /* en / ru / zh-TW etc */
+                var locale = Locale(languageCode.lowercase(Locale.getDefault()))
+                if (languageCode.split("-").size > 1) {
+                    val language = languageCode.split("-")[0].lowercase(Locale.getDefault())
+                    val country = languageCode.split("-")[1].uppercase(Locale.getDefault())
+                    locale = Locale(language, country)
+                }
+                val config: Configuration = resources.configuration
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                    config.setLocales(LocaleList(locale))
+                else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+                    config.setLocale(locale)
+                else
+                    config.locale = locale
+                resources.updateConfiguration(config, resources.displayMetrics)
+            }
     }
 
     @Suppress("DEPRECATION")

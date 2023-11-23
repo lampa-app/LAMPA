@@ -19,6 +19,7 @@ import top.rootu.lampa.content.LampaProvider.Recs
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
+import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.TmdbID
@@ -30,6 +31,7 @@ object ChannelManager {
     private val lock = Any()
 
     fun getChannelDisplayName(name: String): String {
+        App.context.setLanguage()
         return when (name) {
             Recs -> App.context.getString(R.string.ch_recs)
             Like -> App.context.getString(R.string.ch_liked)
