@@ -1,5 +1,6 @@
 package top.rootu.lampa.tmdb.models.entity
 
+import top.rootu.lampa.models.TmdbID
 import top.rootu.lampa.tmdb.models.titles.AlternativeTitles
 import top.rootu.lampa.tmdb.models.trailers.Trailers
 
@@ -11,7 +12,6 @@ data class Entity(
     var budget: Int?,
     var certification: String?,
     var character: String?,
-//    var created_by: Any?,
     var credit_id: String?,
     var episode_run_time: List<Int>?,
     var first_air_date: String?,
@@ -56,4 +56,16 @@ data class Entity(
     override fun toString(): String =
         (id?.toString() ?: "-1") + ": " + (title ?: "") + " " + (original_title ?: "") + " " + (year
             ?: "")
+
+    fun toTmdbID(): TmdbID {
+        var g = genres?.map { it?.id }
+        if (g.isNullOrEmpty())
+            g = genre_ids
+        var d = release_date
+        if (d?.isEmpty() == true)
+            d = first_air_date
+        if (d?.isEmpty() == true)
+            d = null
+        return TmdbID(id ?: 0, media_type ?: "", g, vote_average, vote_count, d)
+    }
 }

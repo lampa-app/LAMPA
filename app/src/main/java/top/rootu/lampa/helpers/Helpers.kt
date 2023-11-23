@@ -21,10 +21,14 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
+import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.models.TmdbID
 import java.util.*
 
 
@@ -142,12 +146,62 @@ object Helpers {
         }
     }
 
+    fun buildPendingIntent(tmdbId: TmdbID, providerName: String?): Intent {
+        val intent = Intent(App.context, MainActivity::class.java)
+        intent.putExtra("id", tmdbId.id)
+        intent.putExtra("media_type", tmdbId.media_type)
+        val idStr = Gson().toJson(tmdbId)
+        intent.putExtra("TmdbIDJS", idStr)
+        providerName?.let { intent.putExtra("Provider", it) }
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.action = tmdbId.id.toString()
+        return intent
+    }
+
     @JvmStatic
     val isGenymotion: Boolean
         get() {
             val deviceName = deviceName
             return deviceName.contains("(vbox86p)")
         }
+
+    val isAndroidTV: Boolean
+        get() {
+            return App.context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+
+    val isAmazonDev: Boolean
+        get() {
+            return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
+        }
+
+    fun isValidJson(json: String?): Boolean {
+        // val gson = Gson()
+        return try {
+            // gson.fromJson(json, Any::class.java)
+            parseStrict(json) != null
+        } catch (ex: JsonSyntaxException) {
+            false
+        }
+    }
+    private fun parseStrict(json: String?): JsonElement? {
+        return try {
+            // throws on almost any non-valid json
+            Gson().getAdapter(JsonElement::class.java).fromJson(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // TODO
+    fun manageFavorite(action: String?, catgoryName: String, id: String) {
+        // actions: add | remove
+        Log.d("*****", "manageFavorite($action, $catgoryName, $id)")
+        if (action != null) {
+            // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
+        }
+    }
+
     /* NOTE! must be called after setContentView */
     fun Activity.hideSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

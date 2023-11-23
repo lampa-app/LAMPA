@@ -45,6 +45,8 @@ import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.gotev.speech.GoogleVoiceTypingDisabledException
@@ -62,6 +64,7 @@ import org.xwalk.core.XWalkPreferences
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
+import top.rootu.lampa.channels.LampaChannels.updateRecsChannel
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
@@ -72,6 +75,7 @@ import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
+import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
@@ -79,6 +83,7 @@ import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.net.HttpHelper
+import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -160,17 +165,17 @@ class MainActivity : AppCompatActivity(),
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             val data: Intent? = result.data
-            val bundle = data?.extras
-            if (BuildConfig.DEBUG) {
-                bundle?.let { b ->
-                    for (key in b.keySet()) {
-                        Log.d(
-                            TAG,
-                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
-                        )
-                    }
-                }
-            }
+//            if (BuildConfig.DEBUG) {
+//                val bundle = data?.extras
+//                bundle?.let { b ->
+//                    for (key in b.keySet()) {
+//                        Log.d(
+//                            TAG,
+//                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
+//                        )
+//                    }
+//                }
+//            }
             val videoUrl: String = data?.data.toString()
             Log.i(TAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
@@ -382,6 +387,13 @@ class MainActivity : AppCompatActivity(),
 
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
+
+        if (this.firstRun) {
+            CoroutineScope(Dispatchers.IO).launch {
+                if (BuildConfig.DEBUG) Log.d("*****", "First run scheduleUpdate(sync)")
+                Scheduler.scheduleUpdate(true)
+            }
+        }
     }
 
     override fun onXWalkInitStarted() {
@@ -426,22 +438,26 @@ class MainActivity : AppCompatActivity(),
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
             Log.d("*****", "LAMPA onLoadFinished $url")
-            processIntent(intent, 3000)
+            processIntent(intent, 1000)
             lifecycleScope.launch {
-                delay(5000)
+                delay(3000)
                 runVoidJsFunc(
                     "Lampa.Storage.listener.add",
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
-                changeTmdbUrls()
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
                 runJsStorageChangeField("internal_torrclient")
                 runJsStorageChangeField("language")
+                runJsStorageChangeField("recomends_list", "[]") // force update recs var
+                changeTmdbUrls()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                Scheduler.scheduleUpdate(false)
             }
         }
     }
@@ -462,9 +478,9 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onNewIntent(intent: Intent?) {
-        Log.d("*****", "onNewIntent() processIntent")
-        processIntent(intent)
         super.onNewIntent(intent)
+        if (BuildConfig.DEBUG) Log.d("*****", "onNewIntent() processIntent")
+        processIntent(intent)
     }
 
     fun changeTmdbUrls() {
@@ -481,60 +497,77 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
-            intent?.extras?.let {
-                for (key in it.keySet()) {
-                    Log.d(
-                        TAG,
-                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-                    )
-                }
-            }
-        }
+//        if (BuildConfig.DEBUG) {
+//            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+//            intent?.extras?.let {
+//                for (key in it.keySet()) {
+//                    Log.d(
+//                        TAG,
+//                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+//                    )
+//                }
+//            }
+//        }
+        if (intent?.hasExtra("id") == true)
+            idTMDB = intent.getIntExtra("id", -1)
+
+        if (intent?.hasExtra("media_type") == true)
+            mediaType = intent.getStringExtra("media_type") ?: ""
+
         intent?.data?.let {
-            if (intent.hasExtra("id"))
-                idTMDB = intent.getIntExtra("id", -1)
-
-            if (intent.hasExtra("media_type"))
-                mediaType = intent.getStringExtra("media_type") ?: ""
-
-            when (intent.action) {
-                "GLOBALSEARCH" -> {
-                    try {
-                        val uri = it
-                        val ids = uri.lastPathSegment
-                        if (uri.lastPathSegment == "update_channel")
-                            idTMDB = -1
-                        else {
-                            idTMDB = ids?.toInt() ?: -1
-                            mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
-                        }
-                        lifecycleScope.launch {
-                            delay(delay)
-                            runVoidJsFunc(
-                                "Lampa.Activity.push",
-                                "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {}}"
-                            )
-                        }
-                    } catch (_: Exception) {
+            if (it.host?.contains("themoviedb.org") == true && it.pathSegments.size >= 2) {
+                val videoType = it.pathSegments[0]
+                var id = it.pathSegments[1]
+                if (videoType == "movie" || videoType == "tv") {
+                    id = "\\d+".toRegex().find(id)?.value ?: "-1"
+                    if (id.isNotEmpty()) {
+                        idTMDB = id.toInt()
+                        mediaType = videoType
                     }
                 }
+            }
+            when (intent.action) {
+                "GLOBALSEARCH" -> {
+                    val uri = it
+                    val ids = uri.lastPathSegment
+                    if (uri.lastPathSegment == "update_channel")
+                        idTMDB = -1
+                    else {
+                        idTMDB = ids?.toInt() ?: -1
+                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
+                    }
+                }
+
                 else -> {}
             }
         }
+
+        if (idTMDB >= 0 && mediaType.isNotEmpty())
+            lifecycleScope.launch {
+                delay(delay)
+                runVoidJsFunc(
+                    "window.start_deep_link",
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                )
+                runVoidJsFunc(
+                    "Lampa.Activity.push",
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                )
+            }
+
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {
             when (cmd) {
                 "open_settings" -> {
                     showMenuDialog()
                 }
+
                 else -> {}
             }
         }
     }
 
-    fun showMenuDialog() {
+    private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
         val menuItemsTitle = arrayOfNulls<String?>(4)
@@ -561,6 +594,12 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
+                "closeMenu" -> if (VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        updateRecsChannel()
+                    }
+                }
+
                 "showUrlInputDialog" -> showUrlInputDialog()
                 "showBrowserInputDialog" -> showBrowserInputDialog()
                 "appExit" -> appExit()
@@ -724,6 +763,13 @@ class MainActivity : AppCompatActivity(),
         if (browserInit) {
             browser?.resumeTimers()
         }
+        // handle load from channels - onNewIntent() called after onStart()
+        if (intent?.data?.encodedPath?.contains("update_channel") == true) {
+            intent?.data?.encodedPath?.let {
+                val channel = it.substringAfterLast("/")
+                intent?.putExtra("channel", channel)
+            }
+        }
     }
 
     // handle user pressed Home
@@ -834,8 +880,10 @@ class MainActivity : AppCompatActivity(),
     fun runPlayer(jsonObject: JSONObject) {
         runPlayer(jsonObject, "")
     }
+
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String) {
+
         val videoUrl = jsonObject.optString("url")
         val isIPTV = jsonObject.optBoolean("iptv", false)
         SELECTED_PLAYER =
@@ -1189,18 +1237,17 @@ class MainActivity : AppCompatActivity(),
             }
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "INTENT: " + intent.toUri(0))
-                    intent.extras?.let {
-                        for (key in it.keySet()) {
-                            Log.d(
-                                TAG,
-                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                            )
-                        }
-                    }
-                }
-
+//                if (BuildConfig.DEBUG) {
+//                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+//                    intent.extras?.let {
+//                        for (key in it.keySet()) {
+//                            Log.d(
+//                                TAG,
+//                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+//                            )
+//                        }
+//                    }
+//                }
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, false)
@@ -1391,6 +1438,16 @@ class MainActivity : AppCompatActivity(),
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.field('${name}')" +
+                    "})"
+        )
+    }
+
+    private fun runJsStorageChangeField(name: String, default: String) {
+        runVoidJsFunc(
+            "AndroidJS.StorageChange",
+            "JSON.stringify({" +
+                    "name: '${name}'," +
+                    "value: Lampa.Storage.get('${name}', '$default')" +
                     "})"
         )
     }

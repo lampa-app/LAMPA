@@ -54,4 +54,9 @@
     <string name="open_lampa">open lampa</string>
     <string name="open_settings">open lampa settings</string>
     <string name="lampa_suxx">lampa suxx</string>
+    <!--Channels-->
+    <string name="ch_recs">建议</string>
+    <string name="ch_liked">喜欢</string>
+    <string name="ch_history">历史</string>
+    <string name="ch_bookmarks">书签</string>
 </resources>
