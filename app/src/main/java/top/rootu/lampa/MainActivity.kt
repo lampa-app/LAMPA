@@ -543,21 +543,34 @@ class MainActivity : AppCompatActivity(),
                     if (it.encodedPath?.contains("update_channel") == true) {
                         val channel = it.encodedPath?.substringAfterLast("/")
                         Log.d("*****", "processIntent: got intent from channel: $channel")
-                        when (channel) {
+                        val params = when (channel) {
                             LampaProvider.Recs -> {
-                                // todo open recs
+                                // Open Main
+                                "{" +
+                                    "url: ''," +
+                                    "title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase()," +
+                                    "component: 'main'," +
+                                    "source: Lampa.Storage.field('source')" +
+                                "}"
                             }
 
-                            LampaProvider.Like -> {
-                                // todo open likes
+                            LampaProvider.Like, LampaProvider.Book, LampaProvider.Hist -> {
+                                "{" +
+                                    "title: Lampa.Lang.translate('$channel' == 'book' ? 'settings_input_links' : 'title_$channel')," +
+                                    "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
+                                    "type: '$channel'," +
+                                    "url: ''," +
+                                    "page: 1" +
+                                "}"
                             }
 
-                            LampaProvider.Book -> {
-                                // todo open book
-                            }
-
-                            LampaProvider.Hist -> {
-                                // todo open hist
+                            else -> ""
+                        }
+                        if (params != "") {
+                            lifecycleScope.launch {
+                                delay(delay)
+                                runVoidJsFunc("window.start_deep_link", params)
+                                runVoidJsFunc("Lampa.Activity.push", params)
                             }
                         }
                     }
