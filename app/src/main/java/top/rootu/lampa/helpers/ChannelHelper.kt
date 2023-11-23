@@ -52,12 +52,12 @@ object ChannelHelper {
         val channelId = channelUri?.let { ContentUris.parseId(it) }
         // set channel images
         val icon = when (name) {
-//            Recs -> R.drawable.ch_recs
-            Book -> R.drawable.ch_book
-            Hist -> R.drawable.ch_hist
-            Like -> R.drawable.ch_like
-            else -> R.drawable.lampa_icon
+            Book -> R.drawable.ch_book_shape
+            Hist -> R.drawable.ch_hist_shape
+            Like -> R.drawable.ch_like_shape
+            else -> R.drawable.lampa_logo_round
         }
+//        val themedContext = ContextThemeWrapper(App.context, R.style.Theme_LAMPA)
         val bitmap = convertToBitmap(context = App.context, icon)
         if (channelId != null) {
             ChannelLogoUtils.storeChannelLogo(App.context, channelId, bitmap)
