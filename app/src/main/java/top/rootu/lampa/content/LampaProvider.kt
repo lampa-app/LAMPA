@@ -1,5 +1,10 @@
 package top.rootu.lampa.content
 
+import android.util.Log
+import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.helpers.Prefs.historyItems
+import top.rootu.lampa.helpers.Prefs.viewedItems
 import top.rootu.lampa.models.TmdbID
 
 abstract class LampaProviderI : Any() {
@@ -20,14 +25,14 @@ object LampaProvider {
         Hist to History(),
         Book to Bookmarks(),
     )
-    // TODO: filter viewed
+
     fun get(name: String, filter: Boolean): ReleaseID? {
         providers[name]?.let { provider ->
             synchronized(provider) {
                 try {
                     provider.get()?.let { rls ->
-//                        if (filter)
-//                            return ReleaseID(rls.date, rls.time, filterViewed(rls.items.orEmpty()))
+                        if (filter)
+                            return ReleaseID(filterViewed(rls.items.orEmpty()))
                         return rls
                     }
                     return null
@@ -40,10 +45,9 @@ object LampaProvider {
         }
     }
 
-//    private fun filterViewed(lst: List<TmdbId>): List<TmdbId> {
-//        if (Prefs.getViewedType() == "2")
-//            clearExpiredViewedItems()
-//        val viewed = getViewedItems()
-//        return lst.filter { ent -> !viewed.map { it.first }.contains(ent.id.toString()) }
-//    }
+    private fun filterViewed(lst: List<TmdbID>): List<TmdbID> {
+        return lst.filter { ent ->
+            !App.context.viewedItems.contains(ent.id.toString()) && !App.context.historyItems.contains(ent.id.toString())
+        }
+    }
 }

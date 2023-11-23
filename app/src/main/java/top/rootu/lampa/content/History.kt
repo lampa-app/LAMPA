@@ -1,9 +1,9 @@
 package top.rootu.lampa.content
 
-import android.util.Log
 import top.rootu.lampa.AndroidJS
+import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.tmdb.models.entity.Entity
 
 class History : LampaProviderI() {
 
@@ -14,20 +14,14 @@ class History : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val history = AndroidJS.FAV?.history
-            val cards = AndroidJS.FAV?.card
-            Log.d("*****","History.get() list: $history")
+            val history = App.context.FAV?.history
+            val cards = App.context.FAV?.card
             val found = cards?.filter { history?.contains(it.id) == true }
-            Log.d("*****", "History cards found: ${found?.toString()}")
             found?.forEach { card ->
                 if (card.id !== "0")
                     lst.add(card.toTmdbID())
             }
             return lst.reversed()
-        }
-
-        fun add(ent: Entity) {
-            // TODO
         }
     }
 }

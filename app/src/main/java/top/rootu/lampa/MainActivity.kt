@@ -388,10 +388,12 @@ class MainActivity : AppCompatActivity(),
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
 
-        if (this.firstRun) // TODO: initialize channels with data
+        if (this.firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
+                if (BuildConfig.DEBUG) Log.d("*****", "First run scheduleUpdate(sync)")
                 Scheduler.scheduleUpdate(true)
             }
+        }
     }
 
     override fun onXWalkInitStarted() {
@@ -453,6 +455,9 @@ class MainActivity : AppCompatActivity(),
                 changeTmdbUrls()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                Scheduler.scheduleUpdate(false)
             }
         }
     }
@@ -532,6 +537,7 @@ class MainActivity : AppCompatActivity(),
                         mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
                 }
+
                 else -> {}
             }
         }
@@ -589,7 +595,9 @@ class MainActivity : AppCompatActivity(),
             dialog.dismiss()
             when (menuItemsAction[which]) {
                 "closeMenu" -> if (VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    updateRecsChannel()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        updateRecsChannel()
+                    }
                 }
 
                 "showUrlInputDialog" -> showUrlInputDialog()
@@ -872,8 +880,10 @@ class MainActivity : AppCompatActivity(),
     fun runPlayer(jsonObject: JSONObject) {
         runPlayer(jsonObject, "")
     }
+
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String) {
+
         val videoUrl = jsonObject.optString("url")
         val isIPTV = jsonObject.optBoolean("iptv", false)
         SELECTED_PLAYER =

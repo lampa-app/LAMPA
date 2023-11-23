@@ -2,7 +2,10 @@ package top.rootu.lampa.content
 
 import android.util.Log
 import top.rootu.lampa.AndroidJS
+import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.helpers.Prefs.RCS
+import top.rootu.lampa.models.LampaRec
 import top.rootu.lampa.models.TmdbID
 
 class Recs : LampaProviderI() {
@@ -12,18 +15,29 @@ class Recs : LampaProviderI() {
 
     companion object {
         fun get(): List<TmdbID> {
-            val cards = AndroidJS.RCS
+            val cards = App.context.RCS
             val lst = mutableListOf<TmdbID>()
-            val filter = cards?.filter { it.media_type.isNotEmpty() }
-                ?.distinctBy { it.id }
-                ?.shuffled()
-            if (BuildConfig.DEBUG) Log.d("*****", "Recs cards total: ${cards?.size} | filter: ${filter?.size}")
-            if (!filter.isNullOrEmpty()) {
-                filter.forEach { r ->
+            val filtered = cards?.filterAll(generateFilters())
+                ?.distinctBy { it.id } // make unique
+                ?.shuffled() // randomize order
+
+            if (BuildConfig.DEBUG)
+                Log.d("*****", "Recs cards total: ${cards?.size} | filtered: ${filtered?.size}")
+            if (!filtered.isNullOrEmpty()) {
+                filtered.forEach { r ->
                     lst.add(r.toTmdbID())
                 }
             }
             return lst
         }
+        private fun generateFilters() = listOf<(LampaRec) -> Boolean>(
+            { it.id != 0 },
+            { it.genre_ids?.let { gid -> !gid.contains(16) } ?:  true }, // exclude Animation
+            { it.vote_average?.let { r -> r > 6 } ?: true }, // rating > 6
+            { it.popularity?.let { p -> p > 10 } ?: true } // popularity > 10
+        )
+
+        private fun <T> List<T>.filterAll(filters: List<(T) -> Boolean>) =
+            filter { item -> filters.all { filter -> filter(item) } }
     }
 }

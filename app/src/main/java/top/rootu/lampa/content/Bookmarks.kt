@@ -1,14 +1,11 @@
 package top.rootu.lampa.content
 
-import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import top.rootu.lampa.AndroidJS
-import top.rootu.lampa.channels.WatchNext
-import top.rootu.lampa.helpers.Helpers.manageFavorite
+import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.models.getEntity
 
 class Bookmarks : LampaProviderI() {
 
@@ -23,11 +20,9 @@ class Bookmarks : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val bookmarks = AndroidJS.FAV?.book
-            val cards = AndroidJS.FAV?.card
-            Log.d("*****","Bookmarks.get() list: $bookmarks")
+            val bookmarks = App.context.FAV?.book
+            val cards = App.context.FAV?.card
             val found = cards?.filter { bookmarks?.contains(it.id) == true }
-            Log.d("*****", "Bookmarks cards found: ${found?.toString()}")
             found?.forEach { card ->
                 if (card.id !== "0")
                     lst.add(card.toTmdbID())
@@ -35,36 +30,29 @@ class Bookmarks : LampaProviderI() {
             return lst.reversed()
         }
 
-        fun add(tmdbID: String?) {
-            manageFavorite("add", "book", tmdbID.toString())
-        }
-
-        fun rem(tmdbID: String?) {
-            manageFavorite("rem", "book", tmdbID.toString())
-        }
-
         fun addToWatchNext(tmdbID: TmdbID) {
-            if (!isInLampaWatchNext(tmdbID.id.toString())) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val ent = tmdbID.getEntity()
-                    ent?.let {
-                        WatchNext.add(it)
-                    }
+            tmdbID.id.let {
+                if (!App.context.isInLampaWatchNext(it.toString())) {
+                    Helpers.manageFavorite("add", "wath", it.toString())
                 }
             }
-            manageFavorite("add", "wath", tmdbID.id.toString())
+// addToWatchNext called from HomeWatch so already added by user action
+//            CoroutineScope(Dispatchers.IO).launch {
+//                val ent = tmdbID.getEntity()
+//                ent?.let {
+//                    withContext(Dispatchers.Default) {
+//                        WatchNext.add(it)
+//                    }
+//                }
+//            }
         }
 
         fun remFromWatchNext(tmdbID: String) {
-            if (isInLampaWatchNext(tmdbID)) {
-                WatchNext.rem(tmdbID)
+            if (App.context.isInLampaWatchNext(tmdbID)) {
+                Helpers.manageFavorite("rem", "wath", tmdbID)
             }
-            manageFavorite("rem", "wath", tmdbID)
-        }
-
-        fun isInLampaWatchNext(tmdbID: String?): Boolean {
-            val nxt = AndroidJS.FAV?.wath
-            return nxt?.contains(tmdbID) == true
+// remFromWatchNext called from HomeWatch so already removed by user action
+//            WatchNext.rem(tmdbID)
         }
     }
 }

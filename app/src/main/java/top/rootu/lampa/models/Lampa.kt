@@ -1,7 +1,5 @@
 package top.rootu.lampa.models
 
-import android.util.Log
-
 data class Favorite (
     val card: List<LampaCard>?,
     val like: List<String>?,
@@ -28,7 +26,6 @@ data class LampaCard (
     val img: String?, //"https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
     val background_image: String?,
     val genres: List<Genre?>?,
-    // genres_ids: List<Int?>?,
     val popularity: Float?,
     val production_companies: List<ProductionCompany>?,
     val production_countries: List<ProductionCountry>?,
@@ -41,47 +38,47 @@ data class LampaCard (
     val first_air_date: String?, //2006, 1989-12-17
     val last_air_date: String?, //2014, 2023-11-19
     val number_of_seasons: Int?, //1,
-   // "seasons": [{...}],
     val number_of_episodes: Int?, //12,
     val persons: Persons?,
     val simular: Simular?,
     val runtime: Int?, //0,
     val release_date: String?, //"2006", "2023-07-19"
     val release_year: String?, //"2006", "2023"
+    // "seasons": [{...}],
 ) {
     // FIXME: it's ugly hack
     // TODO: fix this media type mess
     fun toTmdbID(): TmdbID {
         val i = id.toIntOrNull() ?: 0
-        var mt = type ?: ""
-        if (mt.lowercase() == "scripted")
-            mt = if (release_date.isNullOrEmpty() || !name.isNullOrEmpty())
+        var m = type ?: ""
+        if (m.lowercase() == "scripted")
+            m = if (release_date.isNullOrEmpty() || !name.isNullOrEmpty())
                 "tv"
             else
                 "movie"
-        if (mt.contains("miniseries", true))
-            mt = "tv"
-        if (mt.isEmpty())
-            mt = "movie"
+        else if (m.contains("miniseries", true))
+            m = "tv"
+        if (m.isEmpty())
+            m = "movie"
         val g = genres?.map { it?.id }
         var d = release_date
         if (d?.isEmpty() == true)
             d = first_air_date
         if (d?.isEmpty() == true)
             d = null
-    Log.d("*****","toTmdbID: $i, $mt, $g, $vote_average, $vote_count, $d")
-        return TmdbID(i, mt, g, vote_average, vote_count, d)
+    //Log.d("*****","toTmdbID: $i, $m, $g, $vote_average, $vote_count, $d")
+        return TmdbID(i, m, g, vote_average, vote_count, d)
     }
 }
 
 data class LampaRec(
     val adult: Boolean,
-    val backdrop_path: String, // "/aRKQdF6AGbhnF9IAyJbte5epH5R.jpg"
+    val backdrop_path: String?, // "/aRKQdF6AGbhnF9IAyJbte5epH5R.jpg"
     val id: Int, // "84958"
     val name: String?,
     val original_name: String?,
-    val original_language: String?, //"en"
-    val poster_path: String, // "/82HaUMIagdh5PLflUOVrHn5GsI9.jpg"
+    val original_language: String?, // "en"
+    val poster_path: String?, // "/82HaUMIagdh5PLflUOVrHn5GsI9.jpg"
     val title: String?,
     val original_title: String?,
     val media_type: String, // "movie" | "tv"
@@ -100,6 +97,7 @@ data class LampaRec(
             d = first_air_date
         if (d.isNullOrEmpty())
             d = null
+        //Log.d("*****","toTmdbID: $id, $media_type, $genre_ids, $vote_average, $vote_count, $popularity, $d name: $name")
         return TmdbID(id, media_type, genre_ids, vote_average, vote_count, d)
     }
 }

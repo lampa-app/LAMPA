@@ -46,7 +46,6 @@ class HomeWatch : BroadcastReceiver() {
                     )
                 try {
                     tmdbID?.let {
-                        if (!Bookmarks.isInLampaWatchNext(it.id.toString()))
                             Bookmarks.addToWatchNext(it)
                     }
                 } catch (_: Exception) {
@@ -63,7 +62,6 @@ class HomeWatch : BroadcastReceiver() {
                     )
                 try {
                     tmdbID?.let {
-                        if (Bookmarks.isInLampaWatchNext(it))
                             Bookmarks.remFromWatchNext(it)
                     }
                 } catch (_: Exception) {

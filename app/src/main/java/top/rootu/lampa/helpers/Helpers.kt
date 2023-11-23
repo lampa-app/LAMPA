@@ -176,18 +176,21 @@ object Helpers {
         }
 
     fun isValidJson(json: String?): Boolean {
-        val gson = Gson()
+        // val gson = Gson()
         return try {
             // gson.fromJson(json, Any::class.java)
-            parseStrict(json)
-            true
+            parseStrict(json) != null
         } catch (ex: JsonSyntaxException) {
             false
         }
     }
     private fun parseStrict(json: String?): JsonElement? {
-        // throws on almost any non-valid json
-        return Gson().getAdapter(JsonElement::class.java).fromJson(json)
+        return try {
+            // throws on almost any non-valid json
+            Gson().getAdapter(JsonElement::class.java).fromJson(json)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // TODO

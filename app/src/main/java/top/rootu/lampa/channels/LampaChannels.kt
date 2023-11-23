@@ -58,7 +58,9 @@ object LampaChannels {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             return
         synchronized(lock) {
-            val list = LampaProvider.get(LampaProvider.Recs, false)?.items.orEmpty()
+            if (BuildConfig.DEBUG)
+                Log.i("*****", "LampaChannels: updateRecsChannel")
+            val list = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
             ChannelManager.update(LampaProvider.Recs, list)
         }
     }
@@ -68,6 +70,8 @@ object LampaChannels {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             return
         synchronized(lock) {
+            if (BuildConfig.DEBUG)
+                Log.i("*****", "LampaChannels: updateHistChannel")
             val list = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Hist, list)
         }
@@ -78,6 +82,8 @@ object LampaChannels {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             return
         synchronized(lock) {
+            if (BuildConfig.DEBUG)
+                Log.i("*****", "LampaChannels: updateBookChannel")
             val list = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Book, list)
         }

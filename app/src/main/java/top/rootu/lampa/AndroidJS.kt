@@ -15,10 +15,12 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
+import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.favorite
 import top.rootu.lampa.helpers.Prefs.recs
 import top.rootu.lampa.helpers.Prefs.saveFavorite
@@ -90,32 +92,21 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "favorite" -> {
+                if (BuildConfig.DEBUG) Log.d("*****", "favorite json changed")
                 val json = eo.optString("value", "")
-                if (isValidJson(json))
+                if (isValidJson(json)) {
                     App.context.saveFavorite(json)
-                Log.d("*****", "FAV changed $json")
-
-                FAV = Gson().fromJson(App.context.favorite, Favorite::class.java)
-
-//                Log.d("*****", "cards: ${FAV.card?.size}")
-//                Log.d("*****", "book: ${FAV.book}")
-//                Log.d("*****", "like: ${FAV.like}")
-//                Log.d("*****", "wath: ${FAV.wath}")
-//                Log.d("*****", "history: ${FAV.history}")
-//                Log.d("*****", "look ${FAV.look}")
-//                Log.d("*****", "viewed ${FAV.viewed}")
-//                Log.d("*****", "scheduled ${FAV.scheduled}")
-//                Log.d("*****", "continued ${FAV.continued}")
-//                Log.d("*****", "thrown ${FAV.thrown}")
+                    if (BuildConfig.DEBUG) Log.d("*****", "favorite json stored")
+                }
             }
 
             "recomends_list" -> {
+                if (BuildConfig.DEBUG) Log.d("*****", "recomends json changed")
                 val json = eo.optString("value", "")
-                Log.d("*****", "RCS changed $json")
-                if (isValidJson(json))
+                if (isValidJson(json)) {
                     App.context.saveRecs(json)
-
-                RCS = Gson().fromJson(App.context.recs, Array<LampaRec>::class.java).toList()
+                    if (BuildConfig.DEBUG) Log.d("*****", "recomends json stored")
+                }
             }
         }
     }
@@ -174,6 +165,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
                 App.toast(R.string.no_activity_found, false)
+            }
+        }
+        // update Recs to filter viewed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CoroutineScope(Dispatchers.IO).launch {
+                delay(5000)
+                LampaChannels.updateRecsChannel()
             }
         }
         return true
@@ -329,6 +327,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
         }
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
+        // update Recs to filter viewed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CoroutineScope(Dispatchers.IO).launch {
+                delay(5000)
+                LampaChannels.updateRecsChannel()
+            }
+        }
     }
 
     @JavascriptInterface
@@ -390,15 +395,5 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     companion object {
         private const val TAG = "AndroidJS"
         var reqResponse: MutableMap<String, String> = HashMap()
-        var FAV: Favorite? = try {
-            Gson().fromJson(App.context.favorite, Favorite::class.java)
-        } catch (e: Exception) {
-            null
-        }
-        var RCS: List<LampaRec>? = try {
-            Gson().fromJson(App.context.recs, Array<LampaRec>::class.java).toList()
-        } catch (e: Exception) {
-            null
-        }
     }
 }
