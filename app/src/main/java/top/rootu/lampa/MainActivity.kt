@@ -569,7 +569,7 @@ class MainActivity : AppCompatActivity(),
                         if (params != "") {
                             lifecycleScope.launch {
                                 delay(delay)
-                                runVoidJsFunc("window.start_deep_link", params)
+                                runVoidJsFunc("window.start_deep_link = ", params)
                                 runVoidJsFunc("Lampa.Activity.push", params)
                             }
                         }
@@ -582,7 +582,7 @@ class MainActivity : AppCompatActivity(),
             lifecycleScope.launch {
                 delay(delay)
                 runVoidJsFunc(
-                    "window.start_deep_link",
+                    "window.start_deep_link = ",
                     "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
                 )
                 runVoidJsFunc(
