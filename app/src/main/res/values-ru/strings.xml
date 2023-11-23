@@ -58,4 +58,6 @@
     <string name="ch_liked">Нравится</string>
     <string name="ch_history">История</string>
     <string name="ch_bookmarks">Закладки</string>
+    <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
+    <string name="title_main">Главная</string>
 </resources>

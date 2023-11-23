@@ -553,15 +553,15 @@ class MainActivity : AppCompatActivity(),
                                 // Open Main
                                 "{" +
                                     "url: ''," +
-                                    "title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase()," +
+                                    "title: '" + getString(R.string.title_main) + "' + ' - TMDB'," +
                                     "component: 'main'," +
-                                    "source: Lampa.Storage.field('source')" +
+                                    "source: 'tmdb'" +
                                 "}"
                             }
 
                             LampaProvider.Like, LampaProvider.Book, LampaProvider.Hist -> {
                                 "{" +
-                                    "title: Lampa.Lang.translate('$channel' == 'book' ? 'settings_input_links' : 'title_$channel')," +
+                                    "title: '" + getChannelDisplayName(channel) + "'," +
                                     "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
                                     "type: '$channel'," +
                                     "url: ''," +
@@ -588,11 +588,11 @@ class MainActivity : AppCompatActivity(),
                 delay(delay)
                 runVoidJsFunc(
                     "window.start_deep_link = ",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
                 )
                 runVoidJsFunc(
                     "Lampa.Activity.push",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB}}"
+                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
                 )
             }
         // process search cmd
