@@ -546,7 +546,6 @@ class MainActivity : AppCompatActivity(),
                     if (it.encodedPath?.contains("update_channel") == true) {
                         idTMDB = -1
                         val channel = it.encodedPath?.substringAfterLast("/")
-                        Log.d("*****", "processIntent: got intent from channel: $channel")
                         val params = when (channel) {
                             LampaProvider.Recs -> {
                                 // Open Main
