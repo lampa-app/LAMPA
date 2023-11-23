@@ -23,12 +23,16 @@ object LampaChannels {
                 Log.i("*****", "LampaChannels: update(sync: $sync)")
 
             var recs = emptyList<TmdbID>()
+            var like = emptyList<TmdbID>()
             var book = emptyList<TmdbID>()
             var hist = emptyList<TmdbID>()
 
             if (!sync) {
                 val thR = thread {
                     recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
+                }
+                val thL = thread {
+                    like = LampaProvider.get(LampaProvider.Like, true)?.items.orEmpty()
                 }
                 val thF = thread {
                     book = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
@@ -38,6 +42,8 @@ object LampaChannels {
                 }
                 thR.join()
                 ChannelManager.update(LampaProvider.Recs, recs)
+                thL.join()
+                ChannelManager.update(LampaProvider.Like, like)
                 thF.join()
                 ChannelManager.update(LampaProvider.Book, book)
                 thH.join()
@@ -45,6 +51,8 @@ object LampaChannels {
             } else {
                 recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
                 ChannelManager.update(LampaProvider.Recs, recs)
+                like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.Like, like)
                 book = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
                 ChannelManager.update(LampaProvider.Book, book)
                 hist = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
@@ -62,6 +70,18 @@ object LampaChannels {
                 Log.i("*****", "LampaChannels: updateRecsChannel")
             val list = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
             ChannelManager.update(LampaProvider.Recs, list)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    fun updateLikeChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            return
+        synchronized(lock) {
+            if (BuildConfig.DEBUG)
+                Log.i("*****", "LampaChannels: updateLikeChannel")
+            val list = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
+            ChannelManager.update(LampaProvider.Like, list)
         }
     }
 

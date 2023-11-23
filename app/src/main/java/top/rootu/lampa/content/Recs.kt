@@ -15,14 +15,13 @@ class Recs : LampaProviderI() {
 
     companion object {
         fun get(): List<TmdbID> {
-            val cards = App.context.RCS
             val lst = mutableListOf<TmdbID>()
-            val filtered = cards?.filterAll(generateFilters())
+            val filtered = App.context.RCS?.filterAll(generateFilters())
                 ?.distinctBy { it.id } // make unique
                 ?.shuffled() // randomize order
 
             if (BuildConfig.DEBUG)
-                Log.d("*****", "Recs cards total: ${cards?.size} | filtered: ${filtered?.size}")
+                Log.d("*****", "Recs cards total: ${App.context.RCS?.size} | filtered: ${filtered?.size}")
             if (!filtered.isNullOrEmpty()) {
                 filtered.forEach { r ->
                     lst.add(r.toTmdbID())

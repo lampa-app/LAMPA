@@ -18,6 +18,9 @@ import androidx.tvprovider.media.tv.TvContractCompat
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
+import top.rootu.lampa.content.LampaProvider.Book
+import top.rootu.lampa.content.LampaProvider.Hist
+import top.rootu.lampa.content.LampaProvider.Like
 import java.nio.charset.Charset
 
 
@@ -49,9 +52,10 @@ object ChannelHelper {
         val channelId = channelUri?.let { ContentUris.parseId(it) }
         // set channel images
         val icon = when (name) {
-//            "recs" -> R.drawable.ch_recs
-//            "favorite" -> R.drawable.ch_favorite
-//            "history" -> R.drawable.ch_history
+//            Recs -> R.drawable.ch_recs
+            Book -> R.drawable.ch_book
+            Hist -> R.drawable.ch_hist
+            Like -> R.drawable.ch_like
             else -> R.drawable.lampa_icon
         }
         val bitmap = convertToBitmap(context = App.context, icon)

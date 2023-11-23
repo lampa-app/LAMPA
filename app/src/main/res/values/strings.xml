@@ -58,6 +58,7 @@
     <string name="lampa_suxx">lampa suxx</string>
     <!--Channels-->
     <string name="ch_recs">Recommended</string>
+    <string name="ch_liked">Liked</string>
     <string name="ch_history">History</string>
     <string name="ch_bookmarks">Bookmarks</string>
 </resources>

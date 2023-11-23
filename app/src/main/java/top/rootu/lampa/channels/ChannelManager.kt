@@ -14,6 +14,7 @@ import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider.Book
 import top.rootu.lampa.content.LampaProvider.Hist
+import top.rootu.lampa.content.LampaProvider.Like
 import top.rootu.lampa.content.LampaProvider.Recs
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
@@ -31,6 +32,7 @@ object ChannelManager {
     private fun getChannelDisplayName(name: String): String {
         return when (name) {
             Recs -> App.context.getString(R.string.ch_recs)
+            Like -> App.context.getString(R.string.ch_liked)
             Book -> App.context.getString(R.string.ch_bookmarks)
             Hist -> App.context.getString(R.string.ch_history)
             else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString() }

@@ -19,6 +19,7 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
+import top.rootu.lampa.channels.LampaChannels.updateLikeChannel
 import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isValidJson
@@ -385,6 +386,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     CoroutineScope(Dispatchers.IO).launch {
                         delay(5000)
                         updateBookChannel()
+                    }
+                }
+
+                LampaProvider.Like -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(5000)
+                        updateLikeChannel()
                     }
                 }
 

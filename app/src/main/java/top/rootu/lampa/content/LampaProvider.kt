@@ -1,8 +1,6 @@
 package top.rootu.lampa.content
 
-import android.util.Log
 import top.rootu.lampa.App
-import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.helpers.Prefs.historyItems
 import top.rootu.lampa.helpers.Prefs.viewedItems
 import top.rootu.lampa.models.TmdbID
@@ -17,11 +15,13 @@ data class ReleaseID(
 
 object LampaProvider {
     const val Recs = "recs"
+    const val Like = "like"
     const val Hist = "history"
     const val Book = "book"
 
     private val providers = mapOf(
         Recs to Recs(),
+        Like to Like(),
         Hist to History(),
         Book to Bookmarks(),
     )
