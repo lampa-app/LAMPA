@@ -541,6 +541,7 @@ class MainActivity : AppCompatActivity(),
 
                 else -> { // handle channels
                     if (it.encodedPath?.contains("update_channel") == true) {
+                        idTMDB = -1
                         val channel = it.encodedPath?.substringAfterLast("/")
                         Log.d("*****", "processIntent: got intent from channel: $channel")
                         val params = when (channel) {
