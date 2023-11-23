@@ -64,6 +64,7 @@ import org.xwalk.core.XWalkPreferences
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
+import top.rootu.lampa.channels.ChannelManager.getChannelDisplayName
 import top.rootu.lampa.channels.LampaChannels.updateRecsChannel
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
@@ -99,8 +100,7 @@ class MainActivity : AppCompatActivity(),
     private var browserInit = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
-    private var idTMDB = -1
-    private var mediaType = ""
+
 
     companion object {
         private const val TAG = "APP_MAIN"
@@ -439,6 +439,7 @@ class MainActivity : AppCompatActivity(),
             view.visibility = View.VISIBLE
             progressBar.visibility = View.GONE
             Log.d("*****", "LAMPA onLoadFinished $url")
+            if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
             processIntent(intent, 1000)
             lifecycleScope.launch {
                 delay(3000)
@@ -498,6 +499,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
+        var idTMDB = -1
+        var mediaType = ""
 //        if (BuildConfig.DEBUG) {
 //            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
 //            intent?.extras?.let {
@@ -543,6 +546,7 @@ class MainActivity : AppCompatActivity(),
                     if (it.encodedPath?.contains("update_channel") == true) {
                         idTMDB = -1
                         val channel = it.encodedPath?.substringAfterLast("/")
+                        val name = channel?.let { ch -> getChannelDisplayName(ch) }
                         Log.d("*****", "processIntent: got intent from channel: $channel")
                         val params = when (channel) {
                             LampaProvider.Recs -> {

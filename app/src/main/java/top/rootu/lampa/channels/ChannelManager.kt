@@ -29,7 +29,7 @@ object ChannelManager {
     private val TAG = if (BuildConfig.DEBUG) "***** ChannelManager" else "ChannelManager"
     private val lock = Any()
 
-    private fun getChannelDisplayName(name: String): String {
+    fun getChannelDisplayName(name: String): String {
         return when (name) {
             Recs -> App.context.getString(R.string.ch_recs)
             Like -> App.context.getString(R.string.ch_liked)
