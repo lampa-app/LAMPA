@@ -398,7 +398,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     }
                 }
 
-                "wath" -> {
+                LampaProvider.Late -> {
                     // Handle add to Watch Next from Lampa
                     // TODO: find a better way to manage WatchNext
                     CoroutineScope(Dispatchers.IO).launch {

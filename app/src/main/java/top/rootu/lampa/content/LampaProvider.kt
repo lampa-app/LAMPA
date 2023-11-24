@@ -18,6 +18,7 @@ object LampaProvider {
     const val Like = "like"
     const val Hist = "history"
     const val Book = "book"
+    const val Late = "wath"
 
     private val providers = mapOf(
         Recs to Recs(),
