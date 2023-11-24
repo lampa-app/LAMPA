@@ -23,8 +23,10 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
+import top.rootu.lampa.helpers.Prefs.setLampaSource
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
@@ -69,6 +71,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
+            }
+
+            "source" -> {
+                mainActivity.setLampaSource(eo.optString("value", mainActivity.lampaSource))
             }
 
             "proxy_tmdb", "protocol" -> {
