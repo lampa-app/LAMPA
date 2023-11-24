@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.models.TmdbID
 import kotlin.concurrent.thread
 
@@ -15,7 +16,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun update(sync: Boolean = true) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
 
         synchronized(lock) {
@@ -63,7 +64,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateRecsChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
@@ -75,7 +76,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateLikeChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
@@ -87,7 +88,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateHistChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
@@ -99,7 +100,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateBookChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
