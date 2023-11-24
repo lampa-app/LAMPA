@@ -58,9 +58,10 @@
     <string name="open_settings">open lampa settings</string>
     <string name="lampa_suxx">lampa suxx</string>
     <!--Channels-->
-    <string name="title_main">Home</string>
     <string name="ch_recs">Recommended</string>
     <string name="ch_liked">Liked</string>
     <string name="ch_history">History</string>
     <string name="ch_bookmarks">Bookmarks</string>
+    <string name="title_main">Home</string>
+    <string name="update_home_title">Update Recommendations</string>
 </resources>

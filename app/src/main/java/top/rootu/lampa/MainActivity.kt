@@ -70,6 +70,7 @@ import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
+import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs.FAV
@@ -640,7 +641,7 @@ class MainActivity : AppCompatActivity(),
         val menuItemsTitle = arrayOfNulls<String?>(4)
         val menuItemsAction = arrayOfNulls<String?>(4)
 
-        menuItemsTitle[0] = getString(R.string.close_menu_title)
+        menuItemsTitle[0] = if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
         menuItemsAction[0] = "closeMenu"
         menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
@@ -650,7 +651,7 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[3] = "appExit"
 
         val icons = arrayOf(
-            R.drawable.round_close_24,
+            if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
             R.drawable.round_link_24,
             R.drawable.round_explorer_24,
             R.drawable.round_exit_to_app_24
@@ -661,12 +662,9 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
-                "closeMenu" -> if (VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        updateRecsChannel()
-                    }
+                "closeMenu" -> if (isAndroidTV) {
+                    Scheduler.scheduleUpdate(false)
                 }
-
                 "showUrlInputDialog" -> showUrlInputDialog()
                 "showBrowserInputDialog" -> showBrowserInputDialog()
                 "appExit" -> appExit()

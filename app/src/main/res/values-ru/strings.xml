@@ -50,6 +50,7 @@
     <string name="xwalk_continue">Продолжить</string>
     <string name="xwalk_close">Отмена</string>
     <string name="xwalk_retry">Повтор</string>
+    <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
     <string name="open_lampa">открой ламп</string>
     <string name="open_settings">открой настройки ламп</string>
     <string name="lampa_suxx">лампа говно</string>
@@ -58,6 +59,6 @@
     <string name="ch_liked">Нравится</string>
     <string name="ch_history">История</string>
     <string name="ch_bookmarks">Закладки</string>
-    <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
     <string name="title_main">Главная</string>
+    <string name="update_home_title">Обновить рекомендации</string>
 </resources>

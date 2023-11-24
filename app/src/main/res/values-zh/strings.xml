@@ -60,4 +60,5 @@
     <string name="ch_history">浏览历史</string>
     <string name="ch_bookmarks">书签</string>
     <string name="title_main">首页</string>
+    <string name="update_home_title">更新建议</string>
 </resources>
