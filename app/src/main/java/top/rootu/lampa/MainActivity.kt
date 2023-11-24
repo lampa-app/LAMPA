@@ -508,19 +508,19 @@ class MainActivity : AppCompatActivity(),
     fun syncBookmarks() {
         // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
         this.wathToAdd.forEach { // add items to later
-            runVoidJsFunc("Lampa.Favorite.add", "'wath', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.add", "'${LampaProvider.Late}', '{id: $it}'")
         } // do we need full card here to add?
         this.wathToRemove.forEach {// delete items from later
-            runVoidJsFunc("Lampa.Favorite.remove", "'wath', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', '{id: $it}'")
         }
         this.bookToRemove.forEach {// delete items from bookmarks
-            runVoidJsFunc("Lampa.Favorite.remove", "'book', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Book}', '{id: $it}'")
         }
         this.likeToRemove.forEach {// delete items from likes
-            runVoidJsFunc("Lampa.Favorite.remove", "'like', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Like}', '{id: $it}'")
         }
         this.histToRemove.forEach {// delete items from history
-            runVoidJsFunc("Lampa.Favorite.remove", "'hist', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', '{id: $it}'")
         }
     }
 

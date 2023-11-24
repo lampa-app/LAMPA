@@ -238,7 +238,7 @@ object Helpers {
             when (action) {
                 "rem" -> {
                     when (where) {
-                        "wath" -> App.context.addWatchNextToRemove(listOf(id))
+                        LampaProvider.Late -> App.context.addWatchNextToRemove(listOf(id))
                         LampaProvider.Book -> App.context.addBookToRemove(listOf(id))
                         LampaProvider.Like -> App.context.addLikeToRemove(listOf(id))
                         LampaProvider.Hist -> App.context.addHistToRemove(listOf(id))
@@ -253,7 +253,7 @@ object Helpers {
 
                 "add" -> {
                     when (where) {
-                        "wath" -> App.context.addWatchNextToAdd(listOf(id))
+                        LampaProvider.Late -> App.context.addWatchNextToAdd(listOf(id))
                     }
                     if (BuildConfig.DEBUG)
                         Log.d("*****", "wath items to add: ${App.context.wathToAdd}")
