@@ -19,6 +19,7 @@ object Prefs {
     private const val APP_URL = "url"
     private const val APP_PLAYER = "player"
     private const val IPTV_PLAYER = "iptv_player"
+    private const val LAMPA_SOURCE = "source"
     private const val APP_BROWSER = "browser"
     private const val APP_LANG = "lang"
     private const val TMDB_API = "tmdb_api_url"
@@ -72,6 +73,17 @@ object Prefs {
     fun Context.setTvPlayer(player: String) {
         val pref = this.appPrefs
         pref.edit().putString(IPTV_PLAYER, player).apply()
+    }
+
+    val Context.lampaSource: String
+        get() {
+            val pref = this.appPrefs
+            return pref.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
+        }
+
+    fun Context.setLampaSource(source: String) {
+        val pref = this.appPrefs
+        pref.edit().putString(LAMPA_SOURCE, source).apply()
     }
 
     val Context.appBrowser: String?

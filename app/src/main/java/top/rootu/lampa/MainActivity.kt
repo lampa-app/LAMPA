@@ -76,18 +76,19 @@ import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
+import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
+import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
-import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
@@ -459,6 +460,7 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("torrserver_preload")
                 runJsStorageChangeField("internal_torrclient")
                 runJsStorageChangeField("language")
+                runJsStorageChangeField("source")
                 runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
                 syncBookmarks() // call it more frequently - onResume()
@@ -576,10 +578,10 @@ class MainActivity : AppCompatActivity(),
                             LampaProvider.Recs -> {
                                 // Open Main
                                 "{" +
-                                    "url: ''," +
-                                    "title: '" + getString(R.string.title_main) + "' + ' - TMDB'," +
+                                    "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(Locale.getDefault()) + "'," +
                                     "component: 'main'," +
-                                    "source: 'tmdb'" +
+                                    "source: '" + lampaSource + "'," +
+                                    "url: ''" +
                                 "}"
                             }
 
