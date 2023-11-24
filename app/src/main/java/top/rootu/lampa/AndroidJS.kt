@@ -1,6 +1,8 @@
 package top.rootu.lampa
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.text.TextUtils
@@ -23,6 +25,7 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveFavorite
@@ -434,6 +437,85 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 }
             }
         }
+    }
+
+    // https://stackoverflow.com/a/41560207
+    // https://copyprogramming.com/howto/android-webview-savestate
+    private val store: SharedPreferences? = App.context.getSharedPreferences(
+        Prefs.STORAGE_PREFERENCES,
+        Context.MODE_PRIVATE
+    )
+    private var keys: Array<String?>? = null
+    private var values: Array<String?>? = null
+    private var dumped = false
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    fun dump() {
+        check(!dumped) { "already dumped" }
+        val map = store?.all
+        val size = map?.size ?: 0
+        keys = arrayOfNulls(size)
+        values = arrayOfNulls(size)
+        for ((cur, key) in map!!.keys.withIndex()) {
+            keys!![cur] = key
+            values!![cur] = (map[key] as String?)!!
+        }
+        dumped = true
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    fun size(): Int {
+        check(dumped) { "dump() first" }
+        return keys!!.size
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    fun key(i: Int): String? {
+        check(dumped) { "dump() first" }
+        return keys!![i]
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    fun value(i: Int): String? {
+        check(dumped) { "dump() first" }
+        return values!![i]
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    operator fun get(key: String?): String? {
+        return store!!.getString(key, null)
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    operator fun set(key: String?, value: String?) {
+        check(!dumped) { "already dumped" }
+        store!!.edit().putString(key, value).apply()
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    @Synchronized
+    fun clear() {
+        store!!.edit().clear().apply()
+        keys = null
+        values = null
+        dumped = false
+    }
+
+    @Synchronized
+    override fun toString(): String {
+        return store!!.all.toString()
     }
 
     companion object {

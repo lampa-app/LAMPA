@@ -61,4 +61,14 @@
     <string name="ch_bookmarks">Закладки</string>
     <string name="title_main">Главная</string>
     <string name="update_home_title">Обновить рекомендации</string>
+    <string name="backup_restore_title">Резервирование и восстановление</string>
+    <string name="backup_all_title">Сделать резервную копию настроек</string>
+    <string name="restore_app_title">Восстановить настройки приложения</string>
+    <string name="restore_storage_title">Восстановить настройки Lampa</string>
+    <string name="default_setting_title">Загрузить настройки по умолчанию</string>
+    <string name="change_note">Это действие вернет настройки Lampa к значениям по умолчанию. Перед этим действием рекомендуется сделать резервную копию настроек!</string>
+    <string name="settings_saved_toast">Все настройки сохранены в %s</string>
+    <string name="settings_save_fail">Невозможно выполнить резервное копирование настроек</string>
+    <string name="settings_rest_fail">Невозможно восстановить настройки</string>
+    <string name="settings_restored">Настройки восстановлены</string>
 </resources>

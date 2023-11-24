@@ -65,36 +65,38 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
 import top.rootu.lampa.channels.ChannelManager.getChannelDisplayName
-import top.rootu.lampa.channels.LampaChannels.updateRecsChannel
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Backup
+import top.rootu.lampa.helpers.Backup.loadFromBackup
+import top.rootu.lampa.helpers.Backup.saveSettings
+import top.rootu.lampa.helpers.Backup.saveStorage
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
-import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
-import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
-import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.lampaSource
+import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
-import top.rootu.lampa.helpers.Prefs.wathToAdd
+import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
-import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -509,7 +511,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
+    private fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
 //        this.wathToAdd.forEach { // add items to later - we need full card here to add
 //            runVoidJsFunc("Lampa.Favorite.add", "'${LampaProvider.Late}', {id: '$it'}")
 //        }
@@ -525,6 +527,29 @@ class MainActivity : AppCompatActivity(),
         this.histToRemove.forEach {// delete items from history
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', {id: $it}")
         }
+    }
+
+    private fun dumpStorage() {
+        val backupJavascript = "(function() {" +
+                "console.log('Backing up localStorage');" +
+                "AndroidJS.clear();" +
+                "for (var key in localStorage) { AndroidJS.set(key, localStorage.getItem(key)); }" +
+                "})()"
+        browser?.evaluateJavascript(backupJavascript) { Log.d( TAG, "localStorage backed up") }
+    }
+
+    private fun restoreStorage() {
+        val restoreJavascript = "(function() {" +
+                "console.log('Restoring localStorage');" +
+                "AndroidJS.dump();" +
+                "var len = AndroidJS.size();" +
+                "for (i = 0; i < len; i++) { var key = AndroidJS.key(i);  console.log(key); localStorage.setItem(key, AndroidJS.get(key)); }" +
+                "})()"
+        browser?.evaluateJavascript(restoreJavascript) { Log.d(TAG,"localStorage restored") }
+    }
+
+    private fun clearStorage() {
+        // TODO
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
@@ -574,8 +599,7 @@ class MainActivity : AppCompatActivity(),
                 else -> { // handle channels
                     if (it.encodedPath?.contains("update_channel") == true) {
                         idTMDB = -1
-                        val channel = it.encodedPath?.substringAfterLast("/")
-                        val params = when (channel) {
+                        val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
                             LampaProvider.Recs -> {
                                 // Open Main
                                 "{" +
@@ -638,8 +662,8 @@ class MainActivity : AppCompatActivity(),
     private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(4)
-        val menuItemsAction = arrayOfNulls<String?>(4)
+        val menuItemsTitle = arrayOfNulls<String?>(5)
+        val menuItemsAction = arrayOfNulls<String?>(5)
 
         menuItemsTitle[0] = if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
         menuItemsAction[0] = "closeMenu"
@@ -647,14 +671,17 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[1] = "showUrlInputDialog"
         menuItemsTitle[2] = getString(R.string.change_engine)
         menuItemsAction[2] = "showBrowserInputDialog"
-        menuItemsTitle[3] = getString(R.string.exit)
-        menuItemsAction[3] = "appExit"
+        menuItemsTitle[3] = getString(R.string.backup_restore_title)
+        menuItemsAction[3] = "showBackupDialog"
+        menuItemsTitle[4] = getString(R.string.exit)
+        menuItemsAction[4] = "appExit"
 
         val icons = arrayOf(
             if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
             R.drawable.round_link_24,
             R.drawable.round_explorer_24,
-            R.drawable.round_exit_to_app_24
+            R.drawable.round_settings_backup_restore_24,
+            R.drawable.round_exit_to_app_24,
         )
         val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
 
@@ -665,9 +692,75 @@ class MainActivity : AppCompatActivity(),
                 "closeMenu" -> if (isAndroidTV) {
                     Scheduler.scheduleUpdate(false)
                 }
-                "showUrlInputDialog" -> showUrlInputDialog()
-                "showBrowserInputDialog" -> showBrowserInputDialog()
+                "showUrlInputDialog" -> {
+                    App.toast(R.string.change_note)
+                    showUrlInputDialog()
+                }
+                "showBrowserInputDialog" -> {
+                    App.toast(R.string.change_note)
+                    showBrowserInputDialog()
+                }
+                "showBackupDialog" -> showBackupDialog()
                 "appExit" -> appExit()
+            }
+        }
+        val menuDialog = menu.create()
+        menuDialog.show()
+    }
+
+    private fun showBackupDialog() {
+        val mainActivity = this
+        val menu = AlertDialog.Builder(mainActivity)
+        val menuItemsTitle = arrayOfNulls<String?>(4)
+        val menuItemsAction = arrayOfNulls<String?>(4)
+        val icons = arrayOf(
+            R.drawable.round_settings_backup_restore_24,
+            R.drawable.round_refresh_24,
+            R.drawable.round_refresh_24,
+            R.drawable.round_close_24
+        )
+        menuItemsTitle[0] = getString(R.string.backup_all_title)
+        menuItemsAction[0] = "backupAllSettings"
+        menuItemsTitle[1] = getString(R.string.restore_app_title)
+        menuItemsAction[1] = "restoreAppSettings"
+        menuItemsTitle[2] = getString(R.string.restore_storage_title)
+        menuItemsAction[2] = "restoreLampaSettings"
+        menuItemsTitle[3] = getString(R.string.default_setting_title)
+        menuItemsAction[3] = "restoreDefaultSettings"
+
+
+        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        menu.setTitle(getString(R.string.backup_restore_title))
+        menu.setAdapter(adapter) { dialog, which ->
+            dialog.dismiss()
+            when (menuItemsAction[which]) {
+                "backupAllSettings" -> {
+                    dumpStorage()
+                    if (saveSettings() && saveStorage())
+                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+                    else
+                        App.toast(R.string.settings_save_fail)
+                }
+                "restoreAppSettings" -> {
+                    if (loadFromBackup(Prefs.APP_PREFERENCES)) {
+                        App.toast(R.string.settings_restored)
+                        recreate()
+                    } else
+                        App.toast(R.string.settings_rest_fail)
+                }
+                "restoreLampaSettings" -> {
+                    if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                        restoreStorage()
+                        App.toast(R.string.settings_restored)
+                        recreate()
+                    } else
+                        App.toast(R.string.settings_rest_fail)
+                }
+                "restoreDefaultSettings" -> {
+                    clearStorage() // TODO
+                    appPrefs.edit().clear().apply()
+                    recreate()
+                }
             }
         }
         val menuDialog = menu.create()
@@ -803,6 +896,7 @@ class MainActivity : AppCompatActivity(),
     override fun onPause() {
         if (browserInit) {
             browser?.pauseTimers()
+            // dumpStorage()
         }
         super.onPause()
     }

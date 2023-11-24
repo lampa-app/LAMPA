@@ -14,7 +14,8 @@ import java.util.Locale
 
 object Prefs {
 
-    private const val APP_PREFERENCES = "settings"
+    const val APP_PREFERENCES = "settings"
+    const val STORAGE_PREFERENCES = "storage"
     private const val APP_LAST_PLAYED = "last_played"
     private const val APP_URL = "url"
     private const val APP_PLAYER = "player"
@@ -32,7 +33,7 @@ object Prefs {
     private const val LKR_KEY = "like_rem"
     private const val HSR_KEY = "hist_rem"
 
-    private val Context.appPrefs: SharedPreferences
+    val Context.appPrefs: SharedPreferences
         get() {
             return getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         }
