@@ -91,30 +91,6 @@ object ChannelHelper {
         return null
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun getChanByID(channelId: Long): String? {
-        val cursor = App.context.contentResolver.query(
-            TvContractCompat.Channels.CONTENT_URI,
-            CHANNELS_PROJECTION,
-            null,
-            null,
-            null
-        )
-
-        cursor?.let {
-            if (it.moveToFirst())
-                do {
-                    val channel = Channel.fromCursor(it)
-                    if (channelId == channel.id) {
-                        cursor.close()
-                        return channel.data
-                    }
-                } while (it.moveToNext())
-            cursor.close()
-        }
-        return null
-    }
-
     fun rem(ch: Channel) {
         App.context.contentResolver.delete(TvContractCompat.buildChannelUri(ch.id), null, null)
     }
@@ -140,6 +116,30 @@ object ChannelHelper {
             cursor.close()
         }
         return ch
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getChanByID(channelId: Long): String? {
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.Channels.CONTENT_URI,
+            CHANNELS_PROJECTION,
+            null,
+            null,
+            null
+        )
+
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val channel = Channel.fromCursor(it)
+                    if (channelId == channel.id) {
+                        cursor.close()
+                        return channel.data
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return null
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)

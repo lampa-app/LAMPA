@@ -93,6 +93,7 @@ import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
+import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -507,22 +508,21 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    fun syncBookmarks() {
-        // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
-        this.wathToAdd.forEach { // add items to later
-            runVoidJsFunc("Lampa.Favorite.add", "'${LampaProvider.Late}', '{id: $it}'")
-        } // do we need full card here to add?
+    fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
+//        this.wathToAdd.forEach { // add items to later - we need full card here to add
+//            runVoidJsFunc("Lampa.Favorite.add", "'${LampaProvider.Late}', {id: '$it'}")
+//        }
         this.wathToRemove.forEach {// delete items from later
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', {id: $it}")
         }
         this.bookToRemove.forEach {// delete items from bookmarks
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Book}', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Book}', {id: $it}")
         }
         this.likeToRemove.forEach {// delete items from likes
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Like}', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Like}', {id: $it}")
         }
         this.histToRemove.forEach {// delete items from history
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', '{id: $it}'")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', {id: $it}")
         }
     }
 

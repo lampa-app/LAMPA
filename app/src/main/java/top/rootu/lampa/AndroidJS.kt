@@ -417,13 +417,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                                     try {
                                         if (BuildConfig.DEBUG) Log.d(
                                             "*****",
-                                            "Add ${tmdbID.id} to WatchNext"
+                                            "updateChannel() Add ${tmdbID.id} to WatchNext"
                                         )
                                         WatchNext.add(it)
                                     } catch (e: Exception) {
                                         if (BuildConfig.DEBUG) Log.d(
                                             "*****",
-                                            "Error add ${tmdbID.id} to WatchNext: $e"
+                                            "updateChannel() Error add ${tmdbID.id} to WatchNext: $e"
                                         )
                                     }
                                 }
