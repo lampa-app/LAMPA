@@ -1,8 +1,7 @@
 package top.rootu.lampa.content
 
 import top.rootu.lampa.App
-import top.rootu.lampa.helpers.Prefs.historyItems
-import top.rootu.lampa.helpers.Prefs.viewedItems
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.models.TmdbID
 
 abstract class LampaProviderI : Any() {
@@ -14,6 +13,7 @@ data class ReleaseID(
 )
 
 object LampaProvider {
+    // this is channel internal id
     const val Recs = "recs"
     const val Like = "like"
     const val Hist = "history"
@@ -47,7 +47,7 @@ object LampaProvider {
 
     private fun filterViewed(lst: List<TmdbID>): List<TmdbID> {
         return lst.filter { ent ->
-            !App.context.viewedItems.contains(ent.id.toString()) && !App.context.historyItems.contains(ent.id.toString())
+            App.context.FAV?.viewed?.contains(ent.id.toString()) != true && App.context.FAV?.history?.contains(ent.id.toString()) != true
         }
     }
 }

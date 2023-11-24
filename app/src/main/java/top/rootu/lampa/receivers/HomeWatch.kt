@@ -8,10 +8,14 @@ import android.media.tv.TvContract
 import android.os.Build
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
+import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.channels.ChannelManager
 import top.rootu.lampa.channels.WatchNext
-import top.rootu.lampa.content.Bookmarks
+import top.rootu.lampa.helpers.ChannelHelper
+import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.sched.Scheduler
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -38,17 +42,16 @@ class HomeWatch : BroadcastReceiver() {
 
             TvContractCompat.ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT -> {
 
-                val tmdbID = WatchNext.getTmdbIdFromWatchNextProgramId(watchNextId)
+                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
                 if (BuildConfig.DEBUG)
                     Log.d(
                         TAG,
                         "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId tmdb $tmdbID"
                     )
-                try {
-                    tmdbID?.let {
-                            Bookmarks.addToLampaWatchNext(it)
+                tmdbID?.let {
+                    if (!App.context.isInLampaWatchNext(it)) {
+                        Helpers.manageFavorite("add", "wath", it)
                     }
-                } catch (_: Exception) {
                 }
             }
 
@@ -60,25 +63,23 @@ class HomeWatch : BroadcastReceiver() {
                         TAG,
                         "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId tmdb $tmdbID"
                     )
-                try {
-                    tmdbID?.let {
-                            Bookmarks.remFromLampaWatchNext(it)
+                tmdbID?.let {
+                    if (App.context.isInLampaWatchNext(tmdbID)) {
+                        Helpers.manageFavorite("rem", "wath", tmdbID)
                     }
-                } catch (_: Exception) {
                 }
             }
-            // TODO: match against favorite channel
+
             TvContractCompat.ACTION_PREVIEW_PROGRAM_BROWSABLE_DISABLED -> {
                 if (BuildConfig.DEBUG)
                     Log.d(TAG, "ACTION_PREVIEW_PROGRAM_BROWSABLE_DISABLED, preview $previewId")
-//                try {
-//                    val tmdbID = ChannelManager.getTmdbIdFromPreviewProgramId(previewId)
-//                    tmdbID?.let {
-//                        if (Bookmarks().isBookmarked(it))
-//                            Bookmarks.rem(it)
-//                    }
-//                } catch (_: Exception) {
-//                }
+                val tmdbIdAndChanId =
+                    ChannelManager.getInternalIdAndChanIdFromPreviewProgramId(previewId)
+                val chan = tmdbIdAndChanId.second?.let { ChannelHelper.getChanByID(it) }
+                tmdbIdAndChanId.first?.let {
+                    if (!chan.isNullOrEmpty())
+                        Helpers.manageFavorite("rem", chan, it)
+                }
             }
         }
     }

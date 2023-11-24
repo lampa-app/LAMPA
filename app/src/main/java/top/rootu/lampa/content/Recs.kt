@@ -1,7 +1,6 @@
 package top.rootu.lampa.content
 
 import android.util.Log
-import top.rootu.lampa.AndroidJS
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.helpers.Prefs.RCS

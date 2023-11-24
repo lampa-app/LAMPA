@@ -72,18 +72,24 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.appUrl
+import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
+import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
+import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.setAppBrowser
 import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.wathToAdd
+import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
@@ -455,6 +461,7 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("language")
                 runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
+                syncBookmarks() // call it more frequently - onResume()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
             }
@@ -495,6 +502,25 @@ class MainActivity : AppCompatActivity(),
                 "AndroidJS.StorageChange",
                 "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
             )
+        }
+    }
+
+    fun syncBookmarks() {
+        // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
+        this.wathToAdd.forEach { // add items to later
+            runVoidJsFunc("Lampa.Favorite.add", "'wath', '{id: $it}'")
+        } // do we need full card here to add?
+        this.wathToRemove.forEach {// delete items from later
+            runVoidJsFunc("Lampa.Favorite.remove", "'wath', '{id: $it}'")
+        }
+        this.bookToRemove.forEach {// delete items from bookmarks
+            runVoidJsFunc("Lampa.Favorite.remove", "'book', '{id: $it}'")
+        }
+        this.likeToRemove.forEach {// delete items from likes
+            runVoidJsFunc("Lampa.Favorite.remove", "'like', '{id: $it}'")
+        }
+        this.histToRemove.forEach {// delete items from history
+            runVoidJsFunc("Lampa.Favorite.remove", "'hist', '{id: $it}'")
         }
     }
 
@@ -801,15 +827,8 @@ class MainActivity : AppCompatActivity(),
         mXWalkInitializer?.initAsync()
         if (browserInit) {
             browser?.resumeTimers()
+            syncBookmarks()
         }
-        // handle load from channels - onNewIntent() called after onStart()
-//        if (intent?.data?.encodedPath?.contains("update_channel") == true) {
-//            intent?.data?.encodedPath?.let {
-//                val channel = it.substringAfterLast("/")
-//                intent?.putExtra("channel", channel)
-//            }
-//        }
-//        Log.d("*****", "onResume() path ${intent?.data?.encodedPath}")
     }
 
     // handle user pressed Home

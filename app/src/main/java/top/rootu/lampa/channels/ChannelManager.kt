@@ -105,31 +105,6 @@ object ChannelManager {
         }
     }
 
-
-    @SuppressLint("RestrictedApi")
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun exist(channelId: Long, pp: PreviewProgram?): Boolean {
-        val movieId = pp?.internalProviderId
-        val cursor = App.context.contentResolver.query(
-            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
-            PREVIEW_PROGRAM_MAP_PROJECTION,
-            null,
-            null
-        )
-        cursor?.let {
-            if (it.moveToFirst())
-                do {
-                    val program = PreviewProgram.fromCursor(it)
-                    if (movieId == program.internalProviderId) {
-                        cursor.close()
-                        return true // program
-                    }
-                } while (it.moveToNext())
-            cursor.close()
-        }
-        return false
-    }
-
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun removeAll() {
         synchronized(lock) {
@@ -161,6 +136,45 @@ object ChannelManager {
                 ChannelHelper.rem(it)
             }
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun exist(channelId: Long, pp: PreviewProgram?): Boolean {
+        val movieId = pp?.internalProviderId
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
+            PREVIEW_PROGRAM_MAP_PROJECTION,
+            null,
+            null
+        )
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val program = PreviewProgram.fromCursor(it)
+                    if (movieId == program.internalProviderId) {
+                        cursor.close()
+                        return true // program
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return false
+    }
+
+    @SuppressLint("RestrictedApi")
+    fun getInternalIdAndChanIdFromPreviewProgramId(previewProgramId: Long): Pair<String?, Long?> {
+        val curWatchNextUri = TvContractCompat.buildPreviewProgramUri(previewProgramId)
+        var previewProgram: PreviewProgram? = null
+        App.context.contentResolver.query(
+            curWatchNextUri, null, null, null, null
+        ).use { cursor ->
+            if (cursor != null && cursor.count != 0) {
+                cursor.moveToFirst()
+                previewProgram = PreviewProgram.fromCursor(cursor)
+            }
+        }
+        return Pair(previewProgram?.internalProviderId, previewProgram?.channelId)
     }
 
     @SuppressLint("RestrictedApi")

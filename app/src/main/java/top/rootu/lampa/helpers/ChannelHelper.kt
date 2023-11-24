@@ -26,14 +26,15 @@ import java.nio.charset.Charset
 
 object ChannelHelper {
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     private val CHANNELS_PROJECTION = arrayOf(
         TvContractCompat.Channels._ID,
         TvContract.Channels.COLUMN_DISPLAY_NAME,
+//        TvContract.Channels.COLUMN_INTERNAL_PROVIDER_ID,
         TvContract.Channels.COLUMN_INTERNAL_PROVIDER_DATA,
     )
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     fun add(name: String, displayName: String) {
         val channel = get(name)
         if (channel != null)
@@ -42,6 +43,7 @@ object ChannelHelper {
         val builder = Channel.Builder()
         builder.setType(TvContractCompat.Channels.TYPE_PREVIEW)
             .setDisplayName(displayName)
+//            .setInternalProviderId(name)
             .setInternalProviderData(name)
             .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
 
@@ -65,7 +67,7 @@ object ChannelHelper {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     fun get(name: String): Channel? {
         val cursor = App.context.contentResolver.query(
             TvContractCompat.Channels.CONTENT_URI,
@@ -89,11 +91,35 @@ object ChannelHelper {
         return null
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getChanByID(channelId: Long): String? {
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.Channels.CONTENT_URI,
+            CHANNELS_PROJECTION,
+            null,
+            null,
+            null
+        )
+
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val channel = Channel.fromCursor(it)
+                    if (channelId == channel.id) {
+                        cursor.close()
+                        return channel.data
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return null
+    }
+
     fun rem(ch: Channel) {
         App.context.contentResolver.delete(TvContractCompat.buildChannelUri(ch.id), null, null)
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     fun list(): List<Channel> {
         val ch = mutableListOf<Channel>()
 

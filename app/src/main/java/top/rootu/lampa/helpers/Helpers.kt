@@ -28,7 +28,18 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Prefs.addBookToRemove
+import top.rootu.lampa.helpers.Prefs.addHistToRemove
+import top.rootu.lampa.helpers.Prefs.addLikeToRemove
+import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
+import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
 import top.rootu.lampa.helpers.Prefs.appLang
+import top.rootu.lampa.helpers.Prefs.bookToRemove
+import top.rootu.lampa.helpers.Prefs.histToRemove
+import top.rootu.lampa.helpers.Prefs.likeToRemove
+import top.rootu.lampa.helpers.Prefs.wathToAdd
+import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.TmdbID
 import java.util.*
 
@@ -58,7 +69,8 @@ object Helpers {
         val pm = App.context.packageManager
         pm.setComponentEnabledSetting(
             ComponentName(App.context, MainActivity::class.java),
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP
+        )
         val intent = Intent(Intent.ACTION_DELETE)
         intent.data = Uri.parse("package:" + App.context.packageName)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -71,6 +83,7 @@ object Helpers {
         App.context.startActivity(intent)
         return true
     }
+
     fun openSettings(): Boolean {
         val intent = Intent(App.context, MainActivity::class.java)
         intent.putExtra("cmd", "open_settings")
@@ -78,6 +91,7 @@ object Helpers {
         App.context.startActivity(intent)
         return true
     }
+
     fun setLocale(activity: Activity, languageCode: String?) {
         if (BuildConfig.DEBUG) Log.d("APP_MAIN", "set Locale to [$languageCode]")
         val locale = languageCode?.let { Locale(it) } ?: return
@@ -206,6 +220,7 @@ object Helpers {
             false
         }
     }
+
     private fun parseStrict(json: String?): JsonElement? {
         return try {
             // throws on almost any non-valid json
@@ -216,11 +231,34 @@ object Helpers {
     }
 
     // TODO
-    fun manageFavorite(action: String?, catgoryName: String, id: String) {
-        // actions: add | remove
-        Log.d("*****", "manageFavorite($action, $catgoryName, $id)")
+    fun manageFavorite(action: String?, where: String, id: String) {
+        // actions: add | rem
+        if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")
         if (action != null) {
-            // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', '{id: $id}'")
+            when (action) {
+                "rem" -> {
+                    when (where) {
+                        "wath" -> App.context.addWatchNextToRemove(listOf(id))
+                        LampaProvider.Book -> App.context.addBookToRemove(listOf(id))
+                        LampaProvider.Like -> App.context.addLikeToRemove(listOf(id))
+                        LampaProvider.Hist -> App.context.addHistToRemove(listOf(id))
+                    }
+                    if (BuildConfig.DEBUG) {
+                        Log.d("*****", "book items to remove: ${App.context.bookToRemove}")
+                        Log.d("*****", "like items to remove: ${App.context.likeToRemove}")
+                        Log.d("*****", "wath items to remove: ${App.context.wathToRemove}")
+                        Log.d("*****", "hist items to remove: ${App.context.histToRemove}")
+                    }
+                }
+
+                "add" -> {
+                    when (where) {
+                        "wath" -> App.context.addWatchNextToAdd(listOf(id))
+                    }
+                    if (BuildConfig.DEBUG)
+                        Log.d("*****", "wath items to add: ${App.context.wathToAdd}")
+                }
+            }
         }
     }
 
@@ -261,6 +299,7 @@ object Helpers {
             }
         }
     }
+
     /* NOTE! must be called after setContentView */
     fun Activity.showSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

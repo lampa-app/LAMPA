@@ -25,6 +25,11 @@ object Prefs {
     private const val TMDB_IMG = "tmdb_image_url"
     private const val FAV_KEY = "fav"
     private const val REC_KEY = "rec"
+    private const val WNA_KEY = "wath_add"
+    private const val WNR_KEY = "wath_rem"
+    private const val BMR_KEY = "book_rem"
+    private const val LKR_KEY = "like_rem"
+    private const val HSR_KEY = "hist_rem"
 
     private val Context.appPrefs: SharedPreferences
         get() {
@@ -131,15 +136,15 @@ object Prefs {
             .putString(FAV_KEY, json).apply()
     }
 
-    val Context.favorite: String
-        get() {
-            return PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(FAV_KEY, "{}") ?: "{}"
-        }
-
     val Context.FAV: Favorite?
         get() {
-            return try { Gson().fromJson(this.favorite, Favorite::class.java) } catch (e: Exception) { null }
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(FAV_KEY, "{}") ?: "{}"
+                Gson().fromJson(buf, Favorite::class.java)
+            } catch (e: Exception) {
+                null
+            }
         }
 
     fun Context.saveRecs(json: String) {
@@ -147,43 +152,133 @@ object Prefs {
             .putString(REC_KEY, json).apply()
     }
 
-    val Context.recs: String
-        get() {
-            return PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(REC_KEY, "{}") ?: "{}"
-        }
-
     val Context.RCS: List<LampaRec>?
         get() {
             return try {
-                Gson().fromJson(this.recs, Array<LampaRec>::class.java).toList()
-            } catch (e: Exception) { null }
-        }
-
-    val Context.viewedItems: List<String>
-        get() {
-            return try {
-                Gson().fromJson(this.favorite, Favorite::class.java).viewed ?: emptyList()
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(REC_KEY, "{}") ?: "{}"
+                Gson().fromJson(buf, Array<LampaRec>::class.java).toList()
             } catch (e: Exception) {
-                emptyList()
-            }
-        }
-
-    val Context.historyItems: List<String>
-        get() {
-            return try {
-                Gson().fromJson(this.favorite, Favorite::class.java).history ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
+                null
             }
         }
 
     fun Context.isInLampaWatchNext(id: String): Boolean {
-        return try {
-            Gson().fromJson(this.favorite, Favorite::class.java).wath?.contains(id) == true
-        } catch (e: Exception) {
-            false
+        return this.FAV?.wath?.contains(id) == true
+    }
+
+    val Context.wathToAdd: List<String>
+        get() {
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(WNA_KEY, "[]")
+                Gson().fromJson(buf, Array<String>::class.java).toList()
+                    .filter { !this.isInLampaWatchNext(it) }
+            } catch (e: Exception) {
+                emptyList()
+            }
         }
+
+    val Context.wathToRemove: List<String>
+        get() {
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(WNR_KEY, "[]")
+                Gson().fromJson(buf, Array<String>::class.java).toList()
+                    .filter { this.isInLampaWatchNext(it) }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    val Context.bookToRemove: List<String>
+        get() {
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(BMR_KEY, "[]")
+                Gson().fromJson(buf, Array<String>::class.java).toList()
+                    .filter { this.FAV?.book?.contains(it) == true }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    val Context.likeToRemove: List<String>
+        get() {
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(LKR_KEY, "[]")
+                Gson().fromJson(buf, Array<String>::class.java).toList()
+                    .filter { this.FAV?.like?.contains(it) == true }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    val Context.histToRemove: List<String>
+        get() {
+            return try {
+                val pref = PreferenceManager.getDefaultSharedPreferences(this)
+                val buf = pref.getString(HSR_KEY, "[]")
+                Gson().fromJson(buf, Array<String>::class.java).toList()
+                    .filter { this.FAV?.history?.contains(it) == true }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    fun Context.addWatchNextToAdd(items: List<String>) {
+        val lst = this.wathToAdd.toMutableList()
+        lst += items
+        val uniq = lst.distinct()
+        val str = Gson().toJson(uniq)
+        val pref = PreferenceManager.getDefaultSharedPreferences(this)
+        pref.edit()
+            .putString(WNA_KEY, str)
+            .apply()
+    }
+    fun Context.addWatchNextToRemove(items: List<String>) {
+        val lst = this.wathToRemove.toMutableList()
+        lst += items
+        val uniq = lst.distinct()
+        val str = Gson().toJson(uniq)
+        val pref = PreferenceManager.getDefaultSharedPreferences(this)
+        pref.edit()
+            .putString(WNR_KEY, str)
+            .apply()
+    }
+
+    fun Context.addBookToRemove(items: List<String>) {
+        val lst = this.bookToRemove.toMutableList()
+        lst += items
+        val uniq = lst.distinct()
+        val str = Gson().toJson(uniq)
+        val pref = PreferenceManager.getDefaultSharedPreferences(this)
+        pref.edit()
+            .putString(BMR_KEY, str)
+            .apply()
+    }
+
+    fun Context.addLikeToRemove(items: List<String>) {
+        val lst = this.likeToRemove.toMutableList()
+        lst += items
+        val uniq = lst.distinct()
+        val str = Gson().toJson(uniq)
+        val pref = PreferenceManager.getDefaultSharedPreferences(this)
+        pref.edit()
+            .putString(LKR_KEY, str)
+            .apply()
+    }
+
+    fun Context.addHistToRemove(items: List<String>) {
+        val lst = this.histToRemove.toMutableList()
+        lst += items
+        val uniq = lst.distinct()
+        val str = Gson().toJson(uniq)
+        val pref = PreferenceManager.getDefaultSharedPreferences(this)
+        pref.edit()
+            .putString(HSR_KEY, str)
+            .apply()
     }
 
     @Suppress("UNCHECKED_CAST")
