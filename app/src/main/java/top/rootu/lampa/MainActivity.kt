@@ -549,7 +549,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun clearStorage() {
-        // TODO
+        browser?.evaluateJavascript("localStorage.clear()") { Log.d(TAG,"localStorage cleared") }
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
