@@ -3,7 +3,7 @@ package top.rootu.lampa.content
 import android.util.Log
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
-import top.rootu.lampa.helpers.Prefs.RCS
+import top.rootu.lampa.helpers.Prefs.REC
 import top.rootu.lampa.models.LampaRec
 import top.rootu.lampa.models.TmdbID
 
@@ -15,12 +15,12 @@ class Recs : LampaProviderI() {
     companion object {
         fun get(): List<TmdbID> {
             val lst = mutableListOf<TmdbID>()
-            val filtered = App.context.RCS?.filterAll(generateFilters())
+            val filtered = App.context.REC?.filterAll(generateFilters())
                 ?.distinctBy { it.id } // make unique
                 ?.shuffled() // randomize order
 
             if (BuildConfig.DEBUG)
-                Log.d("*****", "Recs cards total: ${App.context.RCS?.size} | filtered: ${filtered?.size}")
+                Log.d("*****", "Recs cards total: ${App.context.REC?.size} | filtered: ${filtered?.size}")
             if (!filtered.isNullOrEmpty()) {
                 filtered.forEach { r ->
                     lst.add(r.toTmdbID())

@@ -152,7 +152,7 @@ object Prefs {
             .putString(REC_KEY, json).apply()
     }
 
-    val Context.RCS: List<LampaRec>?
+    val Context.REC: List<LampaRec>?
         get() {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
@@ -172,7 +172,8 @@ object Prefs {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(WNA_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java).toList()
+                Gson().fromJson(buf, Array<String>::class.java)
+                    .toMutableList()
                     .filter { !this.isInLampaWatchNext(it) }
             } catch (e: Exception) {
                 emptyList()
@@ -184,7 +185,8 @@ object Prefs {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(WNR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java).toList()
+                Gson().fromJson(buf, Array<String>::class.java)
+                    .toMutableList()
                     .filter { this.isInLampaWatchNext(it) }
             } catch (e: Exception) {
                 emptyList()
@@ -196,7 +198,8 @@ object Prefs {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(BMR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java).toList()
+                Gson().fromJson(buf, Array<String>::class.java)
+                    .toMutableList()
                     .filter { this.FAV?.book?.contains(it) == true }
             } catch (e: Exception) {
                 emptyList()
@@ -208,7 +211,8 @@ object Prefs {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(LKR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java).toList()
+                Gson().fromJson(buf, Array<String>::class.java)
+                    .toMutableList()
                     .filter { this.FAV?.like?.contains(it) == true }
             } catch (e: Exception) {
                 emptyList()
@@ -220,7 +224,8 @@ object Prefs {
             return try {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(HSR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java).toList()
+                Gson().fromJson(buf, Array<String>::class.java)
+                    .toMutableList()
                     .filter { this.FAV?.history?.contains(it) == true }
             } catch (e: Exception) {
                 emptyList()
