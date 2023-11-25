@@ -45,6 +45,7 @@ import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -77,6 +78,7 @@ import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
@@ -94,6 +96,7 @@ import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
@@ -512,9 +515,16 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
-//        this.wathToAdd.forEach { // add items to later - we need full card here to add
-//            runVoidJsFunc("Lampa.Favorite.add", "'${LampaProvider.Late}', {id: '$it'}")
-//        }
+        this.wathToAdd.forEach { // add items to later - we need full card here to add
+            val card = App.context.FAV?.card?.find { c -> c.id == it }
+            card?.let {
+                if (it.id.isNotBlank() && !it.name.isNullOrEmpty() && !it.img.isNullOrEmpty())
+                    runVoidJsFunc(
+                        "Lampa.Favorite.add",
+                        "'${LampaProvider.Late}', ${Gson().toJson(it)}"
+                    )
+            }
+        }
         this.wathToRemove.forEach {// delete items from later
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', {id: $it}")
         }
@@ -535,7 +545,7 @@ class MainActivity : AppCompatActivity(),
                 "AndroidJS.clear();" +
                 "for (var key in localStorage) { AndroidJS.set(key, localStorage.getItem(key)); }" +
                 "})()"
-        browser?.evaluateJavascript(backupJavascript) { Log.d( TAG, "localStorage backed up") }
+        browser?.evaluateJavascript(backupJavascript) { Log.d(TAG, "localStorage backed up") }
     }
 
     private fun restoreStorage() {
@@ -545,11 +555,11 @@ class MainActivity : AppCompatActivity(),
                 "var len = AndroidJS.size();" +
                 "for (i = 0; i < len; i++) { var key = AndroidJS.key(i);  console.log(key); localStorage.setItem(key, AndroidJS.get(key)); }" +
                 "})()"
-        browser?.evaluateJavascript(restoreJavascript) { Log.d(TAG,"localStorage restored") }
+        browser?.evaluateJavascript(restoreJavascript) { Log.d(TAG, "localStorage restored") }
     }
 
     private fun clearStorage() {
-        browser?.evaluateJavascript("localStorage.clear()") { Log.d(TAG,"localStorage cleared") }
+        browser?.evaluateJavascript("localStorage.clear()") { Log.d(TAG, "localStorage cleared") }
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
@@ -603,21 +613,23 @@ class MainActivity : AppCompatActivity(),
                             LampaProvider.Recs -> {
                                 // Open Main
                                 "{" +
-                                    "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(Locale.getDefault()) + "'," +
-                                    "component: 'main'," +
-                                    "source: '" + lampaSource + "'," +
-                                    "url: ''" +
-                                "}"
+                                        "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
+                                    Locale.getDefault()
+                                ) + "'," +
+                                        "component: 'main'," +
+                                        "source: '" + lampaSource + "'," +
+                                        "url: ''" +
+                                        "}"
                             }
 
                             LampaProvider.Like, LampaProvider.Book, LampaProvider.Hist -> {
                                 "{" +
-                                    "title: '" + getChannelDisplayName(channel) + "'," +
-                                    "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
-                                    "type: '$channel'," +
-                                    "url: ''," +
-                                    "page: 1" +
-                                "}"
+                                        "title: '" + getChannelDisplayName(channel) + "'," +
+                                        "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
+                                        "type: '$channel'," +
+                                        "url: ''," +
+                                        "page: 1" +
+                                        "}"
                             }
 
                             else -> ""
@@ -665,7 +677,8 @@ class MainActivity : AppCompatActivity(),
         val menuItemsTitle = arrayOfNulls<String?>(5)
         val menuItemsAction = arrayOfNulls<String?>(5)
 
-        menuItemsTitle[0] = if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
+        menuItemsTitle[0] =
+            if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
         menuItemsAction[0] = "closeMenu"
         menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
@@ -692,14 +705,17 @@ class MainActivity : AppCompatActivity(),
                 "closeMenu" -> if (isAndroidTV) {
                     Scheduler.scheduleUpdate(false)
                 }
+
                 "showUrlInputDialog" -> {
                     App.toast(R.string.change_note)
                     showUrlInputDialog()
                 }
+
                 "showBrowserInputDialog" -> {
                     App.toast(R.string.change_note)
                     showBrowserInputDialog()
                 }
+
                 "showBackupDialog" -> showBackupDialog()
                 "appExit" -> appExit()
             }
@@ -741,6 +757,7 @@ class MainActivity : AppCompatActivity(),
                     else
                         App.toast(R.string.settings_save_fail)
                 }
+
                 "restoreAppSettings" -> {
                     if (loadFromBackup(Prefs.APP_PREFERENCES)) {
                         App.toast(R.string.settings_restored)
@@ -748,6 +765,7 @@ class MainActivity : AppCompatActivity(),
                     } else
                         App.toast(R.string.settings_rest_fail)
                 }
+
                 "restoreLampaSettings" -> {
                     if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
                         restoreStorage()
@@ -756,6 +774,7 @@ class MainActivity : AppCompatActivity(),
                     } else
                         App.toast(R.string.settings_rest_fail)
                 }
+
                 "restoreDefaultSettings" -> {
                     clearStorage() // TODO
                     appPrefs.edit().clear().apply()
