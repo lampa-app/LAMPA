@@ -751,11 +751,19 @@ class MainActivity : AppCompatActivity(),
             dialog.dismiss()
             when (menuItemsAction[which]) {
                 "backupAllSettings" -> {
-                    dumpStorage()
-                    if (saveSettings() && saveStorage())
-                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
-                    else
-                        App.toast(R.string.settings_save_fail)
+                    lifecycleScope.launch {
+                        dumpStorage() // fixme: add callback
+                        delay(3000)
+                        if (saveSettings() && saveStorage())
+                            App.toast(
+                                getString(
+                                    R.string.settings_saved_toast,
+                                    Backup.DIR.toString()
+                                )
+                            )
+                        else
+                            App.toast(R.string.settings_save_fail)
+                    }
                 }
 
                 "restoreAppSettings" -> {
@@ -767,16 +775,19 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 "restoreLampaSettings" -> {
-                    if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
-                        restoreStorage()
-                        App.toast(R.string.settings_restored)
-                        recreate()
-                    } else
-                        App.toast(R.string.settings_rest_fail)
+                    lifecycleScope.launch {
+                        if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                            restoreStorage() // fixme: add callback
+                            App.toast(R.string.settings_restored)
+                            delay(3000)
+                            recreate()
+                        } else
+                            App.toast(R.string.settings_rest_fail)
+                    }
                 }
 
                 "restoreDefaultSettings" -> {
-                    clearStorage() // TODO
+                    clearStorage()
                     appPrefs.edit().clear().apply()
                     recreate()
                 }

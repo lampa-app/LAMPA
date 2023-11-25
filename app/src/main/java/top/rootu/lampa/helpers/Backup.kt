@@ -55,55 +55,64 @@ object Backup {
         //val pref = PreferenceManager.getDefaultSharedPreferences(this)
         val pref = this.appPrefs
         val edit = pref.edit()
-        val docFactory = DocumentBuilderFactory.newInstance()
-        val docBuilder = docFactory.newDocumentBuilder()
-        val src = InputSource(StringReader(buf))
-        val doc = docBuilder.parse(src)
-        val root = doc.documentElement
-        var child = root.firstChild
-        while (child != null) {
-            if (child.nodeType == Node.ELEMENT_NODE) {
-                val element = child as Element
-                val type = element.nodeName
-                val name = element.getAttribute("name")
-                when (type) {
-                    "int" -> {
-                        val value = element.getAttribute("value")
-                        if (value.isNotBlank()) edit.putInt(name, value.toInt())
-                    }
-                    "long" -> {
-                        val value = element.getAttribute("value")
-                        if (value.isNotBlank()) edit.putLong(name, value.toLong())
-                    }
-                    "float" -> {
-                        val value = element.getAttribute("value")
-                        if (value.isNotBlank()) edit.putFloat(name, value.toFloat())
-                    }
-                    "string" -> {
-                        val value = element.textContent
-                        if (value.isNotBlank()) edit.putString(name, value)
-                    }
-                    "boolean" -> {
-                        val value = element.getAttribute("value")
-                        edit.putBoolean(name, value == "true")
-                    }
-                    "list", "set" -> {
-                        val vl = mutableListOf<String>()
-                        var ch = element.firstChild
-                        while (ch != null) {
-                            if (ch.nodeType == Node.ELEMENT_NODE) {
-                                val e = ch as Element
-                                vl.add(e.textContent)
-                            }
-                            ch = ch.nextSibling
+        try {
+            val docFactory = DocumentBuilderFactory.newInstance()
+            val docBuilder = docFactory.newDocumentBuilder()
+            val src = InputSource(StringReader(buf))
+            val doc = docBuilder.parse(src)
+            val root = doc.documentElement
+            var child = root.firstChild
+            while (child != null) {
+                if (child.nodeType == Node.ELEMENT_NODE) {
+                    val element = child as Element
+                    val type = element.nodeName
+                    val name = element.getAttribute("name")
+                    when (type) {
+                        "int" -> {
+                            val value = element.getAttribute("value")
+                            if (value.isNotBlank()) edit.putInt(name, value.toInt())
                         }
-                        if (vl.isNotEmpty()) edit.putStringSet(name, vl.toSet())
+
+                        "long" -> {
+                            val value = element.getAttribute("value")
+                            if (value.isNotBlank()) edit.putLong(name, value.toLong())
+                        }
+
+                        "float" -> {
+                            val value = element.getAttribute("value")
+                            if (value.isNotBlank()) edit.putFloat(name, value.toFloat())
+                        }
+
+                        "string" -> {
+                            val value = element.textContent
+                            if (value.isNotBlank()) edit.putString(name, value)
+                        }
+
+                        "boolean" -> {
+                            val value = element.getAttribute("value")
+                            edit.putBoolean(name, value == "true")
+                        }
+
+                        "list", "set" -> {
+                            val vl = mutableListOf<String>()
+                            var ch = element.firstChild
+                            while (ch != null) {
+                                if (ch.nodeType == Node.ELEMENT_NODE) {
+                                    val e = ch as Element
+                                    vl.add(e.textContent)
+                                }
+                                ch = ch.nextSibling
+                            }
+                            if (vl.isNotEmpty()) edit.putStringSet(name, vl.toSet())
+                        }
                     }
                 }
+                child = child.nextSibling
             }
-            child = child.nextSibling
+            edit.apply()
+        } catch (e: Exception) {
+            return false
         }
-        edit.apply()
         return true
     }
 
