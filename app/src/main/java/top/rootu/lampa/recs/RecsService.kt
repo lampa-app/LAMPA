@@ -24,8 +24,7 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.isAmazonDev
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.appUrl
-import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.models.getEntity
+import top.rootu.lampa.models.LampaCard
 import java.io.IOException
 import java.net.URL
 import java.util.Locale
@@ -34,7 +33,7 @@ import kotlin.math.min
 
 object RecsService {
 
-    const val MAX_RECS_CAP = 20
+    private const val MAX_RECS_CAP = 20
     private var bitmap: Bitmap? = null
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -63,9 +62,8 @@ object RecsService {
                 .appendPath(this.resources.getResourceEntryName(resourceId))
                 .build()
 
-            val ids = getRecs()
-            val entities = ids.mapNotNull { it.getEntity() }
-            val itemsSend = min(entities.size, 10)
+            val cards = getRecs()
+            val itemsSend = min(cards.size, 10)
 
             var priority = 1f
             val delta = 1f / itemsSend
@@ -74,67 +72,67 @@ object RecsService {
 
             for (i in 0 until itemsSend) {
                 try {
-                    val ent = entities[i]
+                    val card = cards[i]
 
-                    var poster = ent.poster_path ?: emptyPosterPath
+                    var poster = card.img ?: emptyPosterPath
                     if (poster.isEmpty())
                         poster = emptyPosterPath
 
                     getBitmapFromURL(poster, cardWidth, cardHeight)
 
-                    val genres = ent.genres?.map { g ->
+                    val genres = card.genres?.map { g ->
                         g?.name?.replaceFirstChar {
                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                         }
                     }?.toTypedArray()
                     val info = mutableListOf<String>()
 
-                    ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
+                    card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
-                    if (ent.media_type == "tv")
-                        ent.number_of_seasons?.let { info.add("S$it") }
+                    if (card.type == "tv")
+                        card.number_of_seasons?.let { info.add("S$it") }
 
-                    ent.genres?.joinToString(", ") { g ->
+                    card.genres?.joinToString(", ") { g ->
                         g?.name?.replaceFirstChar {
                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                         }.toString()
                     }?.let { info.add(it) }
 
-                    var country =
-                        ent.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
-                    if (country.isEmpty())
-                        country = ent.origin_country?.joinToString(", ") ?: ""
-                    if (country.isNotEmpty())
-                        info.add(country)
-
-                    ent.certification?.let {
-                        if (it.isNotBlank())
-                            info.add(it)
-                    }
+//                    var country =
+//                        card.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
+//                    if (country.isEmpty())
+//                        country = card.origin_country?.joinToString(", ") ?: ""
+//                    if (country.isNotEmpty())
+//                        info.add(country)
+//
+//                    card.certification?.let {
+//                        if (it.isNotBlank())
+//                            info.add(it)
+//                    }
 
                     builder.setBadgeIcon(R.drawable.lampa_icon)
-                        .setIdTag("Video${ent.id}")
-                        .setTitle(ent.title)
+                        .setIdTag("video${card.id}")
+                        .setTitle(card.title)
                         .setText(info.joinToString(" · "))
                         .setGenres(genres)
                         .setContentIntentData(
                             ContentRecommendation.INTENT_TYPE_ACTIVITY,
-                            buildPendingIntent(ent.toTmdbID(), "lampa"),
+                            buildPendingIntent(card, "lampa"),
                             0,
                             null
                         )
                         .setContentImage(bitmap)
                         .setColor(ContextCompat.getColor(this, R.color.teal_500))
-                        .setRunningTime(ent.runtime?.toLong()?.times(60L) ?: 0L)
+                        .setRunningTime(card.runtime?.toLong()?.times(60L) ?: 0L)
                         .setGroup("lampa")
                         .setSortKey(priority.toString())
 
-                    if (ent.media_type == "tv")
+                    if (card.type == "tv")
                         builder.setContentTypes(arrayOf(ContentRecommendation.CONTENT_TYPE_SERIAL))
                     else
                         builder.setContentTypes(arrayOf(ContentRecommendation.CONTENT_TYPE_MOVIE))
 
-                    ent.backdrop_path?.let { builder.setBackgroundImageUri(it) }
+                    card.background_image?.let { builder.setBackgroundImageUri(it) }
 
                     priority -= delta
                     val notification = builder.build().getNotificationObject(applicationContext)
@@ -148,24 +146,24 @@ object RecsService {
                         notification.extras.putInt("com.amazon.extra.RANK", i)
                         notification.extras.putString(
                             "com.amazon.extra.LONG_DESCRIPTION",
-                            ent.overview
+                            card.overview
                         )
-                        ent.videos?.let {
-                            if (it.results.isNotEmpty())
-                                notification.extras.putString(
-                                    "com.amazon.extra.PREVIEW_URL",
-                                    it.results[0].link
-                                )
-                        }
+//                        card.videos?.let {
+//                            if (it.results.isNotEmpty())
+//                                notification.extras.putString(
+//                                    "com.amazon.extra.PREVIEW_URL",
+//                                    it.results[0].link
+//                                )
+//                        }
                         notification.extras.putString(
                             "com.amazon.extra.CONTENT_RELEASE_DATE",
-                            ent.year
+                            card.release_year
                         )
-                        if (!ent.imdb_id.isNullOrEmpty())
-                            notification.extras.putString("com.amazon.extra.IMDB_ID", ent.imdb_id)
+                        if (!card.imdb_id.isNullOrEmpty())
+                            notification.extras.putString("com.amazon.extra.IMDB_ID", card.imdb_id)
                     }
 
-                    ent.id?.let { mNotifyManager.notify(it, notification) }
+                    card.id?.toIntOrNull()?.let { mNotifyManager.notify(it, notification) }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -173,9 +171,8 @@ object RecsService {
         }
     }
 
-    fun getRecs(): List<TmdbID> {
-        // TODO: filter viewed
-        return LampaProvider.get(LampaProvider.Recs, false)?.items?.take(MAX_RECS_CAP).orEmpty()
+    private fun getRecs(): List<LampaCard> {
+        return LampaProvider.get(LampaProvider.Recs, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     // https://stackoverflow.com/questions/8992964/android-load-from-url-to-bitmap

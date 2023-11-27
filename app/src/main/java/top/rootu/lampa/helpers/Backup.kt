@@ -3,6 +3,7 @@ package top.rootu.lampa.helpers
 import android.content.Context
 import android.os.Build
 import android.os.Environment
+import androidx.preference.PreferenceManager
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.xml.sax.InputSource
@@ -51,9 +52,10 @@ object Backup {
         val buf = loadFile("$which.backup")
         if (buf.isBlank())
             return false
-
-        //val pref = PreferenceManager.getDefaultSharedPreferences(this)
-        val pref = this.appPrefs
+        val pref = if (which == Prefs.APP_PREFERENCES)
+            this.appPrefs
+        else
+            PreferenceManager.getDefaultSharedPreferences(this)
         val edit = pref.edit()
         try {
             val docFactory = DocumentBuilderFactory.newInstance()

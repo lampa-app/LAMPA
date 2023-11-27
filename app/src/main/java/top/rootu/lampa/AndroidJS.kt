@@ -9,6 +9,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -26,17 +27,21 @@ import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs
+import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lampaSource
+import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
 import top.rootu.lampa.helpers.Prefs.setLampaSource
+import top.rootu.lampa.helpers.Prefs.setSyncEnabled
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
+import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.wathToRemove
-import top.rootu.lampa.models.getEntity
+import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
@@ -107,6 +112,24 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
                     if (BuildConfig.DEBUG) Log.d("*****", "favorite json stored")
+                }
+            }
+
+            "account_use" -> {
+                val use = eo.optBoolean("value", false)
+                if (BuildConfig.DEBUG) Log.d("*****", "account_use $use")
+                App.context.setSyncEnabled(use)
+            }
+
+            "account_bookmarks" -> {
+                if (BuildConfig.DEBUG) Log.d("*****", "account_bookmarks json changed")
+                val json = eo.optString("value", "")
+                if (isValidJson(json)) {
+                    App.context.saveAccountBookmarks(json)
+                    if (BuildConfig.DEBUG) Log.d(
+                        "*****",
+                        "account_bookmarks json stored"
+                    )
                 }
             }
 
@@ -379,7 +402,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null && isAndroidTV) {
-            Log.d(TAG, "***** updateChannel $where")
+            Log.d(TAG, "***** updateChannel [$where]")
             when (where) {
                 LampaProvider.Hist -> {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -406,30 +429,45 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     // Handle add to Watch Next from Lampa
                     // TODO: find a better way to manage WatchNext
                     CoroutineScope(Dispatchers.IO).launch {
+
                         delay(5000)
-                        val wathCards = App.context.FAV?.card?.filter {
+
+                        val lst = mutableListOf<LampaCard>()
+                        // CUB
+                        if (App.context.syncEnabled)
+                            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
+                                val card = Gson().fromJson(it.data, LampaCard::class.java)
+                                card.fixCard()
+                                lst.add(card)
+                            }
+                        // FAV
+                        App.context.FAV?.card?.filter {
                             App.context.FAV?.wath?.contains(it.id) == true
+                        }?.forEach {
+                            it.fixCard()
+                            lst.add(it)
                         }
-                        val excludePending = wathCards?.filter {
-                            !App.context.wathToRemove.contains(it.id)
+                        val (excludePending, pending) = lst.partition {
+                            !App.context.wathToRemove.contains(it.id.toString())
                         } // skip pending to remove
-                        excludePending?.forEach {
-                            val tmdbID = it.toTmdbID()
-                            val ent = tmdbID.getEntity()
-                            ent?.let {
-                                withContext(Dispatchers.Main) {
-                                    try {
-                                        if (BuildConfig.DEBUG) Log.d(
-                                            "*****",
-                                            "updateChannel() Add ${tmdbID.id} to WatchNext"
-                                        )
-                                        WatchNext.add(it)
-                                    } catch (e: Exception) {
-                                        if (BuildConfig.DEBUG) Log.d(
-                                            "*****",
-                                            "updateChannel() Error add ${tmdbID.id} to WatchNext: $e"
-                                        )
-                                    }
+                        if (BuildConfig.DEBUG) Log.d(
+                            "*****",
+                            "AndroidJS WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
+                        )
+                        excludePending.forEach {
+                            withContext(Dispatchers.Default) {
+                                // FIXME: WTF? Not allowed to change ID
+                                try {
+                                    if (BuildConfig.DEBUG) Log.d(
+                                        "*****",
+                                        "AndroidJS Add $it to WatchNext"
+                                    )
+                                    WatchNext.add(it)
+                                } catch (e: Exception) {
+                                    if (BuildConfig.DEBUG) Log.d(
+                                        "*****",
+                                        "AndroidJS Error add $it to WatchNext: $e"
+                                    )
                                 }
                             }
                         }
@@ -448,6 +486,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     private var keys: Array<String?>? = null
     private var values: Array<String?>? = null
     private var dumped = false
+
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Synchronized

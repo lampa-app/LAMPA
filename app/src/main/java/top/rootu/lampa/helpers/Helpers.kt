@@ -40,7 +40,8 @@ import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
-import top.rootu.lampa.models.TmdbID
+import top.rootu.lampa.models.LampaCard
+import top.rootu.lampa.models.WatchNextToAdd
 import java.util.*
 
 
@@ -182,15 +183,21 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(tmdbId: TmdbID, providerName: String?): Intent {
+    fun buildPendingIntent(card: LampaCard, providerName: String?): Intent {
         val intent = Intent(App.context, MainActivity::class.java)
-        intent.putExtra("id", tmdbId.id)
-        intent.putExtra("media_type", tmdbId.media_type)
-        val idStr = Gson().toJson(tmdbId)
-        intent.putExtra("TmdbIDJS", idStr)
+        // TODO: fix this id and media type mess
+        val intID = card.id?.toIntOrNull() // required for processIntent()
+        intID?.let { intent.putExtra("id", it) }
+        intent.putExtra("source", card.source)
+        intent.putExtra("media_type", card.type)
+
+        val idStr = Gson().toJson(card) // used to get card from HomeWatch
+        intent.putExtra("LampaCardJS", idStr)
+
         providerName?.let { intent.putExtra("Provider", it) }
+
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        intent.action = tmdbId.id.toString()
+        intent.action = card.id.toString()
         return intent
     }
 
@@ -230,8 +237,7 @@ object Helpers {
         }
     }
 
-    // TODO
-    fun manageFavorite(action: String?, where: String, id: String) {
+    fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
         // actions: add | rem
         if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")
         if (action != null) {
@@ -253,7 +259,12 @@ object Helpers {
 
                 "add" -> {
                     when (where) {
-                        LampaProvider.Late -> App.context.addWatchNextToAdd(listOf(id))
+                        LampaProvider.Late -> App.context.addWatchNextToAdd(
+                            WatchNextToAdd(
+                                id,
+                                card
+                            )
+                        )
                     }
                     if (BuildConfig.DEBUG)
                         Log.d("*****", "wath items to add: ${App.context.wathToAdd}")

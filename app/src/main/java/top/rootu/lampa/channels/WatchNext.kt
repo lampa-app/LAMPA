@@ -10,12 +10,14 @@ import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPEC
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
+import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.tmdb.models.entity.Entity
+import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.models.LampaCard
 import java.util.*
 
 object WatchNext {
@@ -31,10 +33,10 @@ object WatchNext {
         )
 
     @SuppressLint("RestrictedApi")
-    fun add(ent: Entity) {
+    fun add(card: LampaCard) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
-            ent.id?.let { id ->
-                val existingProgram = findProgramByMovieId(id.toString())
+            card.id?.let {
+                val existingProgram = findProgramByMovieId(card.id.toString())
                 val removed = removeIfNotBrowsable(existingProgram)
                 val shouldUpdateProgram = existingProgram != null && !removed
                 if (shouldUpdateProgram) {
@@ -49,17 +51,17 @@ object WatchNext {
                 } else {
                     val programUri = App.context.contentResolver.insert(
                         TvContractCompat.WatchNextPrograms.CONTENT_URI,
-                        getProgram(ent).toContentValues()
+                        getProgram(card).toContentValues()
                     )
                     if (programUri == null || programUri == Uri.EMPTY)
-                        Log.e(TAG, "Failed to insert movie $id into the Watch Next")
+                        Log.e(TAG, "Failed to insert movie ${card.id} into the Watch Next")
                 }
             }
         }
     }
-    fun rem(tmdbID: String?) {
+    fun rem(movieId: String?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
-            tmdbID?.let { id ->
+            movieId?.let { id ->
                 deleteFromWatchNext(id)
             }
         }
@@ -69,8 +71,6 @@ object WatchNext {
 
     @SuppressLint("RestrictedApi")
     fun getInternalIdFromWatchNextProgramId(watchNextId: Long): String? {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "getInternalIdFromWatchNextProgramId($watchNextId)")
         val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
         var watchNextProgram: WatchNextProgram? = null
         App.context.contentResolver.query(
@@ -82,6 +82,27 @@ object WatchNext {
             }
         }
         return watchNextProgram?.internalProviderId
+    }
+
+    @SuppressLint("RestrictedApi")
+    fun getCardFromWatchNextProgramId(watchNextId: Long): LampaCard? {
+        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
+        var watchNextProgram: WatchNextProgram? = null
+        App.context.contentResolver.query(
+            curWatchNextUri, null, null, null, null
+        ).use { cursor ->
+            if (cursor != null && cursor.count != 0) {
+                cursor.moveToFirst()
+                watchNextProgram = WatchNextProgram.fromCursor(cursor)
+            }
+        }
+        try {
+            val intent = watchNextProgram?.intent
+            val json = intent?.getStringExtra("LampaCardJS")
+            if (isValidJson(json))
+                return Gson().fromJson(json, LampaCard::class.java)
+        } catch (_: Exception) { }
+        return null
     }
 
     @SuppressLint("RestrictedApi")
@@ -144,44 +165,38 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    private fun getProgram(ent: Entity): WatchNextProgram {
+    private fun getProgram(card: LampaCard): WatchNextProgram {
         val info = mutableListOf<String>()
 
-        ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
+        card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
-        if (ent.media_type == "tv")
-            ent.number_of_seasons?.let { info.add("S$it") }
+        if (card.type == "tv")
+            card.number_of_seasons?.let { info.add("S$it") }
 
-        ent.genres?.joinToString(", ") { g ->
+        card.genres?.joinToString(", ") { g ->
             g?.name?.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
             }.toString()
         }?.let { info.add(it) }
-
-        var country = ent.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
-        if (country.isEmpty())
-            country = ent.origin_country?.joinToString(", ") ?: ""
-        if (country.isNotEmpty())
-            info.add(country)
 
         val builder = WatchNextProgram.Builder()
         val wb =
             builder.setType(TvContractCompat.WatchNextPrograms.TYPE_MOVIE)
                 .setWatchNextType(TvContractCompat.WatchNextPrograms.WATCH_NEXT_TYPE_WATCHLIST)
                 .setLastEngagementTimeUtcMillis(System.currentTimeMillis())
-                .setTitle(ent.title)
-                .setDescription(ent.overview)
+                .setTitle(card.title)
+                .setDescription(card.overview)
                 .setGenre(info.joinToString(" · "))
-                .setReviewRating((ent.vote_average?.div(2) ?: 0).toString())
-                .setIntent(Helpers.buildPendingIntent(ent.toTmdbID(), null))
-                .setInternalProviderId(ent.id.toString()) // Our internal ID
+                .setReviewRating((card.vote_average?.div(2) ?: 0).toString())
+                .setIntent(Helpers.buildPendingIntent(card, null))
+                .setInternalProviderId(card.id.toString()) // Our internal ID
                 .setType(TvContractCompat.PreviewPrograms.TYPE_MOVIE)
-                .setDurationMillis(ent.runtime?.times(60000) ?: 0)
-                .setReleaseDate(ent.year)
+                .setDurationMillis(card.runtime?.times(60000) ?: 0)
+                .setReleaseDate(card.release_year)
                 .setSearchable(true)
                 .setLive(false)
 
-        if (ent.poster_path.isNullOrEmpty()) {
+        if (card.img.isNullOrEmpty()) {
             val resourceId = R.drawable.empty_poster // in-app poster
             val emptyPoster = Uri.Builder()
                 .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
@@ -192,11 +207,11 @@ object WatchNext {
             wb.setPosterArtUri(emptyPoster)
                 .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
         } else {
-            wb.setPosterArtUri(Uri.parse(ent.poster_path))
+            wb.setPosterArtUri(Uri.parse(card.img))
                 .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
         }
-        if (!ent.backdrop_path.isNullOrEmpty()) {
-            wb.setThumbnailUri(Uri.parse(ent.backdrop_path)).setThumbnailAspectRatio(ASPECT_RATIO_16_9)
+        if (!card.background_image.isNullOrEmpty()) {
+            wb.setThumbnailUri(Uri.parse(card.background_image)).setThumbnailAspectRatio(ASPECT_RATIO_16_9)
         }
 
         return wb.build()

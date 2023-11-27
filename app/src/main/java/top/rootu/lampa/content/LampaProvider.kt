@@ -2,14 +2,14 @@ package top.rootu.lampa.content
 
 import top.rootu.lampa.App
 import top.rootu.lampa.helpers.Prefs.FAV
-import top.rootu.lampa.models.TmdbID
+import top.rootu.lampa.models.LampaCard
 
 abstract class LampaProviderI : Any() {
     abstract fun get(): ReleaseID?
 }
 
 data class ReleaseID(
-    val items: List<TmdbID>?
+    val items: List<LampaCard>?
 )
 
 object LampaProvider {
@@ -46,9 +46,10 @@ object LampaProvider {
         }
     }
 
-    private fun filterViewed(lst: List<TmdbID>): List<TmdbID> {
-        return lst.filter { ent ->
-            App.context.FAV?.viewed?.contains(ent.id.toString()) != true && App.context.FAV?.history?.contains(ent.id.toString()) != true
+    private fun filterViewed(lst: List<LampaCard>): List<LampaCard> {
+        return lst.filter { card ->
+            App.context.FAV?.viewed?.contains(card.id) != true &&
+                    App.context.FAV?.history?.contains(card.id) != true
         }
     }
 }

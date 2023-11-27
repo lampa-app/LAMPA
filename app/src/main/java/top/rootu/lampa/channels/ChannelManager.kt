@@ -22,8 +22,7 @@ import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
-import top.rootu.lampa.models.TmdbID
-import top.rootu.lampa.models.getEntity
+import top.rootu.lampa.models.LampaCard
 import java.util.*
 
 object ChannelManager {
@@ -51,7 +50,7 @@ object ChannelManager {
 
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.O)
-    fun update(name: String, list: List<TmdbID>) {
+    fun update(name: String, list: List<LampaCard>) {
         if (BuildConfig.DEBUG) Log.d(TAG, "update($name, size:${list.size})")
         removeLostChannels()
         synchronized(lock) {
@@ -105,7 +104,7 @@ object ChannelManager {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     fun removeAll() {
         synchronized(lock) {
             ChannelHelper.list().forEach {
@@ -114,7 +113,7 @@ object ChannelManager {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun removeLostChannels() {
         synchronized(lock) {
             //remove channels with null data
@@ -181,60 +180,61 @@ object ChannelManager {
     private fun getProgram(
         channelId: Long,
         provName: String,
-        id: TmdbID,
+        //id: TmdbID,
+        card: LampaCard,
         weight: Int
     ): PreviewProgram? {
         val info = mutableListOf<String>()
 
-        val ent = id.getEntity() ?: return null
+        //val ent = id.getEntity() ?: return null
 
-        ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
+        card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
-        if (ent.media_type == "tv")
-            ent.number_of_seasons?.let { info.add("S$it") }
+        if (card.type == "tv")
+            card.number_of_seasons?.let { info.add("S$it") }
 
-        ent.genres?.joinToString(", ") { g ->
+        card.genres?.joinToString(", ") { g ->
             g?.name?.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
             }.toString()
         }?.let { info.add(it) }
 
-        var country = ent.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
-        if (country.isEmpty())
-            country = ent.origin_country?.joinToString(", ") ?: ""
-        if (country.isNotEmpty())
-            info.add(country)
+//        var country = card.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
+//        if (country.isEmpty())
+//            country = card.origin_country?.joinToString(", ") ?: ""
+//        if (country.isNotEmpty())
+//            info.add(country)
 
-        ent.certification?.let {
-            if (it.isNotBlank())
-                info.add(it)
-        }
+//        card.certification?.let {
+//            if (it.isNotBlank())
+//                info.add(it)
+//        }
 
         val preview = PreviewProgram.Builder()
             .setChannelId(channelId)
-            .setTitle(ent.title)
+            .setTitle(card.title)
             .setAvailability(TvContractCompat.PreviewProgramColumns.AVAILABILITY_AVAILABLE)
-            .setDescription(ent.overview)
+            .setDescription(card.overview)
             .setGenre(info.joinToString(" · "))
-            .setIntent(buildPendingIntent(ent.toTmdbID(), provName))
-            .setInternalProviderId(ent.id.toString())
+            .setIntent(buildPendingIntent(card, provName))
+            .setInternalProviderId(card.id.toString())
             .setWeight(weight)
             .setType(TvContractCompat.PreviewPrograms.TYPE_MOVIE)
-            .setDurationMillis(ent.runtime?.times(60000) ?: 0)
+            .setDurationMillis(card.runtime?.times(60000) ?: 0)
             .setSearchable(true)
             .setLive(false)
 
-        ent.year?.let {
+        card.release_year?.let {
             preview.setReleaseDate(it)
         }
 
-        ent.vote_average?.let {
+        card.vote_average?.let {
             preview.setReviewRating((it.div(2)).toString())
         }
 
         var usePoster = true // use backdrop for recs
-        if (!ent.backdrop_path.isNullOrEmpty() && provName == Recs) {
-            val poster = ent.backdrop_path
+        if (!card.background_image.isNullOrEmpty() && provName == Recs) {
+            val poster = card.background_image
             preview.setPosterArtUri(Uri.parse(poster))
                 .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
             preview.setThumbnailUri(Uri.parse(poster))
@@ -242,7 +242,7 @@ object ChannelManager {
             usePoster = false
         }
         if (usePoster) {
-            if (ent.poster_path.isNullOrEmpty()) {
+            if (card.img.isNullOrEmpty()) {
                 val resourceId = R.drawable.empty_poster // in-app poster
                 val emptyPoster = Uri.Builder()
                     .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
@@ -253,7 +253,7 @@ object ChannelManager {
                 preview.setPosterArtUri(emptyPoster)
                     .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
             } else {
-                val poster = ent.poster_path
+                val poster = card.img
                 preview.setPosterArtUri(Uri.parse(poster))
                     .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
             }

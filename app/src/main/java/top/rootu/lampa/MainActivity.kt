@@ -85,6 +85,8 @@ import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
+import top.rootu.lampa.helpers.Prefs.clearPending
+import top.rootu.lampa.helpers.Prefs.cubWatchNext
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
@@ -95,6 +97,7 @@ import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
+import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
@@ -468,6 +471,7 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("internal_torrclient")
                 runJsStorageChangeField("language")
                 runJsStorageChangeField("source")
+                runJsStorageChangeField("account_use") // get sync state
                 runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
                 syncBookmarks() // call it more frequently - onResume()
@@ -515,28 +519,43 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
-        this.wathToAdd.forEach { // add items to later - we need full card here to add
-            val card = App.context.FAV?.card?.find { c -> c.id == it }
-            card?.let {
-                if (it.id.isNotBlank() && !it.name.isNullOrEmpty() && !it.img.isNullOrEmpty())
-                    runVoidJsFunc(
-                        "Lampa.Favorite.add",
-                        "'${LampaProvider.Late}', ${Gson().toJson(it)}"
-                    )
-            }
-        }
+//  TODO: fix duplicates and update errors
+//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() cubWatchNext size: ${this.cubWatchNext.size}")
+//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() favWatchNext size: ${App.context.FAV?.wath?.size}")
+//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToAdd: ${this.wathToAdd}")
+//        this.wathToAdd.forEach { // add items to later - we need full card here to add
+//            var lampaCard = App.context.FAV?.card?.find { card -> card.id == it.id }
+//            if (lampaCard == null)
+//                lampaCard = it.card // js from intent
+//            lampaCard?.let { card ->
+//                card.fixCard()
+//                if (BuildConfig.DEBUG) Log.d(
+//                    "*****",
+//                    "syncBookmarks() in wathToAdd $card"
+//                )
+//                runVoidJsFunc(
+//                    "Lampa.Favorite.add",
+//                    "'${LampaProvider.Late}', ${Gson().toJson(card)}"
+//                )
+//            }
+//        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToRemove: ${this.wathToRemove}")
         this.wathToRemove.forEach {// delete items from later
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', {id: $it}")
         }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() bookToRemove: ${this.bookToRemove}")
         this.bookToRemove.forEach {// delete items from bookmarks
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Book}', {id: $it}")
         }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() likeToRemove: ${this.likeToRemove}")
         this.likeToRemove.forEach {// delete items from likes
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Like}', {id: $it}")
         }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() histToRemove: ${this.histToRemove}")
         this.histToRemove.forEach {// delete items from history
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', {id: $it}")
         }
+        App.context.clearPending()
     }
 
     private fun dumpStorage() {
@@ -563,21 +582,21 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
-        var idTMDB = -1
+        var intID = -1
         var mediaType = ""
-//        if (BuildConfig.DEBUG) {
-//            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
-//            intent?.extras?.let {
-//                for (key in it.keySet()) {
-//                    Log.d(
-//                        TAG,
-//                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-//                    )
-//                }
-//            }
-//        }
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+            intent?.extras?.let {
+                for (key in it.keySet()) {
+                    Log.d(
+                        TAG,
+                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+                    )
+                }
+            }
+        }
         if (intent?.hasExtra("id") == true)
-            idTMDB = intent.getIntExtra("id", -1)
+            intID = intent.getIntExtra("id", -1)
 
         if (intent?.hasExtra("media_type") == true)
             mediaType = intent.getStringExtra("media_type") ?: ""
@@ -589,7 +608,7 @@ class MainActivity : AppCompatActivity(),
                 if (videoType == "movie" || videoType == "tv") {
                     id = "\\d+".toRegex().find(id)?.value ?: "-1"
                     if (id.isNotEmpty()) {
-                        idTMDB = id.toInt()
+                        intID = id.toInt()
                         mediaType = videoType
                     }
                 }
@@ -599,16 +618,16 @@ class MainActivity : AppCompatActivity(),
                     val uri = it
                     val ids = uri.lastPathSegment
                     if (uri.lastPathSegment == "update_channel")
-                        idTMDB = -1
+                        intID = -1
                     else {
-                        idTMDB = ids?.toInt() ?: -1
+                        intID = ids?.toInt() ?: -1
                         mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
                 }
 
                 else -> { // handle channels
                     if (it.encodedPath?.contains("update_channel") == true) {
-                        idTMDB = -1
+                        intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
                             LampaProvider.Recs -> {
                                 // Open Main
@@ -647,19 +666,30 @@ class MainActivity : AppCompatActivity(),
             }
         }
         // open card
-        if (idTMDB >= 0 && mediaType.isNotEmpty())
+        if (intID >= 0 && mediaType.isNotEmpty()) {
+
+            var source = intent?.getStringExtra("source")
+            if (source.isNullOrEmpty())
+                source = "tmdb"
+
+//            ID in card json _must_ be INT in case TMDB at least, or bookmarks don't match
+//            var card = intent?.getStringExtra("LampaCardJS")
+//            if (card.isNullOrEmpty())
+            val card = "{id: $intID, source: '$source'}"
+
             lifecycleScope.launch {
                 runVoidJsFunc(
                     "window.start_deep_link = ",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
+                    "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
                 )
                 delay(delay)
                 runVoidJsFunc("Lampa.Controller.toContent", "")
                 runVoidJsFunc(
                     "Lampa.Activity.push",
-                    "{id: $idTMDB, method: '$mediaType', source: 'tmdb', component: 'full', card: {id: $idTMDB, source: 'tmdb'}}"
+                    "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
                 )
             }
+        }
         // process search cmd
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {

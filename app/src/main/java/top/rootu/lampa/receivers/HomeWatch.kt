@@ -15,6 +15,7 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Prefs.isInFavWatchNext
 import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.sched.Scheduler
 
@@ -42,30 +43,33 @@ class HomeWatch : BroadcastReceiver() {
 
             TvContractCompat.ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT -> {
 
-                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
+                val movieId = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
                 if (BuildConfig.DEBUG)
                     Log.d(
                         TAG,
-                        "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId tmdb $tmdbID"
+                        "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId movieId $movieId"
                     )
-                tmdbID?.let {
+                movieId?.let {
+                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
                     if (!App.context.isInLampaWatchNext(it)) {
-                        Helpers.manageFavorite("add", "wath", it)
+                        val card = WatchNext.getCardFromWatchNextProgramId(watchNextId)
+                        Helpers.manageFavorite("add", "wath", it, card)
                     }
                 }
             }
 
             TvContractCompat.ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED -> {
 
-                val tmdbID = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
+                val movieId = WatchNext.getInternalIdFromWatchNextProgramId(watchNextId)
                 if (BuildConfig.DEBUG)
                     Log.d(
                         TAG,
-                        "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId tmdb $tmdbID"
+                        "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId movieId $movieId"
                     )
-                tmdbID?.let {
-                    if (App.context.isInLampaWatchNext(tmdbID)) {
-                        Helpers.manageFavorite("rem", "wath", tmdbID)
+                movieId?.let {
+                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (App.context.isInLampaWatchNext(movieId)) {
+                        Helpers.manageFavorite("rem", "wath", movieId)
                     }
                 }
             }
@@ -73,10 +77,10 @@ class HomeWatch : BroadcastReceiver() {
             TvContractCompat.ACTION_PREVIEW_PROGRAM_BROWSABLE_DISABLED -> {
                 if (BuildConfig.DEBUG)
                     Log.d(TAG, "ACTION_PREVIEW_PROGRAM_BROWSABLE_DISABLED, preview $previewId")
-                val tmdbIdAndChanId =
+                val movieIdAndChanId =
                     ChannelManager.getInternalIdAndChanIdFromPreviewProgramId(previewId)
-                val chan = tmdbIdAndChanId.second?.let { ChannelHelper.getChanByID(it) }
-                tmdbIdAndChanId.first?.let {
+                val chan = movieIdAndChanId.second?.let { ChannelHelper.getChanByID(it) }
+                movieIdAndChanId.first?.let {
                     if (!chan.isNullOrEmpty())
                         Helpers.manageFavorite("rem", chan, it)
                 }

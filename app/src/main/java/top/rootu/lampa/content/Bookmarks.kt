@@ -1,9 +1,12 @@
 package top.rootu.lampa.content
 
+import com.google.gson.Gson
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.bookToRemove
-import top.rootu.lampa.models.TmdbID
+import top.rootu.lampa.helpers.Prefs.syncEnabled
+import top.rootu.lampa.models.LampaCard
 
 class Bookmarks : LampaProviderI() {
 
@@ -11,22 +14,29 @@ class Bookmarks : LampaProviderI() {
         return ReleaseID(Bookmarks.get())
     }
 
-//    fun isBookmarked(tmdbID: String?): Boolean {
-//        return get().items?.find { it.id.toString() == tmdbID } != null
+//    fun isBookmarked(movieId: String?): Boolean {
+//        return get().items?.find { it.id.toString() == movieId } != null
 //    }
 
     companion object {
-        fun get(): List<TmdbID> {
-            val lst = mutableListOf<TmdbID>()
-            val bookCards = App.context.FAV?.card?.filter { App.context.FAV?.book?.contains(it.id) == true }
-            val excludePending = bookCards?.filter {
-                !App.context.bookToRemove.contains(it.id)
-            } // skip pending to remove
-            excludePending?.forEach { card ->
-                if (card.id !== "0")
-                    lst.add(card.toTmdbID())
-            }
-            return lst.reversed()
+        fun get(): List<LampaCard> {
+            val lst = mutableListOf<LampaCard>()
+            // CUB
+            if (App.context.syncEnabled)
+                App.context.CUB?.filter { it.type == LampaProvider.Book }?.forEach {
+                    val card = Gson().fromJson(it.data, LampaCard::class.java)
+                    card.fixCard()
+                    lst.add(card)
+                }
+            // FAV (use ID to match KP_573840 etc)
+            App.context.FAV?.card?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }
+                ?.forEach {
+                    it.fixCard() // not needed as don in FAV.get() but for sure
+                    lst.add(it)
+                }
+            // exclude pending
+            return lst.filter { !App.context.bookToRemove.contains(it.id.toString()) }
+                .reversed()
         }
     }
 }

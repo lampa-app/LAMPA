@@ -6,7 +6,7 @@ import androidx.annotation.RequiresApi
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
-import top.rootu.lampa.models.TmdbID
+import top.rootu.lampa.models.LampaCard
 import kotlin.concurrent.thread
 
 object LampaChannels {
@@ -23,10 +23,10 @@ object LampaChannels {
             if (BuildConfig.DEBUG)
                 Log.i("*****", "LampaChannels: update(sync: $sync)")
 
-            var recs = emptyList<TmdbID>()
-            var like = emptyList<TmdbID>()
-            var book = emptyList<TmdbID>()
-            var hist = emptyList<TmdbID>()
+            var recs = emptyList<LampaCard>()
+            var like = emptyList<LampaCard>()
+            var book = emptyList<LampaCard>()
+            var hist = emptyList<LampaCard>()
 
             if (!sync) {
                 val thR = thread {
