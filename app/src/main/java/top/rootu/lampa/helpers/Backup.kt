@@ -8,7 +8,6 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.xml.sax.InputSource
 import top.rootu.lampa.App
-import top.rootu.lampa.helpers.Prefs.appPrefs
 import java.io.File
 import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
@@ -17,13 +16,18 @@ object Backup {
 
     val DIR: File =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString() + "/LAMPA/")
+            File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                    .toString() + "/LAMPA/"
+            )
         else
-            File(Environment.getExternalStorageDirectory().toString() + "/NUM/").absoluteFile
+            File(Environment.getExternalStorageDirectory().toString() + "/LAMPA/").absoluteFile
 
-    fun Context.saveSettings(): Boolean {
-        //val prefsFile = File(this.filesDir, "../shared_prefs/" + this.packageName + "_preferences.xml")
-        val prefsFile = File(this.filesDir, "../shared_prefs/${Prefs.APP_PREFERENCES}.xml")
+    fun Context.saveSettings(which: String? = ""): Boolean {
+        val prefsFile = if (which.isNullOrEmpty())
+            File(this.filesDir, "../shared_prefs/" + this.packageName + "_preferences.xml")
+        else
+            File(this.filesDir, "../shared_prefs/$which.xml")
         var buf = ""
         try {
             buf = prefsFile.readText()
@@ -31,31 +35,18 @@ object Backup {
             e.message?.let { App.toast(it) }
             e.printStackTrace()
         }
-        if (buf.isNotBlank()) return writeFile("${Prefs.APP_PREFERENCES}.backup", buf)
+        if (buf.isNotBlank()) return writeFile("$which.backup", buf)
         return false
     }
 
-    fun Context.saveStorage(): Boolean {
-        val prefsFile = File(this.filesDir, "../shared_prefs/${Prefs.STORAGE_PREFERENCES}.xml")
-        var buf = ""
-        try {
-            buf = prefsFile.readText()
-        } catch (e: Exception) {
-            e.message?.let { App.toast(it) }
-            e.printStackTrace()
-        }
-        if (buf.isNotBlank()) return writeFile("${Prefs.STORAGE_PREFERENCES}.backup", buf)
-        return false
-    }
-
-    fun Context.loadFromBackup(which: String = Prefs.APP_PREFERENCES): Boolean {
+    fun Context.loadFromBackup(which: String? = ""): Boolean {
         val buf = loadFile("$which.backup")
         if (buf.isBlank())
             return false
-        val pref = if (which == Prefs.APP_PREFERENCES)
-            this.appPrefs
-        else
+        val pref = if (which.isNullOrEmpty())
             PreferenceManager.getDefaultSharedPreferences(this)
+        else
+            getSharedPreferences(which, Context.MODE_PRIVATE)
         val edit = pref.edit()
         try {
             val docFactory = DocumentBuilderFactory.newInstance()

@@ -43,6 +43,11 @@ object Prefs {
             return getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
         }
 
+    val Context.storagePrefs: SharedPreferences
+        get() {
+            return getSharedPreferences(STORAGE_PREFERENCES, MODE_PRIVATE)
+        }
+
     val Context.lastPlayedPrefs: SharedPreferences
         get() {
             return getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)

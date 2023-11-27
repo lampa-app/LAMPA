@@ -45,7 +45,6 @@ import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -70,7 +69,6 @@ import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Backup
 import top.rootu.lampa.helpers.Backup.loadFromBackup
 import top.rootu.lampa.helpers.Backup.saveSettings
-import top.rootu.lampa.helpers.Backup.saveStorage
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
@@ -78,7 +76,6 @@ import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
-import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
@@ -86,7 +83,6 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
-import top.rootu.lampa.helpers.Prefs.cubWatchNext
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
@@ -97,9 +93,7 @@ import top.rootu.lampa.helpers.Prefs.setAppLang
 import top.rootu.lampa.helpers.Prefs.setAppPlayer
 import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
-import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tvPlayer
-import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
@@ -784,7 +778,7 @@ class MainActivity : AppCompatActivity(),
                     lifecycleScope.launch {
                         dumpStorage() // fixme: add callback
                         delay(3000)
-                        if (saveSettings() && saveStorage())
+                        if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
                             App.toast(
                                 getString(
                                     R.string.settings_saved_toast,

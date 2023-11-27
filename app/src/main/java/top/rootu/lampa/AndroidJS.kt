@@ -37,6 +37,7 @@ import top.rootu.lampa.helpers.Prefs.setLampaSource
 import top.rootu.lampa.helpers.Prefs.setSyncEnabled
 import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
+import top.rootu.lampa.helpers.Prefs.storagePrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
@@ -479,10 +480,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     // https://stackoverflow.com/a/41560207
     // https://copyprogramming.com/howto/android-webview-savestate
-    private val store: SharedPreferences? = App.context.getSharedPreferences(
-        Prefs.STORAGE_PREFERENCES,
-        Context.MODE_PRIVATE
-    )
+    private val store: SharedPreferences? = App.context.storagePrefs
     private var keys: Array<String?>? = null
     private var values: Array<String?>? = null
     private var dumped = false

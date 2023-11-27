@@ -197,7 +197,7 @@ object ChannelManager {
             type = TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
             card.number_of_seasons?.let { info.add("S$it") }
         }
-        
+
         card.genres?.joinToString(", ") { g ->
             g?.name?.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
