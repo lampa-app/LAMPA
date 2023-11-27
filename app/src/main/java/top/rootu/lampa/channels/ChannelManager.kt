@@ -180,7 +180,6 @@ object ChannelManager {
     private fun getProgram(
         channelId: Long,
         provName: String,
-        //id: TmdbID,
         card: LampaCard,
         weight: Int
     ): PreviewProgram? {
@@ -188,11 +187,17 @@ object ChannelManager {
 
         //val ent = id.getEntity() ?: return null
 
+        val title = if (!card.name.isNullOrEmpty()) card.name else card.title
+
         card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
-        if (card.type == "tv")
-            card.number_of_seasons?.let { info.add("S$it") }
+        var type = TvContractCompat.PreviewPrograms.TYPE_MOVIE
 
+        if (card.type == "tv") {
+            type = TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
+            card.number_of_seasons?.let { info.add("S$it") }
+        }
+        
         card.genres?.joinToString(", ") { g ->
             g?.name?.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
@@ -205,21 +210,16 @@ object ChannelManager {
 //        if (country.isNotEmpty())
 //            info.add(country)
 
-//        card.certification?.let {
-//            if (it.isNotBlank())
-//                info.add(it)
-//        }
-
         val preview = PreviewProgram.Builder()
             .setChannelId(channelId)
-            .setTitle(card.title)
+            .setTitle(title)
             .setAvailability(TvContractCompat.PreviewProgramColumns.AVAILABILITY_AVAILABLE)
             .setDescription(card.overview)
             .setGenre(info.joinToString(" · "))
             .setIntent(buildPendingIntent(card, provName))
             .setInternalProviderId(card.id.toString())
             .setWeight(weight)
-            .setType(TvContractCompat.PreviewPrograms.TYPE_MOVIE)
+            .setType(type)
             .setDurationMillis(card.runtime?.times(60000) ?: 0)
             .setSearchable(true)
             .setLive(false)
