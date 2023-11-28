@@ -73,6 +73,7 @@ import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
@@ -819,6 +820,9 @@ class MainActivity : AppCompatActivity(),
         }
         val menuDialog = menu.create()
         menuDialog.show()
+        if (!PermHelpers.hasStoragePermissions(this)) {
+            PermHelpers.verifyStoragePermissions(this)
+        }
     }
 
     private fun showBrowserInputDialog() {
