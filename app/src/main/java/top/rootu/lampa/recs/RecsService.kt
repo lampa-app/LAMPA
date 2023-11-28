@@ -117,7 +117,7 @@ object RecsService {
                         .setGenres(genres)
                         .setContentIntentData(
                             ContentRecommendation.INTENT_TYPE_ACTIVITY,
-                            buildPendingIntent(card, "lampa"),
+                            buildPendingIntent(card, null),
                             0,
                             null
                         )

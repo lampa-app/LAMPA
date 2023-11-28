@@ -45,10 +45,12 @@ import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
@@ -65,6 +67,7 @@ import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.browser.SysView
 import top.rootu.lampa.browser.XWalk
 import top.rootu.lampa.channels.ChannelManager.getChannelDisplayName
+import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Backup
 import top.rootu.lampa.helpers.Backup.loadFromBackup
@@ -96,6 +99,7 @@ import top.rootu.lampa.helpers.Prefs.setAppUrl
 import top.rootu.lampa.helpers.Prefs.setTvPlayer
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
@@ -130,6 +134,8 @@ class MainActivity : AppCompatActivity(),
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
+        var lampaActivity: String = "{}" // JSON
+
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
         private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
@@ -460,6 +466,7 @@ class MainActivity : AppCompatActivity(),
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
+                runJsStorageChangeField("activity") // get current lampaActivity
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
@@ -660,31 +667,43 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+        // continue watch
+        if (intent?.getBooleanExtra("continueWatch", false) == true) {
+            val playActivity = App.context.lastPlayedPrefs.getString("playActivityJS", null)
+            playActivity?.let {
+                lifecycleScope.launch {
+                    runVoidJsFunc("window.start_deep_link = ", it)
+                    delay(delay)
+                    runVoidJsFunc("Lampa.Controller.toContent", "")
+                    runVoidJsFunc("Lampa.Activity.push", it)
+                }
+            }
+        } else
         // open card
-        if (intID >= 0 && mediaType.isNotEmpty()) {
+            if (intID >= 0 && mediaType.isNotEmpty()) {
 
-            var source = intent?.getStringExtra("source")
-            if (source.isNullOrEmpty())
-                source = "tmdb"
+                var source = intent?.getStringExtra("source")
+                if (source.isNullOrEmpty())
+                    source = "tmdb"
 
 //            ID in card json _must_ be INT in case TMDB at least, or bookmarks don't match
 //            var card = intent?.getStringExtra("LampaCardJS")
 //            if (card.isNullOrEmpty())
-            val card = "{id: $intID, source: '$source'}"
+                val card = "{id: $intID, source: '$source'}"
 
-            lifecycleScope.launch {
-                runVoidJsFunc(
-                    "window.start_deep_link = ",
-                    "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
-                )
-                delay(delay)
-                runVoidJsFunc("Lampa.Controller.toContent", "")
-                runVoidJsFunc(
-                    "Lampa.Activity.push",
-                    "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
-                )
+                lifecycleScope.launch {
+                    runVoidJsFunc(
+                        "window.start_deep_link = ",
+                        "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
+                    )
+                    delay(delay)
+                    runVoidJsFunc("Lampa.Controller.toContent", "")
+                    runVoidJsFunc(
+                        "Lampa.Activity.push",
+                        "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
+                    )
+                }
             }
-        }
         // process search cmd
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {
@@ -1041,6 +1060,7 @@ class MainActivity : AppCompatActivity(),
             putInt("playIndex", playIndex)
             putString("playVideoUrl", playVideoUrl)
             putString("playJSONArray", playJSONArray.toString())
+            putString("playActivityJS", lampaActivity)
             apply()
         }
     }
@@ -1051,6 +1071,40 @@ class MainActivity : AppCompatActivity(),
         dur: Int = 0,
         ended: Boolean = false
     ) {
+        // store state and duration too for WatchNext
+        val editor = this.lastPlayedPrefs.edit()
+        editor?.putBoolean("ended", ended)
+        editor?.putInt("position", pos)
+        editor?.putInt("duration", dur)
+        editor.apply()
+        lifecycleScope.launch {
+            // Add Continue to Play
+            withContext(Dispatchers.Default) {
+                var card: LampaCard? = null
+                val lampaActivity =
+                    JSONObject(App.context.lastPlayedPrefs.getString("playActivityJS", "{}"))
+                if (lampaActivity.has("movie")) {
+                    card = Gson().fromJson(
+                        lampaActivity.getJSONObject("movie").toString(),
+                        LampaCard::class.java
+                    )
+                    card.fixCard()
+                }
+                card?.let {
+                    try {
+                        if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
+                        if (!ended) // card.type == "movie"
+                            WatchNext.addLastPlayed(it)
+                    } catch (e: Exception) {
+                        if (BuildConfig.DEBUG) Log.d(
+                            "*****",
+                            "resultPlayer Error add $it to WatchNext: $e"
+                        )
+                    }
+                }
+            }
+        }
+
         val videoUrl =
             if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
             else endedVideoUrl

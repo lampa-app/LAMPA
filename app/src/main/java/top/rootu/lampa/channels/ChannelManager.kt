@@ -185,8 +185,6 @@ object ChannelManager {
     ): PreviewProgram? {
         val info = mutableListOf<String>()
 
-        //val ent = id.getEntity() ?: return null
-
         val title = if (!card.name.isNullOrEmpty()) card.name else card.title
 
         card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
@@ -216,7 +214,7 @@ object ChannelManager {
             .setAvailability(TvContractCompat.PreviewProgramColumns.AVAILABILITY_AVAILABLE)
             .setDescription(card.overview)
             .setGenre(info.joinToString(" · "))
-            .setIntent(buildPendingIntent(card, provName))
+            .setIntent(buildPendingIntent(card, null)) // provName
             .setInternalProviderId(card.id.toString())
             .setWeight(weight)
             .setType(type)

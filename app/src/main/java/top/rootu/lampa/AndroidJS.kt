@@ -30,6 +30,7 @@ import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lampaSource
+import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
@@ -59,6 +60,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (!eo.has("name") || !eo.has("value")) return
 
         when (eo.optString("name")) {
+            "activity" -> {
+                if (BuildConfig.DEBUG) Log.d("*****", "activity changed: ${eo.optString("value", "")}")
+                MainActivity.lampaActivity = eo.optString("value", "{}")
+            }
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }

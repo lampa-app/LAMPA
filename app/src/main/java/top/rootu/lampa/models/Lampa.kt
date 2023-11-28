@@ -25,6 +25,23 @@ data class CubBookmark(
     val profile: Int?,
     val time: Long? // 0, 1650748577390
 )
+
+//data class TimeTable(
+//    val id: Int?,
+//    val season: Int?,
+//    val episodes: Episodes?,
+//    val scanned: Int?,
+//    val scanned_time: Long?,
+//)
+//
+//data class Episodes(
+//    val air_date: String?,
+//    val season_number: Int?,
+//    val episode_number: Int?,
+//    val name: String?,
+//    val still_path: String?
+//)
+
 // TODO: implement type adapters for fields like id
 // https://stackoverflow.com/questions/27626355/gson-deserializing-with-changing-field-types
 // https://proandroiddev.com/safe-parsing-kotlin-data-classes-with-gson-4d560fe3cdd2
@@ -80,6 +97,10 @@ data class LampaCard(
                 "tv"
             else
                 "movie"
+//        if (!poster_path.isNullOrEmpty() && img.isNullOrEmpty())
+//            img = TMDB.imageUrl(poster_path)
+//        if (!backdrop_path.isNullOrEmpty() && background_image.isNullOrEmpty())
+//            background_image = TMDB.imageUrl(backdrop_path)
     }
 
     override fun toString(): String {
@@ -153,7 +174,7 @@ data class LampaRec(
             null,
             release_date,
             null,
-            adult
+            adult,
         )
     }
 }

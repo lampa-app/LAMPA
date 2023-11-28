@@ -183,7 +183,7 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, providerName: String?): Intent {
+    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
         val intent = Intent(App.context, MainActivity::class.java)
         // TODO: fix this id and media type mess
         val intID = card.id?.toIntOrNull() // required for processIntent()
@@ -194,7 +194,7 @@ object Helpers {
         val idStr = Gson().toJson(card) // used to get card from HomeWatch
         intent.putExtra("LampaCardJS", idStr)
 
-        providerName?.let { intent.putExtra("Provider", it) }
+        continueWatch?.let { intent.putExtra("continueWatch", it) }
 
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.action = card.id.toString()
