@@ -24,6 +24,9 @@ object Backup {
             File(Environment.getExternalStorageDirectory().toString() + "/LAMPA/").absoluteFile
 
     fun Context.saveSettings(which: String? = ""): Boolean {
+        if (!PermHelpers.hasStoragePermissions(this)) {
+            PermHelpers.verifyStoragePermissions(this)
+        }
         val prefsFile = if (which.isNullOrEmpty())
             File(this.filesDir, "../shared_prefs/" + this.packageName + "_preferences.xml")
         else
