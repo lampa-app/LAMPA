@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity(),
         private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
     }
 
-    fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
+    private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
         val durationMillis = duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
         return positionMillis >= durationMillis
     }
@@ -1718,7 +1718,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun showFab(show: Boolean = true) {
         val fab: FloatingActionButton? = findViewById(R.id.fab)
-        if (show)
+        if (show && !this.isTvBox)
             fab?.show()
         else
             fab?.hide()
@@ -1730,7 +1730,7 @@ class MainActivity : AppCompatActivity(),
             setImageDrawable(AppCompatResources.getDrawable(this.context, R.drawable.lampa_logo_round))
             customSize = dp2px(this.context,32f)
             setMaxImageSize(dp2px(this.context, 30f))
-            setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this.context, R.color.lampa_background)))
+            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this.context, R.color.lampa_background))
             //setAlpha(0.5f)
             setOnClickListener {
                  showMenuDialog()
