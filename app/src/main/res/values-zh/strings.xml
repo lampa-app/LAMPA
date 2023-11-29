@@ -54,12 +54,15 @@
     <string name="open_lampa">open lampa</string>
     <string name="open_settings">open lampa settings</string>
     <string name="lampa_suxx">lampa suxx</string>
+    <string name="series">电视剧</string>
+    <string name="shortyear">年</string>
     <!--Channels-->
     <string name="ch_recs">建议</string>
     <string name="ch_liked">喜欢</string>
     <string name="ch_history">浏览历史</string>
     <string name="ch_bookmarks">书签</string>
     <string name="title_main">首页</string>
+    <!--Settings-->
     <string name="update_home_title">更新建议</string>
     <string name="backup_restore_title">设置备份和恢复 恢复</string>
     <string name="backup_all_title">Lampa 设置备份</string>

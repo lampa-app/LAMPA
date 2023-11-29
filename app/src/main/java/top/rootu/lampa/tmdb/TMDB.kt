@@ -126,8 +126,7 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val gson = Gson()
-        val entities = gson.fromJson(body, Entities::class.java)
+        val entities = Gson().fromJson(body, Entities::class.java)
         val ret = mutableListOf<Entity>()
 
         entities?.results?.forEach {
@@ -173,6 +172,7 @@ object TMDB {
 
         var body: String? = null
         val link = urlBuilder.build().toString()
+
         try {
             val request = Request.Builder()
                 .url(link)
@@ -191,8 +191,7 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val gson = Gson()
-        val ent = gson.fromJson(body, Entity::class.java)
+        val ent = Gson().fromJson(body, Entity::class.java)
         fixEntity(ent)
         return ent
     }
@@ -244,7 +243,6 @@ object TMDB {
     }
 
     fun imageUrl(path: String?): String {
-        val imgUrl = App.context.tmdbImgUrl
         path?.let {
             if (it.startsWith("http"))
                 return it
@@ -253,6 +251,7 @@ object TMDB {
             return ""
 
         // "https://image.tmdb.org/t/p/original$path"
+        val imgUrl = App.context.tmdbImgUrl
         val authority = Uri.parse(imgUrl).authority
         val scheme = Uri.parse(imgUrl).scheme
         return Uri.Builder()

@@ -54,12 +54,15 @@
     <string name="open_lampa">открой ламп</string>
     <string name="open_settings">открой настройки ламп</string>
     <string name="lampa_suxx">лампа говно</string>
+    <string name="series">Сериал</string>
+    <string name="shortyear">г.</string>
     <!--Channels-->
     <string name="ch_recs">Рекомендации</string>
     <string name="ch_liked">Нравится</string>
     <string name="ch_history">История</string>
     <string name="ch_bookmarks">Закладки</string>
     <string name="title_main">Главная</string>
+    <!--Settings-->
     <string name="update_home_title">Обновить рекомендации</string>
     <string name="backup_restore_title">Резервирование и восстановление</string>
     <string name="backup_all_title">Сделать резервную копию всех настроек</string>

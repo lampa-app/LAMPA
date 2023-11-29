@@ -89,6 +89,12 @@ object WatchNext {
         }
     }
 
+    fun removeContinueWatch() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
+            deleteFromWatchNext(RESUME_ID)
+        }
+    }
+
     @SuppressLint("RestrictedApi")
     fun getInternalIdFromWatchNextProgramId(watchNextId: Long): String? {
         val curWatchNextUri = buildWatchNextProgramUri(watchNextId)

@@ -117,7 +117,6 @@ class MainActivity : AppCompatActivity(),
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
 
-
     companion object {
         private const val TAG = "APP_MAIN"
         const val RESULT_ERROR = 4
@@ -144,6 +143,12 @@ class MainActivity : AppCompatActivity(),
         private const val URL_REGEX =
             "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
+        private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+    }
+
+    fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
+        val durationMillis = duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
+        return positionMillis >= durationMillis
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -226,7 +231,8 @@ class MainActivity : AppCompatActivity(),
                                             TAG,
                                             "Playback stopped [position=$pos, duration=$dur]"
                                         )
-                                        resultPlayer(videoUrl, pos, dur, false)
+                                        val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                        resultPlayer(videoUrl, pos, dur, ended)
                                     } else {
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
                                     }
@@ -257,7 +263,8 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getLongExtra("extra_duration", 0L)
                             if (pos > 0L) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), false)
+                                val ended = isAfterEndCreditsPosition(pos, dur)
+                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                             } else {
                                 if (dur == 0L && pos == 0L) {
                                     Log.i(TAG, "Playback completed")
@@ -277,7 +284,8 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getIntExtra("duration", 0)
                             if (dur > 0) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                resultPlayer(videoUrl, pos, dur, false)
+                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                resultPlayer(videoUrl, pos, dur, ended)
                             } else if (dur == 0 && pos == 0) {
                                 Log.i(TAG, "Playback completed")
                                 resultPlayer(videoUrl, 0, 0, true)
@@ -328,7 +336,8 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
                                 Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                resultPlayer(videoUrl, pos, dur, false)
+                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                resultPlayer(videoUrl, pos, dur, ended)
                             }
                         }
 
@@ -1078,7 +1087,7 @@ class MainActivity : AppCompatActivity(),
         editor?.putInt("duration", dur)
         editor.apply()
         lifecycleScope.launch {
-            // Add Continue to Play
+            // Add | Remove Continue to Play
             withContext(Dispatchers.Default) {
                 var card: LampaCard? = null
                 val lampaActivity =
@@ -1093,8 +1102,10 @@ class MainActivity : AppCompatActivity(),
                 card?.let {
                     try {
                         if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
-                        if (!ended) // card.type == "movie"
+                        if (!ended)
                             WatchNext.addLastPlayed(it)
+                        else
+                            WatchNext.removeContinueWatch()
                     } catch (e: Exception) {
                         if (BuildConfig.DEBUG) Log.d(
                             "*****",

@@ -135,7 +135,7 @@ object Prefs {
     val Context.tmdbImgUrl: String
         get() {
             val pref = this.appPrefs
-            return pref.getString(TMDB_IMG, "https://api.themoviedb.org/3/")
+            return pref.getString(TMDB_IMG, "https://image.tmdb.org/")
                 ?: "https://image.tmdb.org/"
         }
 
