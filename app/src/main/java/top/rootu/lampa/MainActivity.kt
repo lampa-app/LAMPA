@@ -480,7 +480,7 @@ class MainActivity : AppCompatActivity(),
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
-                runJsStorageChangeField("activity") // get current lampaActivity
+                runJsStorageChangeField("activity", "{}") // get current lampaActivity
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
