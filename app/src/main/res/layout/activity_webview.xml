@@ -6,6 +6,28 @@
     android:layout_height="match_parent"
     android:background="@drawable/welcome"
     tools:context=".MainActivity">
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|bottom"
+        android:layout_margin="6dp"
+        android:alpha="0.5"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintVertical_bias="1"
+        android:contentDescription="@string/show_menu"
+        android:scaleType="center"
+        android:visibility="gone"
+        app:fabCustomSize="32dp"
+        app:fabSize="mini"
+        app:maxImageSize="30dp"
+        app:srcCompat="@drawable/lampa_logo_round"
+        app:tint="@null"
+        tools:visibility="visible" />
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/progressBar_cyclic"

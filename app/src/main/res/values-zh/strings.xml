@@ -4,6 +4,7 @@
     <string name="invalid_url">请输入一个有效的网址，例如：\nhttp://lampa.mx</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
+    <string name="show_menu">打开菜单</string>
     <string name="change_engine">更改浏览器</string>
     <string name="change_engine_title">选择浏览器</string>
     <string name="close_menu_title">关闭菜单</string>
@@ -51,6 +52,7 @@
     <string name="xwalk_close">关闭</string>
     <string name="xwalk_retry">重试</string>
     <string name="xwalk_apk_link">https://ghproxy.com/https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
+    <!--Search-->
     <string name="open_lampa">open lampa</string>
     <string name="open_settings">open lampa settings</string>
     <string name="lampa_suxx">lampa suxx</string>

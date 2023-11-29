@@ -9,6 +9,7 @@ import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
@@ -36,6 +37,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
@@ -43,6 +45,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.setMargins
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
@@ -76,6 +79,7 @@ import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvBox
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -116,6 +120,7 @@ class MainActivity : AppCompatActivity(),
     private var browserInit = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+    private var isMenuVisible = false
 
     companion object {
         private const val TAG = "APP_MAIN"
@@ -755,9 +760,8 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             when (menuItemsAction[which]) {
-                "closeMenu" -> if (isAndroidTV) {
-                    Scheduler.scheduleUpdate(false)
-                }
+                "closeMenu" ->
+                    if (isAndroidTV) { Scheduler.scheduleUpdate(false) }
 
                 "showUrlInputDialog" -> {
                     App.toast(R.string.change_note)
@@ -773,8 +777,13 @@ class MainActivity : AppCompatActivity(),
                 "appExit" -> appExit()
             }
         }
+        menu.setOnDismissListener {
+            isMenuVisible = false
+            showFab(true)
+        }
         val menuDialog = menu.create()
         menuDialog.show()
+        isMenuVisible = true
     }
 
     private fun showBackupDialog() {
@@ -1001,6 +1010,7 @@ class MainActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         hideSystemUI()
+        if (!this.isTvBox) setupFab()
         // Try to initialize again when the user completed updating and
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
@@ -1091,8 +1101,9 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Default) {
                 var card: LampaCard? = null
                 val lampaActivity =
-                    JSONObject(App.context.lastPlayedPrefs.getString("playActivityJS", "{}"))
-                if (lampaActivity.has("movie")) {
+                    App.context.lastPlayedPrefs.getString("playActivityJS", "{}")
+                        ?.let { JSONObject(it) }
+                if (lampaActivity?.has("movie") == true) {
                     card = Gson().fromJson(
                         lampaActivity.getJSONObject("movie").toString(),
                         LampaCard::class.java
@@ -1703,6 +1714,32 @@ class MainActivity : AppCompatActivity(),
             }
         }
         return false
+    }
+
+    private fun showFab(show: Boolean = true) {
+        val fab: FloatingActionButton? = findViewById(R.id.fab)
+        if (show)
+            fab?.show()
+        else
+            fab?.hide()
+    }
+
+    private fun setupFab() { // FAB
+        val fab: FloatingActionButton? = findViewById(R.id.fab)
+        fab?.apply {
+            setImageDrawable(AppCompatResources.getDrawable(this.context, R.drawable.lampa_logo_round))
+            customSize = dp2px(this.context,32f)
+            setMaxImageSize(dp2px(this.context, 30f))
+            setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this.context, R.color.lampa_background)))
+            //setAlpha(0.5f)
+            setOnClickListener {
+                 showMenuDialog()
+                    showFab(false)
+            }
+        }
+        if (!isMenuVisible) {
+            showFab(true)
+        }
     }
 
     private fun runJsStorageChangeField(name: String) {

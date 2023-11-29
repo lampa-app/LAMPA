@@ -4,6 +4,7 @@
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
+    <string name="show_menu">Открыть меню</string>
     <string name="change_engine">Изменить веб-браузер</string>
     <string name="change_engine_title">Выбор браузера</string>
     <string name="close_menu_title">Закрыть это меню</string>
@@ -51,6 +52,7 @@
     <string name="xwalk_close">Отмена</string>
     <string name="xwalk_retry">Повтор</string>
     <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
+    <!--Search-->
     <string name="open_lampa">открой ламп</string>
     <string name="open_settings">открой настройки ламп</string>
     <string name="lampa_suxx">лампа говно</string>

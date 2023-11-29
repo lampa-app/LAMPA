@@ -1,6 +1,7 @@
 package top.rootu.lampa.helpers
 
 import android.app.Activity
+import android.app.UiModeManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
@@ -217,6 +218,49 @@ object Helpers {
         get() {
             return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
         }
+
+    val Context.isTvBox: Boolean
+        get() {
+            val pm = packageManager
+            // TV for sure
+            val uiModeManager =
+                getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+            if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
+                return true
+            }
+            if (isAmazonDev) {
+                return true
+            }
+            // Missing Files app (DocumentsUI) means box (some boxes still have non functional app or stub)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (!hasSAFChooser(pm)) {
+                    return true
+                }
+            }
+            // Legacy storage no longer works on Android 11 (level 30)
+            if (Build.VERSION.SDK_INT < 30) {
+                // (Some boxes still report touchscreen feature)
+                if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+                    return true
+                }
+                if (pm.hasSystemFeature("android.hardware.hdmi.cec")) {
+                    return true
+                }
+                if (Build.MANUFACTURER.equals("zidoo", ignoreCase = true)) {
+                    return true
+                }
+            }
+            // Default: No TV - use SAF
+            return false
+        }
+
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    fun hasSAFChooser(pm: PackageManager?): Boolean {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "video/*"
+        return intent.resolveActivity(pm!!) != null
+    }
 
     fun isValidJson(json: String?): Boolean {
         // val gson = Gson()
