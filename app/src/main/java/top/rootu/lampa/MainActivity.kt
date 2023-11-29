@@ -27,7 +27,6 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.webkit.WebView
 import android.widget.LinearLayout
 import android.widget.ListAdapter
 import android.widget.TextView
@@ -236,7 +235,8 @@ class MainActivity : AppCompatActivity(),
                                             TAG,
                                             "Playback stopped [position=$pos, duration=$dur]"
                                         )
-                                        val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                        val ended =
+                                            isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
                                         resultPlayer(videoUrl, pos, dur, ended)
                                     } else {
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
@@ -761,7 +761,9 @@ class MainActivity : AppCompatActivity(),
             dialog.dismiss()
             when (menuItemsAction[which]) {
                 "closeMenu" ->
-                    if (isAndroidTV) { Scheduler.scheduleUpdate(false) }
+                    if (isAndroidTV) {
+                        Scheduler.scheduleUpdate(false)
+                    }
 
                 "showUrlInputDialog" -> {
                     App.toast(R.string.change_note)
@@ -1033,23 +1035,10 @@ class MainActivity : AppCompatActivity(),
 
     // handle configuration changes (language / screen orientation)
     override fun onConfigurationChanged(newConfig: Configuration) {
-        Log.d(TAG, "onConfigurationChanged()")
+        if (BuildConfig.DEBUG) Log.d(TAG, "onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            hideSystemUI()
-            handleViewScreen()
-        } else {
-            hideSystemUI()
-            handleViewScreen()
-        }
-    }
-
-    private fun handleViewScreen() {
-        val webView: WebView? = browser as? WebView
-        if (webView != null) {
-            webView.keepScreenOn = true
-        }
-        window?.decorView?.fitsSystemWindows = false
+        hideSystemUI()
+        showFab(true)
     }
 
     fun appExit() {
@@ -1718,23 +1707,37 @@ class MainActivity : AppCompatActivity(),
 
     private fun showFab(show: Boolean = true) {
         val fab: FloatingActionButton? = findViewById(R.id.fab)
-        if (show && !this.isTvBox)
+        if (show && !this.isTvBox) {
             fab?.show()
-        else
+            lifecycleScope.launch {
+                delay(15000)
+                fab?.hide()
+            }
+        } else
             fab?.hide()
     }
 
     private fun setupFab() { // FAB
         val fab: FloatingActionButton? = findViewById(R.id.fab)
         fab?.apply {
-            setImageDrawable(AppCompatResources.getDrawable(this.context, R.drawable.lampa_logo_round))
-            customSize = dp2px(this.context,32f)
+            setImageDrawable(
+                AppCompatResources.getDrawable(
+                    this.context,
+                    R.drawable.lampa_logo_round
+                )
+            )
+            customSize = dp2px(this.context, 32f)
             setMaxImageSize(dp2px(this.context, 30f))
-            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this.context, R.color.lampa_background))
+            backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(
+                    this.context,
+                    R.color.lampa_background
+                )
+            )
             //setAlpha(0.5f)
             setOnClickListener {
-                 showMenuDialog()
-                    showFab(false)
+                showMenuDialog()
+                showFab(false)
             }
         }
         if (!isMenuVisible) {
