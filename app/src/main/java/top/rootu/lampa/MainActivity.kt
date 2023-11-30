@@ -97,6 +97,7 @@ import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.playActivityJS
+import top.rootu.lampa.helpers.Prefs.resumeJS
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
@@ -638,7 +639,7 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
 
-                else -> { // handle channels
+                else -> { // handle open from channels
                     if (it.encodedPath?.contains("update_channel") == true) {
                         intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
@@ -691,21 +692,12 @@ class MainActivity : AppCompatActivity(),
                 }
             }
             if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
-                // create new play object and play
-                val playerJS = JSONObject()
-                val videoTitle = if (playJSONArray.getJSONObject(playIndex)
-                        .has("title")
-                ) playJSONArray.getJSONObject(playIndex)
-                    .optString("title") else "LAMPA Video"
-                playerJS.put("title", videoTitle)
-                playerJS.put("url", playVideoUrl)
-                playerJS.put("playlist", playJSONArray)
-                playerJS.let { playJson ->
-                    if (isValidJson(playJson.toString()))
-                        lifecycleScope.launch {
-                            runPlayer(playJson)
-                        }
-                }
+                if (isValidJson(this.resumeJS))
+                JSONObject()
+                    lifecycleScope.launch {
+                        this@MainActivity.resumeJS?.let { JSONObject(it) }
+                            ?.let { runPlayer(it) }
+                    }
             }
         } else
         // open card
@@ -1083,10 +1075,10 @@ class MainActivity : AppCompatActivity(),
             putInt("playIndex", playIndex)
             putString("playVideoUrl", playVideoUrl)
             putString("playJSONArray", playJSONArray.toString())
-            //putString("playActivityJS", lampaActivity)
             apply()
         }
-        //this.savePlayActivityJS(lampaActivity)
+        Log.d("*****", "saveLastPlayed $playJSONArray")
+        // store to prefs for resume from WatchNext
         this.playActivityJS = lampaActivity
     }
 
@@ -1102,30 +1094,30 @@ class MainActivity : AppCompatActivity(),
         editor?.putInt("position", pos)
         editor?.putInt("duration", dur)
         editor.apply()
+
         lifecycleScope.launch {
             // Add | Remove Continue to Play
             withContext(Dispatchers.Default) {
-                var card: LampaCard? = null
                 val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
                 if (lampaActivity?.has("movie") == true) {
-                    card = Gson().fromJson(
+                    val card = Gson().fromJson(
                         lampaActivity.getJSONObject("movie").toString(),
                         LampaCard::class.java
                     )
-                    card.fixCard()
-                }
-                card?.let {
-                    try {
-                        if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
-                        if (!ended)
-                            WatchNext.addLastPlayed(it)
-                        else
-                            WatchNext.removeContinueWatch()
-                    } catch (e: Exception) {
-                        if (BuildConfig.DEBUG) Log.d(
-                            "*****",
-                            "resultPlayer Error add $it to WatchNext: $e"
-                        )
+                    card?.let {
+                        it.fixCard()
+                        try {
+                            if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
+                            if (!ended)
+                                WatchNext.addLastPlayed(it)
+                            else
+                                WatchNext.removeContinueWatch()
+                        } catch (e: Exception) {
+                            if (BuildConfig.DEBUG) Log.d(
+                                "*****",
+                                "resultPlayer Error add $it to WatchNext: $e"
+                            )
+                        }
                     }
                 }
             }
@@ -1139,6 +1131,7 @@ class MainActivity : AppCompatActivity(),
         for (i in 0 until playJSONArray.length()) {
             val io = playJSONArray.getJSONObject(i)
             if (!io.has("timeline") || !io.has("url")) break
+
             val timeline = io.optJSONObject("timeline")
             val hash = timeline?.optString("hash", "0")
             if (io.optString("url") == videoUrl) {
@@ -1148,13 +1141,20 @@ class MainActivity : AppCompatActivity(),
                     else if (dur == 0 && timeline?.has("duration") == true)
                         timeline.optDouble("duration", 0.0).toInt()
                     else dur / 1000
+
                 val percent: Int = if (duration > 0) time * 100 / duration else 100
+
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
                 newTimeline.put("time", time.toDouble())
                 newTimeline.put("duration", duration.toDouble())
                 newTimeline.put("percent", percent)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                // for resume WatchNext
+                val io2 = JSONObject(io.toString());
+                io2.put("playlist", playJSONArray)
+                this.resumeJS = io2.toString()
+                Log.d("*****", "io2: io2")
                 break
             }
             if (i >= playIndex) {
@@ -1527,17 +1527,17 @@ class MainActivity : AppCompatActivity(),
             }
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
-//                if (BuildConfig.DEBUG) {
-//                    Log.d(TAG, "INTENT: " + intent.toUri(0))
-//                    intent.extras?.let {
-//                        for (key in it.keySet()) {
-//                            Log.d(
-//                                TAG,
-//                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-//                            )
-//                        }
-//                    }
-//                }
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+                    intent.extras?.let {
+                        for (key in it.keySet()) {
+                            Log.d(
+                                TAG,
+                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+                            )
+                        }
+                    }
+                }
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, false)

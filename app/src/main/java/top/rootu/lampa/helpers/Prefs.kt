@@ -38,6 +38,7 @@ object Prefs {
     private const val HSR_KEY = "hist_rem"
     private const val SYNC_KEY = "sync_account"
     private const val PLAY_ACT_KEY = "playActivityJS"
+    private const val RESUME_KEY = "resumeJS"
 
     val Context.appPrefs: SharedPreferences
         get() {
@@ -155,6 +156,16 @@ object Prefs {
         set(json) {
             PreferenceManager.getDefaultSharedPreferences(this).edit()
                 .putString(PLAY_ACT_KEY, json).apply()
+        }
+
+    var Context.resumeJS: String?
+        get() {
+            return PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(RESUME_KEY, "{}")
+        }
+        set(json) {
+            PreferenceManager.getDefaultSharedPreferences(this).edit()
+                .putString(RESUME_KEY, json).apply()
         }
 
     val Context.FAV: Favorite?
