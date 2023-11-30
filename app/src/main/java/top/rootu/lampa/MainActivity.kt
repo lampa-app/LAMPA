@@ -79,6 +79,7 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isTvBox
+import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -95,11 +96,7 @@ import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
-import top.rootu.lampa.helpers.Prefs.setAppBrowser
-import top.rootu.lampa.helpers.Prefs.setAppLang
-import top.rootu.lampa.helpers.Prefs.setAppPlayer
-import top.rootu.lampa.helpers.Prefs.setAppUrl
-import top.rootu.lampa.helpers.Prefs.setTvPlayer
+import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
@@ -683,13 +680,31 @@ class MainActivity : AppCompatActivity(),
         }
         // continue watch
         if (intent?.getBooleanExtra("continueWatch", false) == true) {
-            val playActivity = App.context.lastPlayedPrefs.getString("playActivityJS", null)
-            playActivity?.let {
-                lifecycleScope.launch {
-                    runVoidJsFunc("window.start_deep_link = ", it)
-                    delay(delay)
-                    runVoidJsFunc("Lampa.Controller.toContent", "")
-                    runVoidJsFunc("Lampa.Activity.push", it)
+            this.playActivityJS?.let { json ->
+                if (isValidJson(json)) {
+                    lifecycleScope.launch {
+                        runVoidJsFunc("window.start_deep_link = ", json)
+                        delay(delay)
+                        runVoidJsFunc("Lampa.Controller.toContent", "")
+                        runVoidJsFunc("Lampa.Activity.push", json)
+                    }
+                }
+            }
+            if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
+                // create new play object and play
+                val playerJS = JSONObject()
+                val videoTitle = if (playJSONArray.getJSONObject(playIndex)
+                        .has("title")
+                ) playJSONArray.getJSONObject(playIndex)
+                    .optString("title") else "LAMPA Video"
+                playerJS.put("title", videoTitle)
+                playerJS.put("url", playVideoUrl)
+                playerJS.put("playlist", playJSONArray)
+                playerJS.let { playJson ->
+                    if (isValidJson(playJson.toString()))
+                        lifecycleScope.launch {
+                            runPlayer(playJson)
+                        }
                 }
             }
         } else
@@ -906,7 +921,7 @@ class MainActivity : AppCompatActivity(),
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                menuItemsAction[which]?.let { this.setAppBrowser(it) }
+                menuItemsAction[which]?.let { this.appBrowser = it }
                 mainActivity.recreate()
             }
         }
@@ -942,7 +957,7 @@ class MainActivity : AppCompatActivity(),
             if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (this.appUrl != LAMPA_URL) {
-                    this.setAppUrl(LAMPA_URL)
+                    this.appUrl = LAMPA_URL
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
                 }
@@ -1050,16 +1065,16 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun setLang(lang: String) {
-        this.setAppLang(lang)
+        this.appLang = lang
         Helpers.setLocale(this, lang)
     }
 
     fun setPlayerPackage(packageName: String, isIPTV: Boolean) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
         if (isIPTV)
-            this.setTvPlayer(SELECTED_PLAYER!!)
+            this.tvPlayer = SELECTED_PLAYER!!
         else
-            this.setAppPlayer(SELECTED_PLAYER!!)
+            this.appPlayer = SELECTED_PLAYER!!
     }
 
     private fun saveLastPlayed() {
@@ -1068,9 +1083,11 @@ class MainActivity : AppCompatActivity(),
             putInt("playIndex", playIndex)
             putString("playVideoUrl", playVideoUrl)
             putString("playJSONArray", playJSONArray.toString())
-            putString("playActivityJS", lampaActivity)
+            //putString("playActivityJS", lampaActivity)
             apply()
         }
+        //this.savePlayActivityJS(lampaActivity)
+        this.playActivityJS = lampaActivity
     }
 
     private fun resultPlayer(
@@ -1089,9 +1106,7 @@ class MainActivity : AppCompatActivity(),
             // Add | Remove Continue to Play
             withContext(Dispatchers.Default) {
                 var card: LampaCard? = null
-                val lampaActivity =
-                    App.context.lastPlayedPrefs.getString("playActivityJS", "{}")
-                        ?.let { JSONObject(it) }
+                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
                 if (lampaActivity?.has("movie") == true) {
                     card = Gson().fromJson(
                         lampaActivity.getJSONObject("movie").toString(),
@@ -1120,6 +1135,7 @@ class MainActivity : AppCompatActivity(),
             if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
             else endedVideoUrl
         if (videoUrl == "") return
+
         for (i in 0 until playJSONArray.length()) {
             val io = playJSONArray.getJSONObject(i)
             if (!io.has("timeline") || !io.has("url")) break
@@ -1148,6 +1164,7 @@ class MainActivity : AppCompatActivity(),
                 newTimeline.put("time", 0)
                 newTimeline.put("duration", 0)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                // TODO: update play index in lastPlayedPrefs too?
             }
         }
     }

@@ -37,6 +37,7 @@ object Prefs {
     private const val LKR_KEY = "like_rem"
     private const val HSR_KEY = "hist_rem"
     private const val SYNC_KEY = "sync_account"
+    private const val PLAY_ACT_KEY = "playActivityJS"
 
     val Context.appPrefs: SharedPreferences
         get() {
@@ -53,96 +54,88 @@ object Prefs {
             return getSharedPreferences(APP_LAST_PLAYED, MODE_PRIVATE)
         }
 
-    val Context.appUrl: String
+    var Context.appUrl: String
         get() {
             val pref = this.appPrefs
             return pref.getString(APP_URL, "") ?: ""
         }
+        set(url) {
+            val pref = this.appPrefs
+            pref.edit().putString(APP_URL, url).apply()
+        }
 
-    fun Context.setAppUrl(url: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(APP_URL, url).apply()
-    }
-
-    val Context.appPlayer: String?
+    var Context.appPlayer: String?
         get() {
             val pref = this.appPrefs
             return pref.getString(APP_PLAYER, "")
         }
+        set(player) {
+            val pref = this.appPrefs
+            pref.edit().putString(APP_PLAYER, player).apply()
+        }
 
-    fun Context.setAppPlayer(player: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(APP_PLAYER, player).apply()
-    }
-
-    val Context.tvPlayer: String?
+    var Context.tvPlayer: String?
         get() {
             val pref = this.appPrefs
             return pref.getString(IPTV_PLAYER, "")
         }
+        set(player) {
+            val pref = this.appPrefs
+            pref.edit().putString(IPTV_PLAYER, player).apply()
+        }
 
-    fun Context.setTvPlayer(player: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(IPTV_PLAYER, player).apply()
-    }
-
-    val Context.lampaSource: String
+    var Context.lampaSource: String
         get() {
             val pref = this.appPrefs
             return pref.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
         }
+        set(source) {
+            val pref = this.appPrefs
+            pref.edit().putString(LAMPA_SOURCE, source).apply()
+        }
 
-    fun Context.setLampaSource(source: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(LAMPA_SOURCE, source).apply()
-    }
-
-    val Context.appBrowser: String?
+    var Context.appBrowser: String?
         get() {
             val pref = this.appPrefs
             return pref.getString(APP_BROWSER, MainActivity.SELECTED_BROWSER)
         }
+        set(browser) {
+            val pref = this.appPrefs
+            pref.edit().putString(APP_BROWSER, browser).apply()
+        }
 
-    fun Context.setAppBrowser(browser: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(APP_BROWSER, browser).apply()
-    }
-
-    val Context.appLang: String
+    var Context.appLang: String
         get() {
             val pref = this.appPrefs
             return pref.getString(APP_LANG, Locale.getDefault().language)
                 ?: Locale.getDefault().language
         }
+        set(lang) {
+            val pref = this.appPrefs
+            pref.edit().putString(APP_LANG, lang).apply()
+        }
 
-    fun Context.setAppLang(lang: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(APP_LANG, lang).apply()
-    }
-
-    val Context.tmdbApiUrl: String
+    var Context.tmdbApiUrl: String
         get() {
             val pref = this.appPrefs
             return pref.getString(TMDB_API, "https://api.themoviedb.org/3/")
                 ?: "https://api.themoviedb.org/3/"
         }
+        set(url) {
+            val pref = this.appPrefs
+            pref.edit().putString(TMDB_API, url).apply()
+        }
 
-    fun Context.setTmdbApiUrl(url: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(TMDB_API, url).apply()
-    }
-
-    val Context.tmdbImgUrl: String
+    var Context.tmdbImgUrl: String
         get() {
             val pref = this.appPrefs
             return pref.getString(TMDB_IMG, "https://image.tmdb.org/")
                 ?: "https://image.tmdb.org/"
         }
-
-    fun Context.setTmdbImgUrl(url: String) {
-        val pref = this.appPrefs
-        pref.edit().putString(TMDB_IMG, url).apply()
-    }
+        set(url) {
+            val pref = this.appPrefs
+            pref.edit().putString(TMDB_IMG, url).apply()
+        }
 
     val Context.firstRun: Boolean
         get() {
@@ -154,10 +147,15 @@ object Prefs {
             return firstRun
         }
 
-    fun Context.saveFavorite(json: String) {
-        PreferenceManager.getDefaultSharedPreferences(this).edit()
-            .putString(FAV_KEY, json).apply()
-    }
+    var Context.playActivityJS: String?
+        get() {
+            return PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(PLAY_ACT_KEY, "{}")
+        }
+        set(json) {
+            PreferenceManager.getDefaultSharedPreferences(this).edit()
+                .putString(PLAY_ACT_KEY, json).apply()
+        }
 
     val Context.FAV: Favorite?
         get() {
@@ -175,9 +173,9 @@ object Prefs {
             }
         }
 
-    fun Context.saveRecs(json: String) {
+    fun Context.saveFavorite(json: String) {
         PreferenceManager.getDefaultSharedPreferences(this).edit()
-            .putString(REC_KEY, json).apply()
+            .putString(FAV_KEY, json).apply()
     }
 
     val Context.REC: List<LampaRec>?
@@ -190,6 +188,12 @@ object Prefs {
                 null
             }
         }
+
+    fun Context.saveRecs(json: String) {
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putString(REC_KEY, json).apply()
+    }
+
 
     val Context.CUB: List<CubBookmark>?
         get() {
@@ -257,6 +261,7 @@ object Prefs {
         return if (this.syncEnabled)
             isInCubWatchNext(id) else isInFavWatchNext(id)
     }
+
     fun Context.isInCubWatchNext(id: String): Boolean {
         return this.cubWatchNext.contains(id)
     }

@@ -1,6 +1,5 @@
 package top.rootu.lampa
 
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
@@ -26,18 +25,13 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
-import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lampaSource
-import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
-import top.rootu.lampa.helpers.Prefs.setLampaSource
 import top.rootu.lampa.helpers.Prefs.setSyncEnabled
-import top.rootu.lampa.helpers.Prefs.setTmdbApiUrl
-import top.rootu.lampa.helpers.Prefs.setTmdbImgUrl
 import top.rootu.lampa.helpers.Prefs.storagePrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
@@ -89,7 +83,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "source" -> {
-                mainActivity.setLampaSource(eo.optString("value", mainActivity.lampaSource))
+                mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
             }
 
             "proxy_tmdb", "protocol" -> {
@@ -97,7 +91,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "baseUrlApiTMDB" -> {
-                mainActivity.setTmdbApiUrl(eo.optString("value", mainActivity.tmdbApiUrl))
+                mainActivity.tmdbApiUrl = eo.optString("value", mainActivity.tmdbApiUrl)
                 if (BuildConfig.DEBUG) Log.d(
                     "*****",
                     "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}"
@@ -105,7 +99,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "baseUrlImageTMDB" -> {
-                mainActivity.setTmdbImgUrl(eo.optString("value", mainActivity.tmdbImgUrl))
+                mainActivity.tmdbImgUrl = eo.optString("value", mainActivity.tmdbImgUrl)
                 if (BuildConfig.DEBUG) Log.d(
                     "*****",
                     "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}"
