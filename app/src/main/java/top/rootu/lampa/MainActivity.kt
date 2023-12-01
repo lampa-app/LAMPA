@@ -136,6 +136,7 @@ class MainActivity : AppCompatActivity(),
         var playIndex = 0
         var playVideoUrl: String = ""
         var lampaActivity: String = "{}" // JSON
+        var resumePosition: Long? = null // videoPosition override
 
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -688,16 +689,16 @@ class MainActivity : AppCompatActivity(),
                         delay(delay)
                         runVoidJsFunc("Lampa.Controller.toContent", "")
                         runVoidJsFunc("Lampa.Activity.push", json)
+                        if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
+                            if (isValidJson(this@MainActivity.resumeJS)) {
+                                resumePosition = this@MainActivity.lastPlayedPrefs.getInt("position", 0).toLong()
+                                    delay(delay)
+                                    this@MainActivity.resumeJS?.let { JSONObject(it) }
+                                        ?.let { runPlayer(it) }
+                            }
+                        }
                     }
                 }
-            }
-            if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
-                if (isValidJson(this.resumeJS))
-                JSONObject()
-                    lifecycleScope.launch {
-                        this@MainActivity.resumeJS?.let { JSONObject(it) }
-                            ?.let { runPlayer(it) }
-                    }
             }
         } else
         // open card
@@ -1150,11 +1151,10 @@ class MainActivity : AppCompatActivity(),
                 newTimeline.put("duration", duration.toDouble())
                 newTimeline.put("percent", percent)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                // for resume WatchNext
-                val io2 = JSONObject(io.toString());
-                io2.put("playlist", playJSONArray)
-                this.resumeJS = io2.toString()
-                Log.d("*****", "io2: io2")
+                // for PlayNext
+                val resumeio = JSONObject(io.toString())
+                resumeio.put("playlist", playJSONArray)
+                this.resumeJS = resumeio.toString()
                 break
             }
             if (i >= playIndex) {
@@ -1240,7 +1240,7 @@ class MainActivity : AppCompatActivity(),
             playerChooserDialog.show()
             playerChooserDialog.listView.requestFocus()
         } else {
-            var videoPosition: Long = 0
+            var videoPosition: Long = resumePosition ?: 0
             val videoTitle =
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
@@ -1257,12 +1257,13 @@ class MainActivity : AppCompatActivity(),
                     val latestTimeline =
                         if (playerFileView?.has(hash) == true) playerFileView?.optJSONObject(hash) else null
                     videoPosition = if (latestTimeline?.has("time") == true)
+                    videoPosition = if (resumePosition == null && latestTimeline?.has("time") == true)
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
                     else
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
                 }
             }
-
+            // Headers
             var ua = HttpHelper.userAgent
             if (jsonObject.has("headers")) {
                 val headersJSON = jsonObject.optJSONObject("headers")
@@ -1284,7 +1285,7 @@ class MainActivity : AppCompatActivity(),
             }
             headers.add("User-Agent")
             headers.add(ua)
-
+            // Playlist
             if (jsonObject.has("playlist") && playerAutoNext) {
                 playJSONArray = jsonObject.getJSONArray("playlist")
                 val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload\$".toRegex()
@@ -1308,6 +1309,7 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
             }
+            // Subtitles
             if (jsonObject.has("subtitles")) {
                 val subsJSONArray = jsonObject.optJSONArray("subtitles")
                 if (subsJSONArray != null)
@@ -1326,7 +1328,9 @@ class MainActivity : AppCompatActivity(),
                 playJSONArray.put(jsonObject)
             }
             playVideoUrl = videoUrl
+
             saveLastPlayed()
+
             when (SELECTED_PLAYER) {
                 "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
                     intent.setPackage(SELECTED_PLAYER)
