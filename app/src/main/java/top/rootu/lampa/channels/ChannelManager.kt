@@ -84,18 +84,18 @@ object ChannelManager {
                         val prg =
                             getProgram(ch.id, name, entity, list.size - index)
                                 ?: return@forEachIndexed
-                        if (!exist(ch.id, prg)) {
-                            App.context.contentResolver.insert(
-                                Uri.parse("content://android.media.tv/preview_program"),
-                                prg.toContentValues()
-                            )
-                        } else {
+                        if (exist(ch.id, prg)) {
                             if (BuildConfig.DEBUG)
                                 Log.d(
                                     "*****",
-                                    "channel ${ch.displayName} already have program ${prg.internalProviderId}"
+                                    "channel ${ch.displayName} already have program for ${prg.internalProviderId}"
                                 )
+                            deleteFromChannel(ch.id, prg.internalProviderId)
                         }
+                        App.context.contentResolver.insert(
+                            Uri.parse("content://android.media.tv/preview_program"),
+                            prg.toContentValues()
+                        )
                     }
                 }
             } else {
@@ -139,8 +139,44 @@ object ChannelManager {
 
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.O)
-    fun exist(channelId: Long, pp: PreviewProgram?): Boolean {
-        val movieId = pp?.internalProviderId
+    fun deleteFromChannel(channelId: Long, movieId: String) {
+        movieId.let {
+            val program = findProgramByMovieId(channelId = channelId, movieId = it)
+            if (program != null) {
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, "deleteFromCannels($channelId, $movieId) removeProgram ${program.id} for $movieId")
+                removeProgram(previewProgramId = program.id)
+            }
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
+    private fun findProgramByMovieId(channelId: Long, movieId: String): PreviewProgram? {
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
+            PREVIEW_PROGRAM_MAP_PROJECTION,
+            null,
+            null,
+            null
+        )
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val program = PreviewProgram.fromCursor(it)
+                    if (movieId == program.internalProviderId) {
+                        cursor.close()
+                        return program
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return null
+    }
+
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun exist(channelId: Long, previewProgram: PreviewProgram?): Boolean {
+        val movieId = previewProgram?.internalProviderId
         val cursor = App.context.contentResolver.query(
             TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
             PREVIEW_PROGRAM_MAP_PROJECTION,
@@ -153,7 +189,7 @@ object ChannelManager {
                     val program = PreviewProgram.fromCursor(it)
                     if (movieId == program.internalProviderId) {
                         cursor.close()
-                        return true // program
+                        return true
                     }
                 } while (it.moveToNext())
             cursor.close()
@@ -174,6 +210,17 @@ object ChannelManager {
             }
         }
         return Pair(previewProgram?.internalProviderId, previewProgram?.channelId)
+    }
+
+    private fun removeProgram(previewProgramId: Long): Int {
+        val rowsDeleted = App.context.contentResolver.delete(
+            TvContractCompat.buildPreviewProgramUri(previewProgramId),
+            null, null
+        )
+        if (rowsDeleted < 1) {
+            Log.e(TAG, "Failed to delete program $previewProgramId")
+        }
+        return rowsDeleted
     }
 
     @SuppressLint("RestrictedApi")

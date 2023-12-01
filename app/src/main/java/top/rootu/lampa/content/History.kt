@@ -19,11 +19,14 @@ class History : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.Hist }?.forEach {
-                    val card = Gson().fromJson(it.data, LampaCard::class.java)
-                    card.fixCard()
-                    lst.add(card)
-                }
+                App.context.CUB?.filter { it.type == LampaProvider.Hist }
+                    ?.toMutableList()
+                    ?.sortedBy { it.time }
+                    ?.forEach {
+                        val card = Gson().fromJson(it.data, LampaCard::class.java)
+                        card.fixCard()
+                        lst.add(card)
+                    }
             // FAV (use ID to match KP_573840 etc)
             App.context.FAV?.card?.filter { App.context.FAV?.history?.contains(it.id.toString()) == true }
                 ?.forEach {
