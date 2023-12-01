@@ -197,7 +197,7 @@ object Helpers {
 
         continueWatch?.let { intent.putExtra("continueWatch", it) }
 
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         intent.action = card.id.toString()
         return intent
     }

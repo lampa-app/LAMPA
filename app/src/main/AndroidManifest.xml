@@ -74,6 +74,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:allowTaskReparenting="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:exported="true"
             android:launchMode="singleTop">
