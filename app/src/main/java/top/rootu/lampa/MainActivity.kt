@@ -691,7 +691,7 @@ class MainActivity : AppCompatActivity(),
                         runVoidJsFunc("Lampa.Activity.push", json)
                         if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                             if (isValidJson(this@MainActivity.resumeJS)) {
-                                resumePosition = this@MainActivity.lastPlayedPrefs.getInt("position", 0).toLong()
+                                //resumePosition = this@MainActivity.lastPlayedPrefs.getInt("position", 0).toLong()
                                     delay(delay)
                                     this@MainActivity.resumeJS?.let { JSONObject(it) }
                                         ?.let { runPlayer(it) }
@@ -1166,7 +1166,6 @@ class MainActivity : AppCompatActivity(),
                 newTimeline.put("duration", 0)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
                 io.put("timeline", newTimeline)
-                // TODO: update play index in lastPlayedPrefs too?
             }
         }
     }
@@ -1258,11 +1257,11 @@ class MainActivity : AppCompatActivity(),
                     val hash = timeline.optString("hash", "0")
                     val latestTimeline =
                         if (playerFileView?.has(hash) == true) playerFileView?.optJSONObject(hash) else null
-                    videoPosition = if (latestTimeline?.has("time") == true)
                     videoPosition = if (resumePosition == null && latestTimeline?.has("time") == true)
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
-                    else
+                    else if (resumePosition == null)
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
+                    else resumePosition!!
                 }
             }
             // Headers
