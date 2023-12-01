@@ -1151,6 +1151,7 @@ class MainActivity : AppCompatActivity(),
                 newTimeline.put("percent", percent)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
                 // for resume WatchNext
+                io.put("timeline", newTimeline)
                 val io2 = JSONObject(io.toString());
                 io2.put("playlist", playJSONArray)
                 this.resumeJS = io2.toString()
@@ -1164,6 +1165,7 @@ class MainActivity : AppCompatActivity(),
                 newTimeline.put("time", 0)
                 newTimeline.put("duration", 0)
                 runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                io.put("timeline", newTimeline)
                 // TODO: update play index in lastPlayedPrefs too?
             }
         }
