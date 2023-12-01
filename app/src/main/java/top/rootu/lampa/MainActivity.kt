@@ -136,7 +136,6 @@ class MainActivity : AppCompatActivity(),
         var playIndex = 0
         var playVideoUrl: String = ""
         var lampaActivity: String = "{}" // JSON
-        var resumePosition: Long? = null // videoPosition override
 
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -691,8 +690,6 @@ class MainActivity : AppCompatActivity(),
                         runVoidJsFunc("Lampa.Activity.push", json)
                         if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                             if (isValidJson(this@MainActivity.resumeJS)) {
-                                //resumePosition = this@MainActivity.lastPlayedPrefs.getInt("position", 0).toLong()
-                                    delay(delay)
                                     this@MainActivity.resumeJS?.let { JSONObject(it) }
                                         ?.let { runPlayer(it) }
                             }
@@ -1241,7 +1238,7 @@ class MainActivity : AppCompatActivity(),
             playerChooserDialog.show()
             playerChooserDialog.listView.requestFocus()
         } else {
-            var videoPosition: Long = resumePosition ?: 0
+            var videoPosition: Long = 0
             val videoTitle =
                 if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
             val listTitles = ArrayList<String>()
@@ -1257,11 +1254,10 @@ class MainActivity : AppCompatActivity(),
                     val hash = timeline.optString("hash", "0")
                     val latestTimeline =
                         if (playerFileView?.has(hash) == true) playerFileView?.optJSONObject(hash) else null
-                    videoPosition = if (resumePosition == null && latestTimeline?.has("time") == true)
+                    videoPosition = if (latestTimeline?.has("time") == true)
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
-                    else if (resumePosition == null)
+                    else
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
-                    else resumePosition!!
                 }
             }
             // Headers
