@@ -488,7 +488,7 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("account_use") // get sync state
                 runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
-                syncBookmarks() // call it more frequently - onResume()
+                syncBookmarks()
                 for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
                 delayedVoidJsFunc.clear()
             }
@@ -688,10 +688,11 @@ class MainActivity : AppCompatActivity(),
                         delay(delay)
                         runVoidJsFunc("Lampa.Controller.toContent", "")
                         runVoidJsFunc("Lampa.Activity.push", json)
+                        delay(500)
                         if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                             if (isValidJson(this@MainActivity.resumeJS)) {
-                                    this@MainActivity.resumeJS?.let { JSONObject(it) }
-                                        ?.let { runPlayer(it) }
+                                this@MainActivity.resumeJS?.let { JSONObject(it) }
+                                    ?.let { runPlayer(it) }
                             }
                         }
                     }
@@ -741,7 +742,8 @@ class MainActivity : AppCompatActivity(),
         val menuItemsAction = arrayOfNulls<String?>(5)
 
         menuItemsTitle[0] =
-            if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
+            if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) getString(R.string.update_chan_title)
+            else if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
         menuItemsAction[0] = "closeMenu"
         menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
