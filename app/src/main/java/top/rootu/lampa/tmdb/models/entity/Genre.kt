@@ -1,6 +1,6 @@
 package top.rootu.lampa.tmdb.models.entity
 
 data class Genre(
-    val id: String,
+    val id: Int,
     val name: String?,
 )

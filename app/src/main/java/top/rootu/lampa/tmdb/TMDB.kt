@@ -15,6 +15,7 @@ import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
+import top.rootu.lampa.tmdb.models.entity.Genre
 import java.io.IOException
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit
 
 object TMDB {
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
+    private var movieGenres: List<Genre?> = emptyList()
+    private var tvGenres: List<Genre?> = emptyList()
 
     /* return lowercase 2-digit lang tag */
     fun getLang(): String {
@@ -62,6 +65,50 @@ object TMDB {
             }
         }
     }
+    fun initGenres() {
+        try {
+            // https://developers.themoviedb.org/3/genres/get-movie-list
+            var ent = video("genre/movie/list")
+            ent?.genres?.let {
+                movieGenres = it
+            }
+            // https://developers.themoviedb.org/3/genres/get-tv-list
+            ent = video("genre/tv/list")
+            ent?.genres?.let {
+                tvGenres = it
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    val genres: Map<Int, String>
+        get() {
+            val ret = hashMapOf<Int, String>()
+
+            if (movieGenres.isNotEmpty())
+                for (g in movieGenres) {
+                    g?.let {
+                        if (!g.name.isNullOrEmpty()) {
+                            ret[g.id] =
+                                g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                        }
+                    }
+                }
+
+            if (tvGenres.isNotEmpty())
+                for (g in tvGenres) {
+                    g?.let {
+                        if (!g.name.isNullOrEmpty()) {
+                            ret[g.id] =
+                                g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                        }
+                    }
+                }
+
+            return ret
+        }
+
     // Quad9 over HTTPS resolver
     fun startWithQuad9DNS(): OkHttpClient {
 

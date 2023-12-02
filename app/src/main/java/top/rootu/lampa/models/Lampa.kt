@@ -133,7 +133,8 @@ data class LampaRec(
         // fix media_type
         val mt = media_type ?: "movie"
         // fix genres
-        val genres = genre_ids?.map { Genre(it, "", "") }
+        val genres = genre_ids?.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
+        
         // fix images
         val img = if (!poster_path.isNullOrEmpty() && poster_path.startsWith("/")) TMDB.imageUrl(
             poster_path
