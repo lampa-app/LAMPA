@@ -3,6 +3,9 @@ package top.rootu.lampa.channels
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
@@ -49,6 +52,9 @@ object LampaChannels {
                 ChannelManager.update(LampaProvider.Book, book)
                 thH.join()
                 ChannelManager.update(LampaProvider.Hist, hist)
+                CoroutineScope(Dispatchers.IO).launch {
+                    WatchNext.updateWatchNext()
+                }
             } else {
                 recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
                 ChannelManager.update(LampaProvider.Recs, recs)
@@ -58,6 +64,9 @@ object LampaChannels {
                 ChannelManager.update(LampaProvider.Book, book)
                 hist = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
                 ChannelManager.update(LampaProvider.Hist, hist)
+                CoroutineScope(Dispatchers.IO).launch {
+                    WatchNext.updateWatchNext()
+                }
             }
         }
     }

@@ -80,6 +80,8 @@ object WatchNext {
     }
 
     suspend fun updateWatchNext() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV)
+            return
         val lst = mutableListOf<LampaCard>()
         // CUB
         if (App.context.syncEnabled)
