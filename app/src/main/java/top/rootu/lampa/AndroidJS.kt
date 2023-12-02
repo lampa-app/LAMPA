@@ -8,12 +8,10 @@ import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
@@ -21,23 +19,18 @@ import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateBookChannel
 import top.rootu.lampa.channels.LampaChannels.updateHistChannel
 import top.rootu.lampa.channels.LampaChannels.updateLikeChannel
-import top.rootu.lampa.channels.WatchNext
+import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
-import top.rootu.lampa.helpers.Prefs.CUB
-import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
 import top.rootu.lampa.helpers.Prefs.setSyncEnabled
 import top.rootu.lampa.helpers.Prefs.storagePrefs
-import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
-import top.rootu.lampa.helpers.Prefs.wathToRemove
-import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.Http
 import kotlin.system.exitProcess
 
@@ -111,7 +104,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
-                    if (BuildConfig.DEBUG) Log.d("*****", "favorite json stored")
                 }
             }
 
@@ -126,10 +118,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveAccountBookmarks(json)
-                    if (BuildConfig.DEBUG) Log.d(
-                        "*****",
-                        "account_bookmarks json stored"
-                    )
                 }
             }
 
@@ -138,7 +126,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveRecs(json)
-                    if (BuildConfig.DEBUG) Log.d("*****", "recomends json stored")
                 }
             }
         }
@@ -427,50 +414,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
                 LampaProvider.Late -> {
                     // Handle add to Watch Next from Lampa
-                    // TODO: find a better way to manage WatchNext
                     CoroutineScope(Dispatchers.IO).launch {
-
                         delay(5000)
-
-                        val lst = mutableListOf<LampaCard>()
-                        // CUB
-                        if (App.context.syncEnabled)
-                            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
-                                val card = Gson().fromJson(it.data, LampaCard::class.java)
-                                card.fixCard()
-                                lst.add(card)
-                            }
-                        // FAV
-                        App.context.FAV?.card?.filter {
-                            App.context.FAV?.wath?.contains(it.id) == true
-                        }?.forEach {
-                            it.fixCard()
-                            lst.add(it)
-                        }
-                        val (excludePending, pending) = lst.partition {
-                            !App.context.wathToRemove.contains(it.id.toString())
-                        } // skip pending to remove
-                        if (BuildConfig.DEBUG) Log.d(
-                            "*****",
-                            "AndroidJS WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
-                        )
-                        excludePending.forEach {
-                            withContext(Dispatchers.Default) {
-                                // FIXME: WTF? Not allowed to change ID
-                                try {
-                                    if (BuildConfig.DEBUG) Log.d(
-                                        "*****",
-                                        "AndroidJS Add $it to WatchNext"
-                                    )
-                                    WatchNext.add(it)
-                                } catch (e: Exception) {
-                                    if (BuildConfig.DEBUG) Log.d(
-                                        "*****",
-                                        "AndroidJS Error add $it to WatchNext: $e"
-                                    )
-                                }
-                            }
-                        }
+                        updateWatchNext()
                     }
                 }
             }

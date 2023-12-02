@@ -33,7 +33,7 @@ object LampaChannels {
                     recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
                 }
                 val thL = thread {
-                    like = LampaProvider.get(LampaProvider.Like, true)?.items.orEmpty()
+                    like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
                 }
                 val thF = thread {
                     book = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()

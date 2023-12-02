@@ -13,13 +13,20 @@ import androidx.tvprovider.media.tv.TvContractCompat.WatchNextPrograms.WATCH_NEX
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
+import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Prefs.CUB
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
+import top.rootu.lampa.helpers.Prefs.syncEnabled
+import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
 import java.util.*
 
@@ -68,6 +75,48 @@ object WatchNext {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
             movieId?.let { id ->
                 deleteFromWatchNext(id)
+            }
+        }
+    }
+
+    suspend fun updateWatchNext() {
+        val lst = mutableListOf<LampaCard>()
+        // CUB
+        if (App.context.syncEnabled)
+            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
+                val card = Gson().fromJson(it.data, LampaCard::class.java)
+                card.fixCard()
+                lst.add(card)
+            }
+        // FAV
+        App.context.FAV?.card?.filter {
+            App.context.FAV?.wath?.contains(it.id) == true
+        }?.forEach {
+            it.fixCard()
+            lst.add(it)
+        }
+        val (excludePending, pending) = lst.partition {
+            !App.context.wathToRemove.contains(it.id.toString())
+        } // skip pending to remove
+        if (BuildConfig.DEBUG) Log.d(
+            "*****",
+            "updateWatchNext() WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
+        )
+        excludePending.forEach {
+            withContext(Dispatchers.Default) {
+                // FIXME: WTF? Not allowed to change ID
+                try {
+                    if (BuildConfig.DEBUG) Log.d(
+                        "*****",
+                        "updateWatchNext() Add $it to WatchNext"
+                    )
+                    add(it)
+                } catch (e: Exception) {
+                    if (BuildConfig.DEBUG) Log.d(
+                        "*****",
+                        "updateWatchNext() Error add $it to WatchNext: $e"
+                    )
+                }
             }
         }
     }
