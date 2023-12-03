@@ -200,6 +200,7 @@ object Prefs {
             }
         }
 
+
     fun Context.saveRecs(json: String) {
         PreferenceManager.getDefaultSharedPreferences(this).edit()
             .putString(REC_KEY, json).apply()
@@ -222,16 +223,13 @@ object Prefs {
             .putString(CUB_KEY, json).apply()
     }
 
-    val Context.syncEnabled: Boolean
+    var Context.syncEnabled: Boolean
         get() {
-            val pref = this.appPrefs
-            return pref.getBoolean(SYNC_KEY, false)
+            return this.appPrefs.getBoolean(SYNC_KEY, false)
         }
-
-    fun Context.setSyncEnabled(enabled: Boolean) {
-        val pref = this.appPrefs
-        pref.edit().putBoolean(SYNC_KEY, enabled).apply()
-    }
+        set(enabled) {
+            this.appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
+        }
 
     val Context.cubWatchNext: List<String?>
         get() {
@@ -242,14 +240,13 @@ object Prefs {
 //                Log.d("*****", "CUB WatchNext [$index] $card")
 //            }
 //            return bookmarks?.map { it.card_id } ?: emptyList()
-            return this.getCubBookmarkCardIds(LampaProvider.Late)
+            return this.getCubBookmarkCardIds(LampaProvider.Late).reversed()
         }
 
     fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {
         var bookmarks = this.CUB
         if (!which.isNullOrEmpty())
             bookmarks = this.CUB?.filter { it.type == which }
-
         return bookmarks?.map { it.card_id } ?: emptyList()
     }
 
@@ -269,8 +266,7 @@ object Prefs {
         }
 
     fun Context.isInLampaWatchNext(id: String): Boolean {
-        return if (this.syncEnabled)
-            isInCubWatchNext(id) else isInFavWatchNext(id)
+        return if (this.syncEnabled) isInCubWatchNext(id) else isInFavWatchNext(id)
     }
 
     fun Context.isInCubWatchNext(id: String): Boolean {
@@ -288,7 +284,10 @@ object Prefs {
                 val buf = pref.getString(WNA_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<WatchNextToAdd>::class.java)
                 //arr.toList()
-                arr.filter { !this.isInLampaWatchNext(it.id) }
+                if (this.syncEnabled)
+                    arr.filter { !this.isInCubWatchNext(it.id) }
+                else
+                    arr.filter { !this.isInLampaWatchNext(it.id) }
             } catch (e: Exception) {
                 emptyList()
             }

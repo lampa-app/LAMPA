@@ -24,11 +24,13 @@ import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
 import java.util.*
+
 
 object WatchNext {
 
@@ -73,8 +75,8 @@ object WatchNext {
 
     fun rem(movieId: String?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
-            movieId?.let { id ->
-                deleteFromWatchNext(id)
+            movieId?.let {
+                deleteFromWatchNext(it)
             }
         }
     }
@@ -82,20 +84,26 @@ object WatchNext {
     suspend fun updateWatchNext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV)
             return
+//        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() cubWatchNext: ${App.context.cubWatchNext}")
+//        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() favWatchNext: ${App.context.FAV?.wath}")
+        val deleted = removeStale()
+        if (BuildConfig.DEBUG) Log.d("****", "WatchNext cards removed: $deleted")
         val lst = mutableListOf<LampaCard>()
         // CUB
-        if (App.context.syncEnabled)
+        if (App.context.syncEnabled) {
             App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
                 val card = Gson().fromJson(it.data, LampaCard::class.java)
                 card.fixCard()
                 lst.add(card)
             }
-        // FAV
-        App.context.FAV?.card?.filter {
-            App.context.FAV?.wath?.contains(it.id) == true
-        }?.forEach {
-            it.fixCard()
-            lst.add(it)
+        } else {
+            // FAV
+            App.context.FAV?.card?.filter {
+                App.context.FAV?.wath?.contains(it.id) == true
+            }?.forEach {
+                it.fixCard()
+                lst.add(it)
+            }
         }
         val (excludePending, pending) = lst.partition {
             !App.context.wathToRemove.contains(it.id.toString())
@@ -106,16 +114,11 @@ object WatchNext {
         )
         excludePending.forEach {
             withContext(Dispatchers.Default) {
-                // FIXME: WTF? Not allowed to change ID
                 try {
-                    if (BuildConfig.DEBUG) Log.d(
-                        "*****",
-                        "updateWatchNext() Add $it to WatchNext"
-                    )
                     add(it)
                 } catch (e: Exception) {
                     if (BuildConfig.DEBUG) Log.d(
-                        "*****",
+                        "*****", // FIXME: WTF? Not allowed to change ID
                         "updateWatchNext() Error add $it to WatchNext: $e"
                     )
                 }
@@ -184,7 +187,7 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    fun deleteFromWatchNext(movieId: String) {
+    private fun deleteFromWatchNext(movieId: String) {
         movieId.let {
             val program = findProgramByMovieId(movieId = it)
             if (program != null) {
@@ -217,6 +220,31 @@ object WatchNext {
             cursor.close()
         }
         return null
+    }
+
+    // Remove items not in Lampa Watch Later
+    @SuppressLint("RestrictedApi")
+    private fun removeStale(): Int {
+        var count = 0
+        val cursor = App.context.contentResolver.query(
+            TvContractCompat.WatchNextPrograms.CONTENT_URI,
+            WATCH_NEXT_MAP_PROJECTION,
+            null,
+            null,
+            null
+        )
+        cursor?.let {
+            if (it.moveToFirst())
+                do {
+                    val program = WatchNextProgram.fromCursor(it)
+                    if (!App.context.isInLampaWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
+                        count++
+                        removeProgram(program.id)
+                    }
+                } while (it.moveToNext())
+            cursor.close()
+        }
+        return count
     }
 
     @SuppressLint("RestrictedApi")

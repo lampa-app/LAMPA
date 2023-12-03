@@ -84,6 +84,7 @@ import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
@@ -91,6 +92,7 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
+import top.rootu.lampa.helpers.Prefs.cubWatchNext
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
@@ -98,7 +100,9 @@ import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.resumeJS
+import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
@@ -532,27 +536,33 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun syncBookmarks() { // mainActivity.runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
-//  TODO: fix duplicates and update errors
-//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() cubWatchNext size: ${this.cubWatchNext.size}")
-//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() favWatchNext size: ${App.context.FAV?.wath?.size}")
-//        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToAdd: ${this.wathToAdd}")
-//        this.wathToAdd.forEach { // add items to later - we need full card here to add
-//            var lampaCard = App.context.FAV?.card?.find { card -> card.id == it.id }
-//            if (lampaCard == null)
-//                lampaCard = it.card // js from intent
-//            lampaCard?.let { card ->
-//                card.fixCard()
-//                if (BuildConfig.DEBUG) Log.d(
-//                    "*****",
-//                    "syncBookmarks() in wathToAdd $card"
-//                )
-//                runVoidJsFunc(
-//                    "Lampa.Favorite.add",
-//                    "'${LampaProvider.Late}', ${Gson().toJson(card)}"
-//                )
-//            }
-//        }
+    // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
+    // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
+    private fun syncBookmarks() {
+        // initialize if no favorite (undefined)
+        runVoidJsFunc("Lampa.Favorite.init", "")
+
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToAdd: ${this.wathToAdd}")
+        this.wathToAdd.forEach { // we need full card data here to add
+            val lampaCard = App.context.FAV?.card?.find { card -> card.id == it.id }
+                ?: it.card // js from intent
+            lampaCard?.let { card ->
+                card.fixCard()
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "syncBookmarks() wathToAdd $card"
+                )
+                val id = card.id?.toIntOrNull()
+                id?.let {
+                    val params =
+                        if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
+                    runVoidJsFunc(
+                        "Lampa.Favorite.add",
+                        "'${LampaProvider.Late}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                    )
+                }
+            }
+        }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToRemove: ${this.wathToRemove}")
         this.wathToRemove.forEach {// delete items from later
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', {id: $it}")
@@ -569,6 +579,7 @@ class MainActivity : AppCompatActivity(),
         this.histToRemove.forEach {// delete items from history
             runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', {id: $it}")
         }
+        // don't do it again
         App.context.clearPending()
     }
 

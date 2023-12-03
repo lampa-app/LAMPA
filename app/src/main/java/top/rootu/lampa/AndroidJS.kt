@@ -27,8 +27,8 @@ import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
 import top.rootu.lampa.helpers.Prefs.saveRecs
-import top.rootu.lampa.helpers.Prefs.setSyncEnabled
 import top.rootu.lampa.helpers.Prefs.storagePrefs
+import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.Http
@@ -110,7 +110,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "account_use" -> {
                 val use = eo.optBoolean("value", false)
                 if (BuildConfig.DEBUG) Log.d("*****", "account_use $use")
-                App.context.setSyncEnabled(use)
+                App.context.syncEnabled = use
             }
 
             "account_bookmarks" -> {

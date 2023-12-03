@@ -18,6 +18,7 @@ import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.isInFavWatchNext
 import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.sched.Scheduler
+import java.lang.Error
 
 @TargetApi(Build.VERSION_CODES.O)
 class HomeWatch : BroadcastReceiver() {
@@ -70,6 +71,11 @@ class HomeWatch : BroadcastReceiver() {
                     if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
                     if (App.context.isInLampaWatchNext(movieId)) {
                         Helpers.manageFavorite("rem", "wath", movieId)
+                    }
+                    try { // remove from contentPrivider
+                        WatchNext.rem(movieId)
+                    } catch (e: Error) {
+                        Log.d("*****", "error delete $movieId from WatchNext $e")
                     }
                 }
             }
