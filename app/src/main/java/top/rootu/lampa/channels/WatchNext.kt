@@ -34,7 +34,7 @@ import java.util.*
 
 object WatchNext {
 
-    private val TAG = if (BuildConfig.DEBUG) "*****: WatchNext" else "WatchNext"
+    private const val TAG = "WatchNext"
     private const val RESUME_ID = "-1"
 
     @SuppressLint("RestrictedApi")

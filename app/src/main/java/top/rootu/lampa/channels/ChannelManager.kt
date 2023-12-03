@@ -26,7 +26,7 @@ import top.rootu.lampa.models.LampaCard
 import java.util.*
 
 object ChannelManager {
-    private val TAG = "ChannelManager"
+    private const val TAG = "ChannelManager"
     private val lock = Any()
 
     fun getChannelDisplayName(name: String): String {
@@ -142,8 +142,8 @@ object ChannelManager {
     fun deleteFromChannel(channelId: Long, movieId: String) {
         movieId.let {
             val program = findProgramByMovieId(channelId = channelId, movieId = it)
-            program?.let {
-                removeProgram(previewProgramId = it.id)
+            program?.let { prg ->
+                removeProgram(previewProgramId = prg.id)
             }
         }
     }

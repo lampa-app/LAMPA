@@ -13,9 +13,9 @@ import top.rootu.lampa.models.LampaCard
 import kotlin.concurrent.thread
 
 object LampaChannels {
-
+    private const val TAG = "LampaChannels"
     private val lock = Any()
-    const val MAX_CHANNEL_CAP = 30 // For recs only
+    private const val MAX_RECS_CAP = 30 // For recs only
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun update(sync: Boolean = true) {
@@ -24,7 +24,7 @@ object LampaChannels {
 
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.i("*****", "LampaChannels: update(sync: $sync)")
+                Log.d(TAG, "update(sync: $sync)")
 
             var recs = emptyList<LampaCard>()
             var like = emptyList<LampaCard>()
@@ -33,7 +33,7 @@ object LampaChannels {
 
             if (!sync) {
                 val thR = thread {
-                    recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
+                    recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
                 }
                 val thL = thread {
                     like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
@@ -56,7 +56,7 @@ object LampaChannels {
                     WatchNext.updateWatchNext()
                 }
             } else {
-                recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
+                recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
                 ChannelManager.update(LampaProvider.Recs, recs)
                 like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
                 ChannelManager.update(LampaProvider.Like, like)
@@ -77,8 +77,8 @@ object LampaChannels {
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.i("*****", "LampaChannels: updateRecsChannel")
-            val list = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_CHANNEL_CAP)
+                Log.d(TAG, "updateRecsChannel")
+            val list = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
             ChannelManager.update(LampaProvider.Recs, list)
         }
     }
@@ -89,7 +89,7 @@ object LampaChannels {
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.i("*****", "LampaChannels: updateLikeChannel")
+                Log.d(TAG, "updateLikeChannel")
             val list = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Like, list)
         }
@@ -101,7 +101,7 @@ object LampaChannels {
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.i("*****", "LampaChannels: updateHistChannel")
+                Log.d(TAG, "updateHistChannel")
             val list = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Hist, list)
         }
@@ -113,7 +113,7 @@ object LampaChannels {
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.i("*****", "LampaChannels: updateBookChannel")
+                Log.d(TAG, "updateBookChannel")
             val list = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
             ChannelManager.update(LampaProvider.Book, list)
         }
