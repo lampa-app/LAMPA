@@ -645,7 +645,7 @@ class MainActivity : AppCompatActivity(),
                     if (uri.lastPathSegment == "update_channel")
                         intID = -1
                     else {
-                        intID = ids?.toInt() ?: -1
+                        intID = ids?.toIntOrNull() ?: -1
                         mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
                     }
                 }
