@@ -15,14 +15,12 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Prefs.isInFavWatchNext
 import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
 import top.rootu.lampa.sched.Scheduler
-import java.lang.Error
 
 @TargetApi(Build.VERSION_CODES.O)
 class HomeWatch : BroadcastReceiver() {
-    private val TAG = if (BuildConfig.DEBUG) "*****: HomeWatch" else "HomeWatch"
+    private val TAG = "HomeWatch"
 
     override fun onReceive(context: Context, intent: Intent) {
 
@@ -74,8 +72,8 @@ class HomeWatch : BroadcastReceiver() {
                     }
                     try { // remove from contentPrivider
                         WatchNext.rem(movieId)
-                    } catch (e: Error) {
-                        Log.d("*****", "error delete $movieId from WatchNext $e")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "error delete $movieId from WatchNext: $e")
                     }
                 }
             }
@@ -85,10 +83,15 @@ class HomeWatch : BroadcastReceiver() {
                     Log.d(TAG, "ACTION_PREVIEW_PROGRAM_BROWSABLE_DISABLED, preview $previewId")
                 val movieIdAndChanId =
                     ChannelManager.getInternalIdAndChanIdFromPreviewProgramId(previewId)
-                val chan = movieIdAndChanId.second?.let { ChannelHelper.getChanByID(it) }
-                movieIdAndChanId.first?.let {
+                movieIdAndChanId.first?.let { movieId ->
+                    val chan = movieIdAndChanId.second?.let { ChannelHelper.getChanByID(it) }
                     if (!chan.isNullOrEmpty())
-                        Helpers.manageFavorite("rem", chan, it)
+                        Helpers.manageFavorite("rem", chan, movieId)
+                    try { // remove from contentPrivider
+                        movieIdAndChanId.second?.let { chid -> ChannelManager.deleteFromChannel(chid, movieId) }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "error delete $movieId from channel $chan: $e")
+                    }
                 }
             }
         }
