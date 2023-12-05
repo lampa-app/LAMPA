@@ -1,5 +1,6 @@
 # LAMPA
-LAMPA client browser for Android 4.1+ (API level 16+)
+LAMPA client browser for Android and Android TV
+System requirements: Android 4.1+ (API level 16+)
 
 
 Last release:
