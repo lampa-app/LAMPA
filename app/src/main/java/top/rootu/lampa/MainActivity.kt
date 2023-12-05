@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity(),
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private lateinit var progressBar: LottieAnimationView // CircularProgressIndicator
+    private var progressBar: LottieAnimationView? = null // CircularProgressIndicator
     private var browserInit = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
@@ -471,7 +471,7 @@ class MainActivity : AppCompatActivity(),
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
-            progressBar.visibility = View.GONE
+            progressBar?.visibility = View.GONE
             Log.d("*****", "LAMPA onLoadFinished $url")
             if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
             processIntent(intent, 1000)
@@ -1798,7 +1798,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && progressBar.visibility == View.GONE) {
+        if (browserInit && progressBar?.visibility == View.GONE) {
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
