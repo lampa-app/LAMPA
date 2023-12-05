@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.rootu.lampa.helpers.Helpers.isConnected
+import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Updater
 import top.rootu.lampa.tmdb.TMDB
 
@@ -74,6 +75,8 @@ class App : MultiDexApplication() {
         ProcessLifecycleOwner
             .get().lifecycle
             .addObserver(lifecycleEventObserver)
+
+        App.context.setLanguage()
 
         // self-update check
         val checkUpdates = true

@@ -184,7 +184,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
-                App.toast(R.string.no_activity_found, false)
+                App.toast(R.string.no_activity_found, true)
             }
         }
         // update Recs to filter viewed
@@ -209,7 +209,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
                 Log.d(TAG, e.message, e)
-                App.toast(R.string.no_activity_found, false)
+                App.toast(R.string.no_activity_found, true)
             }
         }
     }

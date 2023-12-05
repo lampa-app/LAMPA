@@ -1219,7 +1219,7 @@ class MainActivity : AppCompatActivity(),
             filteredList.add(info)
         }
         if (filteredList.isEmpty()) {
-            App.toast(R.string.no_activity_found, false)
+            App.toast(R.string.no_activity_found, true)
             return
         }
         var playerPackageExist = false
@@ -1555,7 +1555,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
-                App.toast(R.string.no_launch_player, false)
+                App.toast(R.string.no_launch_player, true)
             }
         }
     }
