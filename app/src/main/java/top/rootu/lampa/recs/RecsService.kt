@@ -73,13 +73,13 @@ object RecsService {
             for (i in 0 until itemsSend) {
                 try {
                     val card = cards[i]
-
+                    // title
                     var recTitle = card.title ?: ""
                     if (recTitle.isEmpty())
                         recTitle = card.name ?: ""
                     if (recTitle.isEmpty())
                         recTitle = ""
-
+                    // original title
                     var recOriginal = card.original_title ?: ""
                     if (recOriginal.isEmpty())
                         recOriginal = card.original_name ?: ""
@@ -95,22 +95,22 @@ object RecsService {
                         widePoster = emptyWidePoster.toString()
 
                     // 2:3
-                    var posterWidth = dp2px(App.context, 200f)
-                    var posterHeight = dp2px(App.context, 300f)
+                    var posterWidth = dp2px(this, 200f)
+                    var posterHeight = dp2px(this, 300f)
                     // 16:9
                     if (isAmazonDev && widePoster.isNotEmpty()) {
                         recPoster = widePoster
-                        posterWidth = dp2px(App.context, 300f)
-                        posterHeight = dp2px(App.context, 170f)
+                        posterWidth = dp2px(this, 300f)
+                        posterHeight = dp2px(this, 170f)
                     }
 
-                    var bitmap = Glide.with(App.context)
+                    var bitmap = Glide.with(this)
                         .asBitmap()
                         .load(recPoster)
                         .submit(posterWidth, posterHeight)
                         .get()
 
-                    if (isAmazonDev && widePoster.isNotEmpty() && recOriginal.isNotBlank())
+                    if (isAmazonDev && widePoster.isNotEmpty())
                         bitmap = drawTextToBitmap(bitmap, recOriginal)
 
                     val info = mutableListOf<String>()
@@ -189,31 +189,32 @@ object RecsService {
     }
 
     private fun Context.drawTextToBitmap(bitmap: Bitmap?, mText: String): Bitmap? {
-        if (mText.isEmpty() || bitmap == null)
+        if (mText.isBlank() || bitmap == null)
             return bitmap
         try {
             val scale = this.resources.displayMetrics.density
             val fontSize = 20f * scale
-            val fontPad = 12f * scale
+            val fontPading = 12f * scale
             val bitmapConfig = bitmap.config
             //if (bitmapConfig == null) bitmapConfig = Bitmap.Config.ARGB_8888
 
             val draw = bitmap.copy(bitmapConfig, true)
             val canvas = Canvas(draw)
             val paintTxt = Paint(Paint.ANTI_ALIAS_FLAG)
-            //Text color
+            // Text color
             paintTxt.color = Color.parseColor("#eeeeee")
-            //Text size
+            // Text size
             paintTxt.textSize = fontSize
-            //Font
+            // Cineplex Bold Font
             val condfont = Typeface.createFromAsset(this.assets, "cineplex.ttf")
             paintTxt.typeface = condfont
-            //Text shadow
+            // Fallback Font type
+            val currentTypeFace: Typeface = paintTxt.typeface
+            val normal = Typeface.create(currentTypeFace, Typeface.NORMAL)
+            paintTxt.typeface = normal
+            // Text shadow
             paintTxt.setShadowLayer(1f * scale, 0f, 0f, Color.BLACK)
-            //Text bound rect
-//            val bounds = Rect()
-//            paintTxt.getTextBounds(mText, 0, mText.length, bounds)
-            val y = draw.height - fontPad // text baseline
+            val y = draw.height - fontPading // text baseline
 
             val paintRect = Paint(Paint.ANTI_ALIAS_FLAG)
             paintRect.color = Color.parseColor("#80000000")
@@ -221,12 +222,12 @@ object RecsService {
 
             canvas.drawRect(
                 0f,
-                y - fontSize - fontPad / 2,
+                y - fontSize - fontPading / 2,
                 draw.width.toFloat(),
                 draw.height.toFloat(),
                 paintRect
             )
-            canvas.drawText(mText, fontPad, y, paintTxt)
+            canvas.drawText(mText, fontPading, y, paintTxt)
 
             return draw
         } catch (e: Exception) {
