@@ -92,7 +92,6 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
-import top.rootu.lampa.helpers.Prefs.cubWatchNext
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
@@ -100,7 +99,6 @@ import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.resumeJS
-import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
@@ -207,17 +205,19 @@ class MainActivity : AppCompatActivity(),
 //                }
 //            }
             val videoUrl: String = data?.data.toString()
-            Log.i(TAG, "Returned video url: $videoUrl")
             val resultCode = result.resultCode
-            when (resultCode) { // just for debug
-                RESULT_OK -> Log.i(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
-                RESULT_CANCELED -> Log.i(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
-                RESULT_FIRST_USER -> Log.i(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
-                RESULT_ERROR -> Log.e(TAG, "RESULT_ERROR: ${data?.toUri(0)}") // 4
-                else -> Log.w(
-                    TAG,
-                    "Undefined result code ($resultCode): ${data?.toUri(0)}"
-                )
+            if (BuildConfig.DEBUG) {
+                Log.i(TAG, "Returned video url: $videoUrl")
+                when (resultCode) { // just for debug
+                    RESULT_OK -> Log.i(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
+                    RESULT_CANCELED -> Log.i(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
+                    RESULT_FIRST_USER -> Log.i(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
+                    RESULT_ERROR -> Log.e(TAG, "RESULT_ERROR: ${data?.toUri(0)}") // 4
+                    else -> Log.w(
+                        TAG,
+                        "Undefined result code ($resultCode): ${data?.toUri(0)}"
+                    )
+                }
             }
             data?.let {
                 if (it.action.equals("com.mxtech.intent.result.VIEW")) { // MX / Just
@@ -233,12 +233,12 @@ class MainActivity : AppCompatActivity(),
                                     val pos = it.getIntExtra("position", 0)
                                     val dur = it.getIntExtra("duration", 0)
                                     if (pos > 0 && dur > 0) {
-                                        Log.i(
-                                            TAG,
-                                            "Playback stopped [position=$pos, duration=$dur]"
-                                        )
                                         val ended =
                                             isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                        Log.i(
+                                            TAG,
+                                            "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
+                                        )
                                         resultPlayer(videoUrl, pos, dur, ended)
                                     } else {
                                         Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
@@ -269,8 +269,8 @@ class MainActivity : AppCompatActivity(),
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
                             if (pos > 0L) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
                                 val ended = isAfterEndCreditsPosition(pos, dur)
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
                                 resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                             } else {
                                 if (dur == 0L && pos == 0L) {
@@ -290,8 +290,8 @@ class MainActivity : AppCompatActivity(),
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
                                 val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
                                 resultPlayer(videoUrl, pos, dur, ended)
                             } else if (dur == 0 && pos == 0) {
                                 Log.i(TAG, "Playback completed")
@@ -310,13 +310,13 @@ class MainActivity : AppCompatActivity(),
                         RESULT_OK -> {
                             val pos = it.getLongExtra("position", 0L).toInt()
                             val dur = it.getLongExtra("duration", 0L).toInt()
-                            val isEnded = it.getBooleanExtra("isEnded", pos == dur)
+                            val ended = it.getBooleanExtra("isEnded", pos == dur)
                             if (pos > 0 && dur > 0) {
                                 Log.i(
                                     TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, isEnded=$isEnded]"
+                                    "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
                                 )
-                                resultPlayer(videoUrl, pos, dur, isEnded)
+                                resultPlayer(videoUrl, pos, dur, ended)
                             }
                         }
 
@@ -1529,10 +1529,11 @@ class MainActivity : AppCompatActivity(),
                     if (playerTimeCode == "continue" || playerTimeCode == "again") {
                         intent.putExtra("position", videoPosition.toInt())
                         intent.putExtra("startfrom", videoPosition.toInt())
+                    } else if (playerTimeCode == "ask") {
+                        // use ViMu resume
+                        intent.putExtra("forcedirect", true)
+                        intent.putExtra("forceresume", true)
                     }
-                    // don't use ViMu resumes, use Lampa timecodes instead
-                    //intent.putExtra("forcedirect", true)
-                    //intent.putExtra("forceresume", true)
                 }
 
                 else -> {
