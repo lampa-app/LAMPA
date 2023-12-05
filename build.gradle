@@ -22,6 +22,11 @@ buildscript {
     }
 }
 
+plugins {
+    id 'com.google.devtools.ksp' version "${kp_version}-1.0.11" apply false
+    id 'org.jetbrains.kotlin.android' version "${kp_version}" apply false
+}
+
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

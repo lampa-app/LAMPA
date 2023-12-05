@@ -4,17 +4,17 @@ import android.app.NotificationManager
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.recommendation.app.ContentRecommendation
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import com.bumptech.glide.Glide
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
@@ -23,10 +23,7 @@ import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.isAmazonDev
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.models.LampaCard
-import java.io.IOException
-import java.net.URL
 import java.util.Locale
 import kotlin.math.min
 
@@ -34,7 +31,6 @@ import kotlin.math.min
 object RecsService {
 
     private const val MAX_RECS_CAP = 20
-    private var bitmap: Bitmap? = null
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateRecs() {
@@ -51,15 +47,19 @@ object RecsService {
 
             val builder = ContentRecommendation.Builder()
 
-            val cardWidth = dp2px(this, 170f)
-            val cardHeight = dp2px(this, 300f)
-            val emptyPosterPath = this.appUrl + "/img/video_poster.png"
-            val resourceId = R.drawable.empty_poster // in-app poster
+            val tallId = R.drawable.empty_poster // in-app poster
+            val wideId = R.drawable.lampa_banner // in-app poster
             val emptyPoster = Uri.Builder()
                 .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-                .authority(this.resources.getResourcePackageName(resourceId))
-                .appendPath(this.resources.getResourceTypeName(resourceId))
-                .appendPath(this.resources.getResourceEntryName(resourceId))
+                .authority(this.resources.getResourcePackageName(tallId))
+                .appendPath(this.resources.getResourceTypeName(tallId))
+                .appendPath(this.resources.getResourceEntryName(tallId))
+                .build()
+            val emptyWidePoster = Uri.Builder()
+                .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+                .authority(this.resources.getResourcePackageName(wideId))
+                .appendPath(this.resources.getResourceTypeName(wideId))
+                .appendPath(this.resources.getResourceEntryName(wideId))
                 .build()
 
             val cards = getRecs()
@@ -74,45 +74,66 @@ object RecsService {
                 try {
                     val card = cards[i]
 
-                    var poster = card.img ?: emptyPosterPath
-                    if (poster.isEmpty())
-                        poster = emptyPosterPath
+                    var recTitle = card.title ?: ""
+                    if (recTitle.isEmpty())
+                        recTitle = card.name ?: ""
+                    if (recTitle.isEmpty())
+                        recTitle = ""
 
-                    getBitmapFromURL(poster, cardWidth, cardHeight)
+                    var recOriginal = card.original_title ?: ""
+                    if (recOriginal.isEmpty())
+                        recOriginal = card.original_name ?: ""
+                    if (recOriginal.isEmpty())
+                        recOriginal = recTitle
 
+                    var recPoster = card.img
+                    if (recPoster.isNullOrEmpty())
+                        recPoster = emptyPoster.toString()
+
+                    var widePoster = card.background_image
+                    if (widePoster.isNullOrEmpty())
+                        widePoster = emptyWidePoster.toString()
+
+                    // 2:3
+                    var posterWidth = dp2px(App.context, 200f)
+                    var posterHeight = dp2px(App.context, 300f)
+                    // 16:9
+                    if (isAmazonDev && widePoster.isNotEmpty()) {
+                        recPoster = widePoster
+                        posterWidth = dp2px(App.context, 300f)
+                        posterHeight = dp2px(App.context, 170f)
+                    }
+
+                    var bitmap = Glide.with(App.context)
+                        .asBitmap()
+                        .load(recPoster)
+                        .submit(posterWidth, posterHeight)
+                        .get()
+
+                    if (isAmazonDev && widePoster.isNotEmpty() && recOriginal.isNotBlank())
+                        bitmap = drawTextToBitmap(bitmap, recOriginal)
+
+                    val info = mutableListOf<String>()
+                    card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
+                    if (card.type == "tv") {
+                        info.add(getString(R.string.series))
+                        card.number_of_seasons?.let { info.add("S$it") }
+                    }
                     val genres = card.genres?.map { g ->
                         g?.name?.replaceFirstChar {
                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                         }
                     }?.toTypedArray()
-                    val info = mutableListOf<String>()
-
-                    card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
-
-                    if (card.type == "tv")
-                        card.number_of_seasons?.let { info.add("S$it") }
-
-                    card.genres?.joinToString(", ") { g ->
-                        g?.name?.replaceFirstChar {
+                    card.genres?.joinToString(", ") { genre ->
+                        genre?.name?.replaceFirstChar {
                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                         }.toString()
                     }?.let { info.add(it) }
 
-//                    var country =
-//                        card.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
-//                    if (country.isEmpty())
-//                        country = card.origin_country?.joinToString(", ") ?: ""
-//                    if (country.isNotEmpty())
-//                        info.add(country)
-//
-//                    card.certification?.let {
-//                        if (it.isNotBlank())
-//                            info.add(it)
-//                    }
-
-                    builder.setBadgeIcon(R.drawable.lampa_icon)
-                        .setIdTag("video${card.id}")
-                        .setTitle(card.title)
+                    builder.setBadgeIcon(R.drawable.logo_icon)
+                        .setIdTag("${card.id}")
+                        .setTitle(recTitle)
+                        .setContentImage(bitmap)
                         .setText(info.joinToString(" · "))
                         .setGenres(genres)
                         .setContentIntentData(
@@ -121,17 +142,16 @@ object RecsService {
                             0,
                             null
                         )
-                        .setContentImage(bitmap)
                         .setColor(ContextCompat.getColor(this, R.color.teal_500))
                         .setRunningTime(card.runtime?.toLong()?.times(60L) ?: 0L)
                         .setGroup("lampa")
                         .setSortKey(priority.toString())
-
+                    // type
                     if (card.type == "tv")
                         builder.setContentTypes(arrayOf(ContentRecommendation.CONTENT_TYPE_SERIAL))
                     else
                         builder.setContentTypes(arrayOf(ContentRecommendation.CONTENT_TYPE_MOVIE))
-
+                    // backdrops
                     card.background_image?.let { builder.setBackgroundImageUri(it) }
 
                     priority -= delta
@@ -148,13 +168,6 @@ object RecsService {
                             "com.amazon.extra.LONG_DESCRIPTION",
                             card.overview
                         )
-//                        card.videos?.let {
-//                            if (it.results.isNotEmpty())
-//                                notification.extras.putString(
-//                                    "com.amazon.extra.PREVIEW_URL",
-//                                    it.results[0].link
-//                                )
-//                        }
                         notification.extras.putString(
                             "com.amazon.extra.CONTENT_RELEASE_DATE",
                             card.release_year
@@ -175,16 +188,49 @@ object RecsService {
         return LampaProvider.get(LampaProvider.Recs, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
-    // https://stackoverflow.com/questions/8992964/android-load-from-url-to-bitmap
-    private fun getBitmapFromURL(src: String?, width: Int, height: Int) {
-        CoroutineScope(Job() + Dispatchers.IO).launch {
-            try {
-                val url = URL(src)
-                val bitMap = BitmapFactory.decodeStream(url.openConnection().getInputStream())
-                bitmap = Bitmap.createScaledBitmap(bitMap, width, height, true)
-            } catch (e: IOException) {
-                // Log exception
-            }
+    private fun Context.drawTextToBitmap(bitmap: Bitmap?, mText: String): Bitmap? {
+        if (mText.isEmpty() || bitmap == null)
+            return bitmap
+        try {
+            val scale = this.resources.displayMetrics.density
+            val fontSize = 20f * scale
+            val fontPad = 12f * scale
+            val bitmapConfig = bitmap.config
+            //if (bitmapConfig == null) bitmapConfig = Bitmap.Config.ARGB_8888
+
+            val draw = bitmap.copy(bitmapConfig, true)
+            val canvas = Canvas(draw)
+            val paintTxt = Paint(Paint.ANTI_ALIAS_FLAG)
+            //Text color
+            paintTxt.color = Color.parseColor("#eeeeee")
+            //Text size
+            paintTxt.textSize = fontSize
+            //Font
+            val condfont = Typeface.createFromAsset(this.assets, "cineplex.ttf")
+            paintTxt.typeface = condfont
+            //Text shadow
+            paintTxt.setShadowLayer(1f * scale, 0f, 0f, Color.BLACK)
+            //Text bound rect
+//            val bounds = Rect()
+//            paintTxt.getTextBounds(mText, 0, mText.length, bounds)
+            val y = draw.height - fontPad // text baseline
+
+            val paintRect = Paint(Paint.ANTI_ALIAS_FLAG)
+            paintRect.color = Color.parseColor("#80000000")
+            paintRect.textAlign = Paint.Align.CENTER
+
+            canvas.drawRect(
+                0f,
+                y - fontSize - fontPad / 2,
+                draw.width.toFloat(),
+                draw.height.toFloat(),
+                paintRect
+            )
+            canvas.drawText(mText, fontPad, y, paintTxt)
+
+            return draw
+        } catch (e: Exception) {
+            return bitmap
         }
     }
 }

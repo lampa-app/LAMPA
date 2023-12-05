@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id("com.google.devtools.ksp")
     id 'kotlin-android'
 }
 
@@ -133,6 +134,16 @@ dependencies {
     implementation 'androidx.tvprovider:tvprovider:1.0.0'
     implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
     implementation 'org.brotli:dec:0.1.2'
+    //glide
+    def glideVersion = '4.16.0'
+    implementation "com.github.bumptech.glide:glide:${glideVersion}"
+    implementation("com.github.bumptech.glide:okhttp3-integration:${glideVersion}") {
+        exclude group: 'glide-parent'
+        transitive = false
+    }
+    ksp "com.github.bumptech.glide:ksp:${glideVersion}"
+    implementation "com.github.bumptech.glide:annotations:${glideVersion}"
+    //implementation 'jp.wasabeef:glide-transformations:4.3.0'
     // material-ui
     implementation 'com.google.android.material:material:1.10.0'
     // speech
@@ -149,6 +160,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     // webkit
+    //noinspection GradleDependency 1.8.0 last api16 compatible
     implementation 'androidx.webkit:webkit:1.8.0'
     // https://download.01.org/crosswalk/releases/crosswalk/android/stable/latest/
     liteApi 'org.xwalk:xwalk_shared_library:23.53.589.4'
