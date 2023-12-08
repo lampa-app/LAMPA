@@ -30,7 +30,7 @@ import kotlin.math.min
 
 object RecsService {
 
-    private const val MAX_RECS_CAP = 20
+    private const val MAX_RECS_CAP = 10
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateRecs() {
@@ -63,7 +63,7 @@ object RecsService {
                 .build()
 
             val cards = getRecs()
-            val itemsSend = min(cards.size, 10)
+            val itemsSend = min(cards.size, MAX_RECS_CAP)
 
             var priority = 1f
             val delta = 1f / itemsSend
@@ -193,7 +193,7 @@ object RecsService {
             return bitmap
         try {
             val scale = this.resources.displayMetrics.density
-            val fontSize = 20f * scale
+            val fontSize = 18f * scale
             val fontPading = 12f * scale
             val bitmapConfig = bitmap.config
             //if (bitmapConfig == null) bitmapConfig = Bitmap.Config.ARGB_8888
