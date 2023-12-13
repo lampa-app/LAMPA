@@ -123,7 +123,8 @@ class MainActivity : AppCompatActivity(),
 
     companion object {
         private const val TAG = "APP_MAIN"
-        const val RESULT_ERROR = 4
+        const val RESULT_VIMU = 2
+        const val RESULT_VIMU_ERROR = 4
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -212,7 +213,8 @@ class MainActivity : AppCompatActivity(),
                     RESULT_OK -> Log.i(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
                     RESULT_CANCELED -> Log.i(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
                     RESULT_FIRST_USER -> Log.i(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
-                    RESULT_ERROR -> Log.e(TAG, "RESULT_ERROR: ${data?.toUri(0)}") // 4
+                    RESULT_VIMU -> Log.e(TAG, "RESULT_VIMU: ${data?.toUri(0)}") // 2
+                    RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}") // 4
                     else -> Log.w(
                         TAG,
                         "Undefined result code ($resultCode): ${data?.toUri(0)}"
@@ -270,7 +272,10 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getLongExtra("extra_duration", 0L)
                             if (pos > 0L) {
                                 val ended = isAfterEndCreditsPosition(pos, dur)
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                                Log.i(
+                                    TAG,
+                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
+                                )
                                 resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                             } else {
                                 if (dur == 0L && pos == 0L) {
@@ -291,7 +296,10 @@ class MainActivity : AppCompatActivity(),
                             val dur = it.getIntExtra("duration", 0)
                             if (dur > 0) {
                                 val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                                Log.i(
+                                    TAG,
+                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
+                                )
                                 resultPlayer(videoUrl, pos, dur, ended)
                             } else if (dur == 0 && pos == 0) {
                                 Log.i(TAG, "Playback completed")
@@ -331,14 +339,16 @@ class MainActivity : AppCompatActivity(),
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
-                } else { // ViMu and others
+                } else if (it.action.equals("net.gtvbox.videoplayer.result") ||
+                    it.action.equals("net.gtvbox.vimuhd.result")
+                ) { // ViMu
                     when (resultCode) {
-                        RESULT_FIRST_USER -> { // ViMu
+                        RESULT_FIRST_USER -> {
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
 
-                        RESULT_CANCELED -> {
+                        RESULT_CANCELED, RESULT_VIMU -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
@@ -348,10 +358,25 @@ class MainActivity : AppCompatActivity(),
                             }
                         }
 
-                        RESULT_ERROR -> {
+                        RESULT_VIMU_ERROR -> {
                             Log.e(TAG, "Playback error")
                         }
 
+                        else -> {
+                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+                        }
+                    }
+                } else { // others
+                    when (resultCode) {
+                        RESULT_OK, RESULT_CANCELED -> {
+                            val pos = it.getIntExtra("position", 0)
+                            val dur = it.getIntExtra("duration", 0)
+                            if (pos > 0 && dur > 0) {
+                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
+                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                                resultPlayer(videoUrl, pos, dur, ended)
+                            }
+                        }
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -1509,9 +1534,16 @@ class MainActivity : AppCompatActivity(),
 
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     intent.setPackage(SELECTED_PLAYER)
+                    intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
                     if (listUrls.size <= 1) {
                         intent.putExtra("forcename", videoTitle)
+                        if (subsUrls.size > 0) {
+                            intent.putStringArrayListExtra(
+                                "asussrtlist",
+                                subsUrls
+                            )
+                        }
                     } else {
                         intent.setDataAndType(
                             Uri.parse(videoUrl),
