@@ -57,85 +57,69 @@ object Prefs {
 
     var Context.appUrl: String
         get() {
-            val pref = this.appPrefs
-            return pref.getString(APP_URL, "") ?: ""
+            return this.appPrefs.getString(APP_URL, "") ?: ""
         }
         set(url) {
-            val pref = this.appPrefs
-            pref.edit().putString(APP_URL, url).apply()
+            this.appPrefs.edit().putString(APP_URL, url).apply()
         }
 
     var Context.appPlayer: String?
         get() {
-            val pref = this.appPrefs
-            return pref.getString(APP_PLAYER, "")
+            return this.appPrefs.getString(APP_PLAYER, "")
         }
         set(player) {
-            val pref = this.appPrefs
-            pref.edit().putString(APP_PLAYER, player).apply()
+            this.appPrefs.edit().putString(APP_PLAYER, player).apply()
         }
 
     var Context.tvPlayer: String?
         get() {
-            val pref = this.appPrefs
-            return pref.getString(IPTV_PLAYER, "")
+            return this.appPrefs.getString(IPTV_PLAYER, "")
         }
         set(player) {
-            val pref = this.appPrefs
-            pref.edit().putString(IPTV_PLAYER, player).apply()
+            this.appPrefs.edit().putString(IPTV_PLAYER, player).apply()
         }
 
     var Context.lampaSource: String
         get() {
-            val pref = this.appPrefs
-            return pref.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
+            return this.appPrefs.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
         }
         set(source) {
-            val pref = this.appPrefs
-            pref.edit().putString(LAMPA_SOURCE, source).apply()
+            this.appPrefs.edit().putString(LAMPA_SOURCE, source).apply()
         }
 
     var Context.appBrowser: String?
         get() {
-            val pref = this.appPrefs
-            return pref.getString(APP_BROWSER, MainActivity.SELECTED_BROWSER)
+            return this.appPrefs.getString(APP_BROWSER, MainActivity.SELECTED_BROWSER)
         }
         set(browser) {
-            val pref = this.appPrefs
-            pref.edit().putString(APP_BROWSER, browser).apply()
+            this.appPrefs.edit().putString(APP_BROWSER, browser).apply()
         }
 
     var Context.appLang: String
         get() {
-            val pref = this.appPrefs
-            return pref.getString(APP_LANG, Locale.getDefault().language)
+            return this.appPrefs.getString(APP_LANG, Locale.getDefault().language)
                 ?: Locale.getDefault().language
         }
         set(lang) {
-            val pref = this.appPrefs
-            pref.edit().putString(APP_LANG, lang).apply()
+            this.appPrefs.edit().putString(APP_LANG, lang).apply()
         }
 
     var Context.tmdbApiUrl: String
         get() {
-            val pref = this.appPrefs
-            return pref.getString(TMDB_API, "https://api.themoviedb.org/3/")
+            return this.appPrefs.getString(TMDB_API, "https://api.themoviedb.org/3/")
                 ?: "https://api.themoviedb.org/3/"
         }
         set(url) {
-            val pref = this.appPrefs
-            pref.edit().putString(TMDB_API, url).apply()
+            this.appPrefs.edit().putString(TMDB_API, url).apply()
         }
 
     var Context.tmdbImgUrl: String
         get() {
-            val pref = this.appPrefs
-            return pref.getString(TMDB_IMG, "https://image.tmdb.org/")
+            return this.appPrefs.getString(TMDB_IMG, "https://image.tmdb.org/")
                 ?: "https://image.tmdb.org/"
         }
         set(url) {
-            val pref = this.appPrefs
-            pref.edit().putString(TMDB_IMG, url).apply()
+            this.appPrefs.edit().putString(TMDB_IMG, url).apply()
         }
 
     val Context.firstRun: Boolean
@@ -231,36 +215,29 @@ object Prefs {
             this.appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
         }
 
-    val Context.cubWatchNext: List<String?>
+    private val Context.cubWatchNext: List<String?>
         get() {
-//            val bookmarks = this.CUB?.filter { it.type == LampaProvider.Late }
-//            bookmarks?.forEachIndexed { index, item ->
-//                val card = Gson().fromJson(item.data, LampaCard::class.java)
-//                card.fixCard()
-//                Log.d("*****", "CUB WatchNext [$index] $card")
-//            }
-//            return bookmarks?.map { it.card_id } ?: emptyList()
             return this.getCubBookmarkCardIds(LampaProvider.Late).reversed()
         }
 
-    fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {
+    private fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {
         var bookmarks = this.CUB
         if (!which.isNullOrEmpty())
             bookmarks = this.CUB?.filter { it.type == which }
         return bookmarks?.map { it.card_id } ?: emptyList()
     }
 
-    val Context.cubBook: List<String?>
+    private val Context.cubBook: List<String?>
         get() {
             return this.getCubBookmarkCardIds(LampaProvider.Book)
         }
 
-    val Context.cubLike: List<String?>
+    private val Context.cubLike: List<String?>
         get() {
             return this.getCubBookmarkCardIds(LampaProvider.Like)
         }
 
-    val Context.cubHistory: List<String?>
+    private val Context.cubHistory: List<String?>
         get() {
             return this.getCubBookmarkCardIds(LampaProvider.Hist)
         }
@@ -269,11 +246,11 @@ object Prefs {
         return if (this.syncEnabled) isInCubWatchNext(id) else isInFavWatchNext(id)
     }
 
-    fun Context.isInCubWatchNext(id: String): Boolean {
+    private fun Context.isInCubWatchNext(id: String): Boolean {
         return this.cubWatchNext.contains(id)
     }
 
-    fun Context.isInFavWatchNext(id: String): Boolean {
+    private fun Context.isInFavWatchNext(id: String): Boolean {
         return this.FAV?.wath?.contains(id) == true
     }
 
@@ -283,7 +260,6 @@ object Prefs {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(WNA_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<WatchNextToAdd>::class.java)
-                //arr.toList()
                 if (this.syncEnabled)
                     arr.filter { !this.isInCubWatchNext(it.id) }
                 else
@@ -299,7 +275,6 @@ object Prefs {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(WNR_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<String>::class.java)
-                //arr.toList()
                 arr.filter { this.FAV?.wath?.contains(it) == true || this.cubWatchNext.contains(it) }
             } catch (e: Exception) {
                 emptyList()
@@ -312,7 +287,6 @@ object Prefs {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(BMR_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<String>::class.java)
-                //arr.toList()
                 arr.filter { this.FAV?.book?.contains(it) == true || this.cubBook.contains(it) }
             } catch (e: Exception) {
                 emptyList()
@@ -325,7 +299,6 @@ object Prefs {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(LKR_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<String>::class.java)
-                //arr.toList()
                 arr.filter { this.FAV?.like?.contains(it) == true || this.cubLike.contains(it) }
             } catch (e: Exception) {
                 emptyList()
@@ -338,7 +311,6 @@ object Prefs {
                 val pref = PreferenceManager.getDefaultSharedPreferences(this)
                 val buf = pref.getString(HSR_KEY, "[]")
                 val arr = Gson().fromJson(buf, Array<String>::class.java)
-                //arr.toList()
                 arr.filter { this.FAV?.history?.contains(it) == true || this.cubHistory.contains(it) }
             } catch (e: Exception) {
                 emptyList()
