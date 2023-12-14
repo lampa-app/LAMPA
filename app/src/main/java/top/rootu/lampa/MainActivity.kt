@@ -1217,8 +1217,9 @@ class MainActivity : AppCompatActivity(),
 
         val videoUrl = jsonObject.optString("url")
         val isIPTV = jsonObject.optBoolean("iptv", false)
+        val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
         SELECTED_PLAYER =
-            launchPlayer.ifEmpty { if (isIPTV) this.tvPlayer else this.appPlayer }
+            launchPlayer.ifEmpty { if (isIPTV || isLIVE) this.tvPlayer else this.appPlayer }
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
@@ -1280,7 +1281,9 @@ class MainActivity : AppCompatActivity(),
         } else {
             var videoPosition: Long = 0
             val videoTitle =
-                if (jsonObject.has("title")) jsonObject.optString("title") else "LAMPA video"
+                if (jsonObject.has("title"))
+                    jsonObject.optString("title")
+                else if (isIPTV) "LAMPA TV" else "LAMPA video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
             val subsTitles = ArrayList<String>()
@@ -1546,6 +1549,8 @@ class MainActivity : AppCompatActivity(),
                                 subsUrls
                             )
                         }
+                        if (isIPTV || isLIVE)
+                            intent.putExtra("forcelive", true)
                     } else {
                         intent.setDataAndType(
                             Uri.parse(videoUrl),
