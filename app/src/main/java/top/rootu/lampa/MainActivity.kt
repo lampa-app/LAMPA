@@ -102,6 +102,7 @@ import top.rootu.lampa.helpers.Prefs.resumeJS
 import top.rootu.lampa.helpers.Prefs.tvPlayer
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
@@ -916,7 +917,7 @@ class MainActivity : AppCompatActivity(),
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
-            val wvv = Helpers.getVebWiewVersion(mainActivity)
+            val wvv = Helpers.getWebViewVersion(mainActivity)
             menuItemsAction[0] = "XWalk"
             menuItemsAction[1] = "SysView"
             if (menuItemsAction[0] == SELECTED_BROWSER) {
@@ -1549,14 +1550,20 @@ class MainActivity : AppCompatActivity(),
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        intent.putStringArrayListExtra(
-                            "asusfilelist",
-                            ArrayList(listUrls.subList(playIndex, listUrls.size))
-                        )
-                        intent.putStringArrayListExtra(
-                            "asusnamelist",
-                            ArrayList(listTitles.subList(playIndex, listUrls.size))
-                        )
+                        if ((getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L) >= 1000L) {
+                            intent.putStringArrayListExtra("asusfilelist", listUrls)
+                            intent.putStringArrayListExtra("asusnamelist", listTitles)
+                            intent.putExtra("startindex", playIndex)
+                        } else {
+                            intent.putStringArrayListExtra(
+                                "asusfilelist",
+                                ArrayList(listUrls.subList(playIndex, listUrls.size))
+                            )
+                            intent.putStringArrayListExtra(
+                                "asusnamelist",
+                                ArrayList(listTitles.subList(playIndex, listUrls.size))
+                            )
+                        }
                     }
                     if (playerTimeCode == "continue" || playerTimeCode == "again") {
                         intent.putExtra("position", videoPosition.toInt())

@@ -43,7 +43,7 @@ import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
-import java.util.*
+import java.util.Locale
 
 
 @Suppress("DEPRECATION")
@@ -159,10 +159,7 @@ object Helpers {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, dm).toInt()
     }
 
-    private val deviceName: String
-        get() = String.format("%s (%s)", Build.MODEL, Build.PRODUCT)
-
-    fun getVebWiewVersion(context: Context): String {
+    fun getWebViewVersion(context: Context): String {
         return try {
             var version = WebViewCompat.getCurrentWebViewPackage(context)?.versionName
             if (version.isNullOrEmpty()) version = ""
@@ -201,6 +198,9 @@ object Helpers {
         intent.action = card.id.toString()
         return intent
     }
+
+    private val deviceName: String
+        get() = String.format("%s (%s)", Build.MODEL, Build.PRODUCT)
 
     @JvmStatic
     val isGenymotion: Boolean

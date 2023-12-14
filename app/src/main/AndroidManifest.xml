@@ -24,6 +24,8 @@
     <queries>
         <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.google.android.katniss" />
+        <package android:name="net.gtvbox.videoplayer" />
+        <package android:name="net.gtvbox.vimuhd" />
 
         <intent>
             <action android:name="android.speech.RecognitionService" />
