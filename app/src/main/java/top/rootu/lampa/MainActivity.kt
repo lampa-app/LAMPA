@@ -378,6 +378,7 @@ class MainActivity : AppCompatActivity(),
                                 resultPlayer(videoUrl, pos, dur, ended)
                             }
                         }
+
                         else -> {
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
@@ -1550,7 +1551,9 @@ class MainActivity : AppCompatActivity(),
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        if ((getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L) >= 1000L) {
+                        if ((getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber
+                                ?: 0L) >= 1000L // 10.0 and above
+                        ) {
                             intent.putStringArrayListExtra("asusfilelist", listUrls)
                             intent.putStringArrayListExtra("asusnamelist", listTitles)
                             intent.putExtra("startindex", playIndex)
@@ -1585,10 +1588,18 @@ class MainActivity : AppCompatActivity(),
                     Log.d(TAG, "INTENT: " + intent.toUri(0))
                     intent.extras?.let {
                         for (key in it.keySet()) {
-                            Log.d(
-                                TAG,
-                                ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                            )
+                            if (key == "headers")
+                                Log.d(
+                                    TAG,
+                                    ("INTENT: data extras $key : ${
+                                        it.getStringArray(key)?.toList()
+                                    }")
+                                )
+                            else
+                                Log.d(
+                                    TAG,
+                                    ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+                                )
                         }
                     }
                 }
