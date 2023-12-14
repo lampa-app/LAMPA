@@ -1538,6 +1538,8 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
+                    val vimuVersionNumber = getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
+                    if (BuildConfig.DEBUG) Log.d("*****", "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
@@ -1556,9 +1558,7 @@ class MainActivity : AppCompatActivity(),
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        if ((getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber
-                                ?: 0L) >= 1000L // 10.0 and above
-                        ) {
+                        if (vimuVersionNumber >= 799L ) { // 7.99 and above
                             intent.putStringArrayListExtra("asusfilelist", listUrls)
                             intent.putStringArrayListExtra("asusnamelist", listTitles)
                             intent.putExtra("startindex", playIndex)
