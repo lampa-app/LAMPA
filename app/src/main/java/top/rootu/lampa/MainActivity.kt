@@ -124,7 +124,8 @@ class MainActivity : AppCompatActivity(),
 
     companion object {
         private const val TAG = "APP_MAIN"
-        const val RESULT_VIMU = 2
+        const val RESULT_VIMU_ENDED = 2
+        const val RESULT_VIMU_START = 3
         const val RESULT_VIMU_ERROR = 4
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var LAMPA_URL: String = ""
@@ -201,7 +202,7 @@ class MainActivity : AppCompatActivity(),
 //                    for (key in b.keySet()) {
 //                        Log.d(
 //                            TAG,
-//                            ("onActivityResult: data $key : ${b.get(key) ?: "NULL"}")
+//                            ("onActivityResult: $key : ${b.get(key) ?: "NULL"}")
 //                        )
 //                    }
 //                }
@@ -209,12 +210,13 @@ class MainActivity : AppCompatActivity(),
             val videoUrl: String = data?.data.toString()
             val resultCode = result.resultCode
             if (BuildConfig.DEBUG) {
-                Log.i(TAG, "Returned video url: $videoUrl")
+                Log.d(TAG, "Returned video url: $videoUrl")
                 when (resultCode) { // just for debug
-                    RESULT_OK -> Log.i(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
-                    RESULT_CANCELED -> Log.i(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
-                    RESULT_FIRST_USER -> Log.i(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
-                    RESULT_VIMU -> Log.e(TAG, "RESULT_VIMU: ${data?.toUri(0)}") // 2
+                    RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
+                    RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
+                    RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
+                    RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}") // 2
+                    RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}") // 3
                     RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}") // 4
                     else -> Log.w(
                         TAG,
@@ -342,14 +344,14 @@ class MainActivity : AppCompatActivity(),
                     }
                 } else if (it.action.equals("net.gtvbox.videoplayer.result") ||
                     it.action.equals("net.gtvbox.vimuhd.result")
-                ) { // ViMu
+                ) { // ViMu >= 930
                     when (resultCode) {
                         RESULT_FIRST_USER -> {
                             Log.i(TAG, "Playback completed")
                             resultPlayer(videoUrl, 0, 0, true)
                         }
 
-                        RESULT_CANCELED, RESULT_VIMU -> {
+                        RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
@@ -367,9 +369,14 @@ class MainActivity : AppCompatActivity(),
                             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
                         }
                     }
-                } else { // others
+                } else { // ViMu < 930 (875 first with duration) and others
                     when (resultCode) {
-                        RESULT_OK, RESULT_CANCELED -> {
+                        RESULT_FIRST_USER -> {
+                            Log.i(TAG, "Playback completed")
+                            resultPlayer(videoUrl, 0, 0, true)
+                        }
+
+                        RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
                             val pos = it.getIntExtra("position", 0)
                             val dur = it.getIntExtra("duration", 0)
                             if (pos > 0 && dur > 0) {
