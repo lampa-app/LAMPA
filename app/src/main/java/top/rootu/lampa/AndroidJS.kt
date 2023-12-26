@@ -267,6 +267,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     headers.put("Content-Type", contentType)
                 }
             }
+            if (url.contains("jacred.", ignoreCase = true)) {
+                if (headers == null) {
+                    headers = JSONObject()
+                }
+                headers.put("Referer", MainActivity.LAMPA_URL)
+            }
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
