@@ -135,10 +135,11 @@ data class LampaRec(
         // fix genres
         val genres = genre_ids?.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
         // fix images
-        val img = if (!poster_path.isNullOrEmpty() && poster_path.startsWith("/")) TMDB.imageUrl(
-            poster_path
-        )
-            .replace("original", "w342") else "" // TODO fetch TMDB.Images.get
+        val img =
+            if (!poster_path.isNullOrEmpty() && poster_path.startsWith("/")) TMDB.imageUrl(
+                poster_path
+            )
+                .replace("original", "w342") else "" // TODO fetch TMDB.Images.get
         val backdrop =
             if (!backdrop_path.isNullOrEmpty() && backdrop_path.startsWith("/")) TMDB.imageUrl(
                 backdrop_path
