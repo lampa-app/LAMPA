@@ -21,6 +21,7 @@ public class Http {
     private int lastErrorCode = 0;
     private static String pacUrl = "";
     private static PacProxySelector ps;
+    private static boolean disableH2 = false;
 
     public Http() {
     }
@@ -101,5 +102,13 @@ public class Http {
 
     public static String getProxyPAC() {
         return pacUrl;
+    }
+
+    public static void disableH2(boolean bool) {
+        disableH2 = bool;
+    }
+
+    public static boolean isDisableH2() {
+        return disableH2;
     }
 }

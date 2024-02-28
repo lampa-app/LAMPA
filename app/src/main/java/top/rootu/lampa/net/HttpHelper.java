@@ -41,6 +41,7 @@ import java.util.zip.InflaterInputStream;
 import org.brotli.dec.BrotliInputStream;
 
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 
 /**
  * Provides a set of general helper methods that can be used in web-based communication.
@@ -67,6 +68,10 @@ public class HttpHelper {
 
     public static OkHttpClient getOkHttpClient(int timeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        if (Http.isDisableH2()) {
+            Http.disableH2(false);
+            builder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
+        }
         try {
             // fix android 4.x TLS and trust all SSL
             builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);

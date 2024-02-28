@@ -231,6 +231,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
+            Http.disableH2(jSONObject.optBoolean("disableH2", false))
             val url = jSONObject.optString("url")
             val data = jSONObject.opt("post_data")
             var headers = jSONObject.optJSONObject("headers")
