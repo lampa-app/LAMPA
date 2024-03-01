@@ -41,8 +41,7 @@ android {
         targetSdkVersion 28
         versionCode getVersionCode()
         versionName getVersionName()
-        // Required when setting minSdkVersion to 20 or lower
-        multiDexEnabled = true
+        multiDexEnabled = true // required when setting minSdkVersion to 20 or lower
         // Use SupportLibrary for vectors
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
@@ -114,11 +113,11 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.14'
-    // okhttp for android 4.1+ // 3.12.12 - latest version for API 16
+    def okhttpVersion = '3.12.12' // 3.12.12 - latest version for API 16
     //noinspection GradleDependency
-    implementation 'com.squareup.okhttp3:okhttp:3.12.12'
+    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
     //noinspection GradleDependency
-    implementation 'com.squareup.okhttp3:okhttp-dnsoverhttps:3.12.12'
+    implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
     // netcipher
@@ -151,19 +150,22 @@ dependencies {
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    def coroutinesVersion = '1.7.3' // 1.7.3
+    //noinspection GradleDependency
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.2.0'
+    implementation 'com.airbnb.android:lottie:6.3.0'
     // tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     // webkit
-    //noinspection GradleDependency 1.8.0 last api16 compatible
-    implementation 'androidx.webkit:webkit:1.8.0'
+    def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
+    //noinspection GradleDependency
+    implementation "androidx.webkit:webkit:$webkitVersion"
     // https://download.01.org/crosswalk/releases/crosswalk/android/stable/latest/
     liteApi 'org.xwalk:xwalk_shared_library:23.53.589.4'
     fullApi 'org.xwalk:xwalk_core_library:23.53.589.4'
