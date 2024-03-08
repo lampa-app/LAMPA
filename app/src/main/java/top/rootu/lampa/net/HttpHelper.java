@@ -42,6 +42,7 @@ import org.brotli.dec.BrotliInputStream;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
+import top.rootu.lampa.helpers.Helpers;
 
 /**
  * Provides a set of general helper methods that can be used in web-based communication.
@@ -74,7 +75,8 @@ public class HttpHelper {
         }
         try {
             // fix android 4.x TLS and trust all SSL
-            builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
+            if (!Helpers.isBrokenTCL())
+                builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
             builder.hostnameVerifier((hostname, session) -> true);
         } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
         }

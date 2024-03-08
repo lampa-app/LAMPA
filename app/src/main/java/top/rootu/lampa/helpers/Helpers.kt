@@ -203,6 +203,13 @@ object Helpers {
         get() = String.format("%s (%s)", Build.MODEL, Build.PRODUCT)
 
     @JvmStatic
+    val isBrokenTCL: Boolean
+        get() {
+            val deviceName = deviceName
+            return deviceName.contains("(tcl_m7642)")
+        }
+
+    @JvmStatic
     val isGenymotion: Boolean
         get() {
             val deviceName = deviceName
@@ -212,6 +219,11 @@ object Helpers {
     val isAndroidTV: Boolean
         get() {
             return App.context.packageManager.hasSystemFeature("android.software.leanback")
+        }
+
+    val isGoogleTV: Boolean // not accurate
+        get() {
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         }
 
     val isAmazonDev: Boolean
