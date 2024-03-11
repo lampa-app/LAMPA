@@ -172,7 +172,9 @@ class MainActivity : AppCompatActivity(),
             )
         onBackPressedDispatcher.addCallback {
             if (browser?.canGoBack() == true) {
-                browser?.goBack()
+                // browser?.goBack()
+                // no Back with no focused webView workaround
+                runVoidJsFunc("window.history.back", "")
             }
         }
         LAMPA_URL = this.appUrl
