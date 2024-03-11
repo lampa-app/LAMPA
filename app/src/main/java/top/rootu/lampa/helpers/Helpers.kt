@@ -216,6 +216,13 @@ object Helpers {
             return deviceName.contains("(vbox86p)")
         }
 
+    @JvmStatic
+    val isWisdomShare: Boolean // MTK9255 mt5862 platform
+        get() {
+            val deviceName = deviceName
+            return deviceName.contains("(m7332_eu)")
+        }
+
     val isAndroidTV: Boolean
         get() {
             return App.context.packageManager.hasSystemFeature("android.software.leanback")
