@@ -2,6 +2,8 @@ package top.rootu.lampa.net;
 
 import android.net.Uri;
 
+import androidx.annotation.NonNull;
+
 import com.btr.proxy.selector.pac.PacProxySelector;
 
 import org.apache.http.Header;
@@ -154,17 +156,7 @@ public class HttpHelper {
                                                              String authAddress, int authPort) throws Exception {
 
         // Register http and https sockets
-        SchemeRegistry registry = new SchemeRegistry();
-        SocketFactory httpsSocketFactory;
-        if (sslTrustKey != null && sslTrustKey.length() != 0) {
-            httpsSocketFactory = new TlsSniSocketFactory(sslTrustKey);
-        } else if (sslTrustAll) {
-            httpsSocketFactory = new TlsSniSocketFactory(true);
-        } else {
-            httpsSocketFactory = new TlsSniSocketFactory();
-        }
-        registry.register(new Scheme("http", new PlainSocketFactory(), 80));
-        registry.register(new Scheme("https", httpsSocketFactory, 443));
+        SchemeRegistry registry = getSchemeRegistry(sslTrustAll, sslTrustKey);
 
         // Standard parameters
         HttpParams httpparams = new BasicHttpParams();
@@ -195,6 +187,22 @@ public class HttpHelper {
 
         return httpclient;
 
+    }
+
+    @NonNull
+    private static SchemeRegistry getSchemeRegistry(boolean sslTrustAll, String sslTrustKey) {
+        SchemeRegistry registry = new SchemeRegistry();
+        SocketFactory httpsSocketFactory;
+        if (sslTrustKey != null && !sslTrustKey.isEmpty()) {
+            httpsSocketFactory = new TlsSniSocketFactory(sslTrustKey);
+        } else if (sslTrustAll) {
+            httpsSocketFactory = new TlsSniSocketFactory(true);
+        } else {
+            httpsSocketFactory = new TlsSniSocketFactory();
+        }
+        registry.register(new Scheme("http", new PlainSocketFactory(), 80));
+        registry.register(new Scheme("https", httpsSocketFactory, 443));
+        return registry;
     }
 
     public static DefaultHttpClient createStandardHttpClient(boolean sslTrustAll) {
