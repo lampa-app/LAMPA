@@ -76,7 +76,7 @@ class App : MultiDexApplication() {
             .get().lifecycle
             .addObserver(lifecycleEventObserver)
 
-        App.context.setLanguage()
+        context.setLanguage()
 
         // self-update check
         val checkUpdates = true

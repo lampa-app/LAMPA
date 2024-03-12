@@ -432,7 +432,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     // https://stackoverflow.com/a/41560207
     // https://copyprogramming.com/howto/android-webview-savestate
-    private val store: SharedPreferences? = App.context.storagePrefs
+    private val store: SharedPreferences = App.context.storagePrefs
     private var keys: Array<String?>? = null
     private var values: Array<String?>? = null
     private var dumped = false
@@ -442,7 +442,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @Synchronized
     fun dump() {
         check(!dumped) { "already dumped" }
-        val map = store?.all
+        val map = store.all
         val size = map?.size ?: 0
         keys = arrayOfNulls(size)
         values = arrayOfNulls(size)
@@ -481,7 +481,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     @Synchronized
     operator fun get(key: String?): String? {
-        return store!!.getString(key, null)
+        return store.getString(key, null)
     }
 
     @JavascriptInterface
@@ -489,14 +489,14 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @Synchronized
     operator fun set(key: String?, value: String?) {
         check(!dumped) { "already dumped" }
-        store!!.edit().putString(key, value).apply()
+        store.edit().putString(key, value).apply()
     }
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Synchronized
     fun clear() {
-        store!!.edit().clear().apply()
+        store.edit().clear().apply()
         keys = null
         values = null
         dumped = false
@@ -504,7 +504,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @Synchronized
     override fun toString(): String {
-        return store!!.all.toString()
+        return store.all.toString()
     }
 
     companion object {

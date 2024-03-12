@@ -4,9 +4,9 @@ buildscript {
     // https://developer.android.com/build/releases/gradle-plugin
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-gradle-plugin
     // https://mvnrepository.com/artifact/com.android.tools/r8?repo=google
-    ext.kp_version = '1.8.22'
-    ext.gp_version = '7.4.2'
-    ext.tools_version = '4.0.63'
+    ext.kp_version = '1.9.23'
+    ext.gp_version = '8.3.0'
+    ext.tools_version = '8.2.47'
     repositories {
         google()
         mavenCentral()
@@ -17,13 +17,13 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$gp_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kp_version"
-        //noinspection GradleDependency downgrade to 4.x release - 8.x have verify release issues on api19
+        // 8.x have verify release issues on api19
         classpath("com.android.tools:r8:$tools_version")
     }
 }
 
 plugins {
-    id 'com.google.devtools.ksp' version "${kp_version}-1.0.11" apply false
+    id 'com.google.devtools.ksp' version "${kp_version}-1.0.19" apply false
     id 'org.jetbrains.kotlin.android' version "${kp_version}" apply false
 }
 

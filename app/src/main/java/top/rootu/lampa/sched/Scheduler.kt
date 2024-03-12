@@ -3,6 +3,7 @@ package top.rootu.lampa.sched
 import android.annotation.TargetApi
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.ComponentName
@@ -11,7 +12,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
-import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.channels.LampaChannels
@@ -56,7 +56,7 @@ object Scheduler {
         val context = App.context
         val pendingIntent = Intent(context, CardAlarmManager::class.java)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val alarmIntent = PendingIntent.getService(context, cardsJobId, pendingIntent, 0)
+        val alarmIntent = PendingIntent.getService(context, cardsJobId, pendingIntent, FLAG_IMMUTABLE)
 
         alarmManager.cancel(alarmIntent)
         alarmManager.setInexactRepeating(
@@ -67,7 +67,6 @@ object Scheduler {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateCards(sync: Boolean) {
         synchronized(lock) {
             if (isUpdate)
