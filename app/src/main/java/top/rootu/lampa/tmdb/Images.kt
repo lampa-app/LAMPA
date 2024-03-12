@@ -42,8 +42,8 @@ object Images {
                 TMDB.startWithQuad9DNS() else TMDB.permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                body = response.body?.string()
-                response.body?.close()
+                body = response.body()?.string()
+                response.body()?.close()
             }
         } catch (e: Exception) {
             e.printStackTrace()

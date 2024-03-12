@@ -114,8 +114,10 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.14'
-    def okhttpVersion = '4.12.0'
+    def okhttpVersion = '3.12.12' // 3.12.12 - latest API16-19 compatible
+    //noinspection GradleDependency
     implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
+    //noinspection GradleDependency
     implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
