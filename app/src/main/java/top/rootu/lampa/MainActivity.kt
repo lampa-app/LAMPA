@@ -321,15 +321,15 @@ class MainActivity : AppCompatActivity(),
                 ) { // UPlayer
                     when (resultCode) {
                         RESULT_OK -> {
-                            val pos = it.getLongExtra("position", 0L).toInt()
-                            val dur = it.getLongExtra("duration", 0L).toInt()
-                            val ended = it.getBooleanExtra("isEnded", pos == dur)
-                            if (pos > 0 && dur > 0) {
+                            val pos = it.getLongExtra("position", 0L)
+                            val dur = it.getLongExtra("duration", 0L)
+                            if (pos > 0L && dur > 0L) {
+                                val ended = it.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
                                     "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
                                 )
-                                resultPlayer(videoUrl, pos, dur, ended)
+                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                             }
                         }
 
