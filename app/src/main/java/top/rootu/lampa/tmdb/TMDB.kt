@@ -23,6 +23,8 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object TMDB {
+    const val apiUrl = "https://api.themoviedb.org/3/"
+    const val imgUrl = "https://image.tmdb.org/"
     const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
