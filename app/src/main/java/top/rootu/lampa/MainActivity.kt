@@ -275,7 +275,7 @@ class MainActivity : AppCompatActivity(),
                         RESULT_OK -> {
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
-                            if (pos > 0L) {
+                            if (pos > 0L && dur > 0L) {
                                 val ended = isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
@@ -286,6 +286,9 @@ class MainActivity : AppCompatActivity(),
                                 if (dur == 0L && pos == 0L) {
                                     Log.i(TAG, "Playback completed")
                                     resultPlayer(videoUrl, 0, 0, true)
+                                } else if (pos > 0L) {
+                                    Log.i(TAG, "Playback completed with no duration! Playback Error?")
+                                    resultPlayer(videoUrl, pos.toInt(), 0, false)
                                 }
                             }
                         }
@@ -1289,6 +1292,7 @@ class MainActivity : AppCompatActivity(),
             playerChooserDialog.listView.requestFocus()
         } else {
             var videoPosition: Long = 0
+            var videoDuration: Long = 0
             val videoTitle =
                 if (jsonObject.has("title"))
                     jsonObject.optString("title")
@@ -1310,6 +1314,10 @@ class MainActivity : AppCompatActivity(),
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
                     else
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
+                    videoDuration = if (latestTimeline?.has("duration") == true)
+                        (latestTimeline.optDouble("duration", 0.0) * 1000).toLong()
+                    else
+                        (timeline.optDouble("duration", 0.0) * 1000).toLong()
                 }
             }
             // Headers
@@ -1513,11 +1521,12 @@ class MainActivity : AppCompatActivity(),
                     // https://wiki.videolan.org/Android_Player_Intents
                     if (VERSION.SDK_INT > 32) {
                         intent.setPackage(SELECTED_PLAYER)
-                    } else
+                    } else {
                         intent.component = ComponentName(
                             SELECTED_PLAYER!!,
                             "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                         ) // required for return intent
+                    }
                     intent.putExtra("title", videoTitle)
                     if (playerTimeCode == "continue" && videoPosition > 0L) {
                         intent.putExtra("from_start", false)
@@ -1528,6 +1537,7 @@ class MainActivity : AppCompatActivity(),
                         intent.putExtra("from_start", true)
                         intent.putExtra("position", 0L)
                     }
+                    intent.putExtra("extra_duration", videoDuration)
                 }
 
                 "com.brouken.player" -> {
