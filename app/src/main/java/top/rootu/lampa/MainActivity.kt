@@ -282,14 +282,12 @@ class MainActivity : AppCompatActivity(),
                                     "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
                                 )
                                 resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
-                            } else {
-                                if (dur == 0L && pos == 0L) {
-                                    Log.i(TAG, "Playback completed")
-                                    resultPlayer(videoUrl, 0, 0, true)
-                                } else if (pos > 0L) {
-                                    Log.i(TAG, "Playback completed with no duration! Playback Error?")
-                                    resultPlayer(videoUrl, pos.toInt(), 0, false)
-                                }
+                            } else if (pos == 0L && dur == 0L) {
+                                Log.i(TAG, "Playback completed")
+                                resultPlayer(videoUrl, 0, 0, true)
+                            } else if (pos > 0L) {
+                                Log.i(TAG, "Playback stopped with no duration! Playback Error?")
+                                resultPlayer(videoUrl, pos.toInt(), 0, false)
                             }
                         }
 
@@ -327,7 +325,10 @@ class MainActivity : AppCompatActivity(),
                             val pos = it.getLongExtra("position", 0L)
                             val dur = it.getLongExtra("duration", 0L)
                             if (pos > 0L && dur > 0L) {
-                                val ended = it.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(pos, dur)
+                                val ended = it.getBooleanExtra(
+                                    "isEnded",
+                                    pos == dur
+                                ) || isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
                                     "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
@@ -1292,7 +1293,7 @@ class MainActivity : AppCompatActivity(),
             playerChooserDialog.listView.requestFocus()
         } else {
             var videoPosition: Long = 0
-            var videoDuration: Long = 0
+//            var videoDuration: Long = 0
             val videoTitle =
                 if (jsonObject.has("title"))
                     jsonObject.optString("title")
@@ -1314,10 +1315,10 @@ class MainActivity : AppCompatActivity(),
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
                     else
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
-                    videoDuration = if (latestTimeline?.has("duration") == true)
-                        (latestTimeline.optDouble("duration", 0.0) * 1000).toLong()
-                    else
-                        (timeline.optDouble("duration", 0.0) * 1000).toLong()
+//                    videoDuration = if (latestTimeline?.has("duration") == true)
+//                        (latestTimeline.optDouble("duration", 0.0) * 1000).toLong()
+//                    else
+//                        (timeline.optDouble("duration", 0.0) * 1000).toLong()
                 }
             }
             // Headers
@@ -1537,7 +1538,7 @@ class MainActivity : AppCompatActivity(),
                         intent.putExtra("from_start", true)
                         intent.putExtra("position", 0L)
                     }
-                    intent.putExtra("extra_duration", videoDuration)
+//                    intent.putExtra("extra_duration", videoDuration)
                 }
 
                 "com.brouken.player" -> {
@@ -1557,8 +1558,12 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
-                    val vimuVersionNumber = getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
-                    if (BuildConfig.DEBUG) Log.d("*****", "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
+                    val vimuVersionNumber =
+                        getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
+                    if (BuildConfig.DEBUG) Log.d(
+                        "*****",
+                        "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber"
+                    )
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
@@ -1577,7 +1582,7 @@ class MainActivity : AppCompatActivity(),
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        if (vimuVersionNumber >= 799L ) { // 7.99 and above
+                        if (vimuVersionNumber >= 799L) { // 7.99 and above
                             intent.putStringArrayListExtra("asusfilelist", listUrls)
                             intent.putStringArrayListExtra("asusnamelist", listTitles)
                             intent.putExtra("startindex", playIndex)
