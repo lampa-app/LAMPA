@@ -275,17 +275,18 @@ class MainActivity : AppCompatActivity(),
                         RESULT_OK -> {
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
-                            val url = it.getStringExtra("extra_uri")
+                            val url = if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri").toString()
+                            else videoUrl
                             if (pos > 0L && dur > 0L) {
                                 val ended = isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
                                     "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
                                 )
-                                resultPlayer(url.toString(), pos.toInt(), dur.toInt(), ended)
+                                resultPlayer(url, pos.toInt(), dur.toInt(), ended)
                             } else if (pos == 0L && dur == 0L) {
                                 Log.i(TAG, "Playback completed")
-                                resultPlayer(url.toString(), 0, 0, true)
+                                resultPlayer(url, 0, 0, true)
                             } else if (pos > 0L) {
                                 Log.i(TAG, "Playback stopped with no duration! Playback Error?")
                             }
