@@ -288,7 +288,6 @@ class MainActivity : AppCompatActivity(),
                                 resultPlayer(url.toString(), 0, 0, true)
                             } else if (pos > 0L) {
                                 Log.i(TAG, "Playback stopped with no duration! Playback Error?")
-                                resultPlayer(url.toString(), pos.toInt(), 0, false)
                             }
                         }
 
