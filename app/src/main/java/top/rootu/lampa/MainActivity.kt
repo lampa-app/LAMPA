@@ -108,6 +108,7 @@ import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.collections.set
 
 
 class MainActivity : AppCompatActivity(),
@@ -275,8 +276,10 @@ class MainActivity : AppCompatActivity(),
                         RESULT_OK -> {
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
-                            val url = if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri").toString()
-                            else videoUrl
+                            val url =
+                                if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri")
+                                    .toString()
+                                else videoUrl
                             if (pos > 0L && dur > 0L) {
                                 val ended = isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
@@ -868,7 +871,7 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[3] = "restoreDefaultSettings"
 
 
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
         menu.setTitle(getString(R.string.backup_restore_title))
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
@@ -918,6 +921,7 @@ class MainActivity : AppCompatActivity(),
         }
         val menuDialog = menu.create()
         menuDialog.show()
+        adapter.setSelectedItem(0)
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
         }
@@ -929,6 +933,7 @@ class MainActivity : AppCompatActivity(),
         val menuItemsTitle: Array<String?>
         val menuItemsAction: Array<String?>
         val icons: Array<Int>
+        var current = 0
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
@@ -943,6 +948,7 @@ class MainActivity : AppCompatActivity(),
                 menuItemsTitle[0] = getString(R.string.engine_crosswalk_obsolete)
                 menuItemsTitle[1] =
                     "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
+                current = 1
             }
             icons = arrayOf(
                 R.drawable.round_explorer_24,
@@ -960,7 +966,7 @@ class MainActivity : AppCompatActivity(),
             }
             icons = arrayOf(R.drawable.round_explorer_24)
         }
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
         menu.setTitle(getString(R.string.change_engine_title))
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
@@ -971,6 +977,7 @@ class MainActivity : AppCompatActivity(),
         }
         val menuDialog = menu.create()
         menuDialog.show()
+        adapter.setSelectedItem(current)
     }
 
     fun showUrlInputDialog() {
