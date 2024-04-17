@@ -52,14 +52,12 @@ public class Http {
     public String Get(String url, JSONObject headers, int timeout) throws Exception {
         Request.Builder rb = getReqBuilder(url, headers);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
-        ResponseBody body;
-        try (Response response = client.newCall(rb.build()).execute()) {
-            if (!response.isSuccessful()) {
-                this.lastErrorCode = response.code();
-                throw new Exception("Invalid response from server: " + response.code() + " " + response.message());
-            }
-            body = response.body();
+        Response response = client.newCall(rb.build()).execute();
+        if (!response.isSuccessful()) {
+            this.lastErrorCode = response.code();
+            throw new Exception("Invalid response from server: " + response.code() + " " + response.message());
         }
+        ResponseBody body = response.body();
         assert body != null;
         return body.string();
     }
@@ -72,14 +70,12 @@ public class Http {
         );
         rb.post(requestBody);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
-        ResponseBody body;
-        try (Response response = client.newCall(rb.build()).execute()) {
-            if (!response.isSuccessful()) {
-                this.lastErrorCode = response.code();
-                throw new Exception("Invalid response from server: " + response.code() + " " + response.message());
-            }
-            body = response.body();
+        Response response = client.newCall(rb.build()).execute();
+        if (!response.isSuccessful()) {
+            this.lastErrorCode = response.code();
+            throw new Exception("Invalid response from server: " + response.code() + " " + response.message());
         }
+        ResponseBody body = response.body();
         assert body != null;
         return body.string();
     }
