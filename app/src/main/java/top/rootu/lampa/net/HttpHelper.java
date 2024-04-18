@@ -80,13 +80,15 @@ public class HttpHelper {
             if (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare()) {
                 builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
                 builder.hostnameVerifier((hostname, session) -> true);
-                // https://github.com/square/okhttp/issues/3894
-                builder.connectionSpecs(Arrays.asList(ConnectionSpec.CLEARTEXT,
-                        new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
-                                .allEnabledTlsVersions()
-                                .allEnabledCipherSuites()
-                                .build()));
             }
+            // https://github.com/square/okhttp/issues/3894
+            // The default OkHttp configuration does not support older versions of TLS,
+            // or all cipher suites.  Make our support as reasonably broad as possible.
+            builder.connectionSpecs(Arrays.asList(ConnectionSpec.CLEARTEXT,
+                    new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                            .allEnabledTlsVersions()
+                            .allEnabledCipherSuites()
+                            .build()));
         } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
         }
         if (timeout > 0) {

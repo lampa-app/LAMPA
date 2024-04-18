@@ -27,7 +27,7 @@ public class Http {
     }
 
     private Request.Builder getReqBuilder(String url, JSONObject headers) {
-        Log.d("ProxyDroid.PAC", url);
+        Log.d("LampaHttp.RB", url);
         String ua = HttpHelper.userAgent;
         Request.Builder rb = new Request.Builder().url(url);
         if (headers != null) {
@@ -50,6 +50,8 @@ public class Http {
     }
 
     public String Get(String url, JSONObject headers, int timeout) throws Exception {
+        if (!url.startsWith("http"))
+            return "";
         Request.Builder rb = getReqBuilder(url, headers);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
         Response response = client.newCall(rb.build()).execute();
@@ -63,6 +65,8 @@ public class Http {
     }
 
     public String Post(String url, String data, JSONObject headers, int timeout) throws Exception {
+        if (!url.startsWith("http"))
+            return "";
         Request.Builder rb = getReqBuilder(url, headers);
         RequestBody requestBody = RequestBody.create(
                 MediaType.parse(headers.optString("Content-Type", "application/x-www-form-urlencoded")),
