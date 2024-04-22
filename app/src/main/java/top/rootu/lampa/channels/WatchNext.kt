@@ -91,10 +91,16 @@ object WatchNext {
         val lst = mutableListOf<LampaCard>()
         // CUB
         if (App.context.syncEnabled) {
-            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
-                val card = Gson().fromJson(it.data, LampaCard::class.java)
-                card.fixCard()
-                lst.add(card)
+            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach { bm ->
+                val card: LampaCard? = try {
+                    Gson().fromJson(bm.data, LampaCard::class.java)
+                } catch (e: Exception) {
+                    null
+                }
+                card?.let {
+                    it.fixCard()
+                    lst.add(it)
+                }
             }
         } else {
             // FAV
