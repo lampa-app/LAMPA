@@ -282,9 +282,7 @@ object Helpers {
     }
 
     fun isValidJson(json: String?): Boolean {
-        // val gson = Gson()
         return try {
-            // gson.fromJson(json, Any::class.java)
             parseStrict(json) != null
         } catch (ex: JsonSyntaxException) {
             false

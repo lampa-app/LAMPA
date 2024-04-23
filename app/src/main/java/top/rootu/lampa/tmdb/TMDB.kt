@@ -67,6 +67,7 @@ object TMDB {
             }
         }
     }
+
     fun initGenres() {
         try {
             // https://developers.themoviedb.org/3/genres/get-movie-list
@@ -135,6 +136,7 @@ object TMDB {
             .dns(dns!!)
             .build()
     }
+
     // For KitKat
     fun permissiveOkHttp(): OkHttpClient {
         val timeout = 30000
@@ -175,7 +177,11 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val entities = Gson().fromJson(body, Entities::class.java)
+        val entities = try {
+            Gson().fromJson(body, Entities::class.java)
+        } catch (e: Exception) {
+            null
+        }
         val ret = mutableListOf<Entity>()
 
         entities?.results?.forEach {
@@ -240,8 +246,12 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val ent = Gson().fromJson(body, Entity::class.java)
-        fixEntity(ent)
+        val ent = try {
+            Gson().fromJson(body, Entity::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        ent?.let { fixEntity(it) }
         return ent
     }
 

@@ -21,7 +21,6 @@ import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
@@ -29,7 +28,7 @@ import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
-import java.util.*
+import java.util.Locale
 
 
 object WatchNext {
@@ -182,14 +181,13 @@ object WatchNext {
                 watchNextProgram = WatchNextProgram.fromCursor(cursor)
             }
         }
-        try {
-            val intent = watchNextProgram?.intent
-            val json = intent?.getStringExtra("LampaCardJS")
-            if (isValidJson(json))
-                return Gson().fromJson(json, LampaCard::class.java)
+        return try {
+            val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+            //if (isValidJson(json))
+            Gson().fromJson(json, LampaCard::class.java)
         } catch (_: Exception) {
+            null
         }
-        return null
     }
 
     @SuppressLint("RestrictedApi")
