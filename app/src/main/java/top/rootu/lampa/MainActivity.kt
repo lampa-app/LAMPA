@@ -1578,10 +1578,14 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Default) {
                 val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
                 if (lampaActivity?.has("movie") == true) {
-                    val card = Gson().fromJson(
-                        lampaActivity.getJSONObject("movie").toString(),
-                        LampaCard::class.java
-                    )
+                    val card = try {
+                        Gson().fromJson(
+                            lampaActivity.getJSONObject("movie").toString(),
+                            LampaCard::class.java
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
                     card?.let {
                         it.fixCard()
                         try {

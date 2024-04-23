@@ -22,10 +22,16 @@ class History : LampaProviderI() {
                 App.context.CUB?.filter { it.type == LampaProvider.Hist }
                     ?.toMutableList()
                     ?.sortedBy { it.time }
-                    ?.forEach {
-                        val card = Gson().fromJson(it.data, LampaCard::class.java)
-                        card.fixCard()
-                        lst.add(card)
+                    ?.forEach { bm ->
+                        val card = try {
+                            Gson().fromJson(bm.data, LampaCard::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+                        card?.let {
+                            it.fixCard()
+                            lst.add(it)
+                        }
                     }
             // FAV (use ID to match KP_573840 etc)
             App.context.FAV?.card?.filter { App.context.FAV?.history?.contains(it.id.toString()) == true }

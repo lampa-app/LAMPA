@@ -24,7 +24,12 @@ import java.nio.charset.Charset
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import javax.net.ssl.*
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 object Updater {
@@ -81,7 +86,11 @@ object Updater {
                 connection?.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
                     ?: return false
             val gson = Gson()
-            releases = gson.fromJson(body, Releases::class.java)
+            releases = try {
+                gson.fromJson(body, Releases::class.java)
+            } catch (e: Exception) {
+                null
+            }
             releases?.let {
                 it.forEach { rel ->
                     val majorVersionDouble: Double = try {
