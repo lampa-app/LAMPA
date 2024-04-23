@@ -85,9 +85,8 @@ object Updater {
             val body =
                 connection?.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
                     ?: return false
-            val gson = Gson()
             releases = try {
-                gson.fromJson(body, Releases::class.java)
+                Gson().fromJson(body, Releases::class.java)
             } catch (e: Exception) {
                 null
             }

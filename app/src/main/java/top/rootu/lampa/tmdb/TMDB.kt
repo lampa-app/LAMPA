@@ -23,9 +23,9 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object TMDB {
-    const val apiUrl = "https://api.themoviedb.org/3/"
-    const val imgUrl = "https://image.tmdb.org/"
-    const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
+    const val APIURL = "https://api.themoviedb.org/3/"
+    const val IMGURL = "https://image.tmdb.org/"
+    const val APIKEY = "4ef0d7355d9ffb5151e987764708ce96"
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
 
@@ -144,7 +144,7 @@ object TMDB {
     }
 
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
-        params["api_key"] = apiKey
+        params["api_key"] = APIKEY
         params["language"] = getLang()
         val apiUrl = App.context.tmdbApiUrl
         val authority = Uri.parse(apiUrl).authority
@@ -206,7 +206,7 @@ object TMDB {
 
     private fun videoDetail(endpoint: String, lang: String = ""): Entity? {
         val params = mutableMapOf<String, String>()
-        params["api_key"] = apiKey
+        params["api_key"] = APIKEY
         if (lang.isBlank())
             params["language"] = getLang()
         else params["language"] = lang

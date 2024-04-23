@@ -107,8 +107,8 @@ object Prefs {
 
     var Context.tmdbApiUrl: String
         get() {
-            return this.appPrefs.getString(TMDB_API, TMDB.apiUrl)
-                ?: TMDB.apiUrl
+            return this.appPrefs.getString(TMDB_API, TMDB.APIURL)
+                ?: TMDB.APIURL
         }
         set(url) {
             this.appPrefs.edit().putString(TMDB_API, url).apply()
@@ -116,8 +116,8 @@ object Prefs {
 
     var Context.tmdbImgUrl: String
         get() {
-            return this.appPrefs.getString(TMDB_IMG, TMDB.imgUrl)
-                ?: TMDB.imgUrl
+            return this.appPrefs.getString(TMDB_IMG, TMDB.IMGURL)
+                ?: TMDB.IMGURL
         }
         set(url) {
             this.appPrefs.edit().putString(TMDB_IMG, url).apply()

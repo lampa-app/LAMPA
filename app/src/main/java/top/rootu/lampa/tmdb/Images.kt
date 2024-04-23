@@ -16,7 +16,7 @@ object Images {
             return
 
         val params = mutableMapOf<String, String>()
-        params["api_key"] = TMDB.apiKey
+        params["api_key"] = TMDB.APIKEY
         params["language"] = TMDB.getLang()
         params["include_image_language"] = "${TMDB.getLang()},en,null"
 
