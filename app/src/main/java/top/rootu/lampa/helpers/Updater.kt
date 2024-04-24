@@ -82,9 +82,9 @@ object Updater {
             else
                 url.openConnection() as HttpURLConnection? // NetCipher.getHttpURLConnection(url)
             connection?.connect()
-            val body =
-                connection?.inputStream?.bufferedReader(Charset.defaultCharset())?.readText()
-                    ?: return false
+            val body = connection?.inputStream?.use {
+                it.bufferedReader(Charset.defaultCharset()).readText()
+            } ?: return false
             releases = try {
                 Gson().fromJson(body, Releases::class.java)
             } catch (e: Exception) {
