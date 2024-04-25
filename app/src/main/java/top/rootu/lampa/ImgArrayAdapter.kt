@@ -64,7 +64,8 @@ class ImgArrayAdapter : ArrayAdapter<String?> {
         val activeItem = view as MaterialTextView?
         if (position == selectedItem){
             //activeItem?.isSelected = true
-            activeItem?.setBackgroundColor(ContextCompat.getColor(parent.context, R.color.white_10))
+            //activeItem?.setBackgroundColor(ContextCompat.getColor(parent.context, R.color.white_10))
+            activeItem?.background = ContextCompat.getDrawable(parent.context, R.drawable.active_menu_bg)
             // for focus on it
             val top = activeItem?.top ?: 0
             (parent as ListView).setSelectionFromTop(position, top)
