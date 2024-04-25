@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
-    <!-- use older sdk -->
-    <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech, androidx.recommendation, androidx.tvprovider" />
+    <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech, androidx.recommendation, androidx.tvprovider" /> <!-- use older sdk -->
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission
@@ -15,10 +13,8 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <!-- Android 8.0 updater fix -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Android TV Channels -->
-    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- Android 8.0 updater fix -->
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" /> <!-- Android TV Channels -->
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
 
     <queries>
@@ -32,18 +28,22 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.PICK" />
+
             <data android:mimeType="*/*" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+
             <data android:mimeType="application/x-bittorrent" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+
             <data android:mimeType="video/*" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+
             <data android:mimeType="audio/x-mpegurl" />
         </intent>
     </queries>
@@ -73,7 +73,9 @@
         android:theme="@style/Theme.LAMPA"
         tools:ignore="RtlEnabled"
         tools:targetApi="n">
-
+        <activity
+            android:name=".CrashActivity"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:allowTaskReparenting="true"
@@ -102,14 +104,17 @@
                 <data android:host="themoviedb.org" />
                 <data android:pathPattern="/movie/.*" />
                 <data android:pathPattern="/tv/.*" />
-
             </intent-filter>
-
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="lampa" android:host="@string/provider_auth" android:pathPattern=".*"/>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="@string/provider_auth"
+                    android:pathPattern=".*"
+                    android:scheme="lampa" />
             </intent-filter>
 
             <meta-data

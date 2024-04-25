@@ -31,6 +31,7 @@ import android.widget.LinearLayout
 import android.widget.ListAdapter
 import android.widget.TextView
 import androidx.activity.addCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -122,6 +123,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
     private var isMenuVisible = false
+//    lateinit var binding: ActivityTestBinding
 
     companion object {
         private const val TAG = "APP_MAIN"
@@ -162,6 +164,7 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         @Suppress("DEPRECATION")
         if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -181,7 +184,7 @@ class MainActivity : AppCompatActivity(),
         LAMPA_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
         Helpers.setLocale(this, this.appLang)
-
+//        handleUncaughtException(showLogs = true)
         playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
@@ -460,6 +463,19 @@ class MainActivity : AppCompatActivity(),
             else -> {
                 setContentView(R.layout.activity_empty)
                 showBrowserInputDialog()
+//                binding = DataBindingUtil.setContentView(this, R.layout.activity_test)
+//                CoroutineScope(Dispatchers.Main).launch {
+//                    val customString = "lampa"
+//                    for (i in customString.indices) {
+//                        // setting count on the text view
+//                        binding.tvCount.text = (i + 1).toString()
+//                        delay(1000)
+//                        // when the count is 5 we will make one crash
+//                        if (i == 4) {
+//                            customString[6]
+//                        }
+//                    }
+//                }
             }
         }
         hideSystemUI()
