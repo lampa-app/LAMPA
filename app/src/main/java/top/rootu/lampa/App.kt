@@ -77,7 +77,8 @@ class App : MultiDexApplication() {
             .addObserver(lifecycleEventObserver)
 
         App.context.setLanguage()
-
+        // app crash handler
+        handleUncaughtException(showLogs = true)
         // self-update check
         val checkUpdates = true
         if (checkUpdates) {

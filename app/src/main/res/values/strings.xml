@@ -80,4 +80,14 @@
     <string name="settings_save_fail">Unable to backup settings</string>
     <string name="settings_rest_fail">Unable to restore settings</string>
     <string name="settings_restored">Settings restored</string>
+    <!--App Errors-->
+    <string name="app_crash_title">Sorry for the Inconvenience</string>
+    <string name="app_crash_message">Sometimes our system has faults but no worry. In next update we will fix this. Please click on Restart App button to continue.</string>
+    <string name="app_crash_copy">Copy Logs to Clipboard</string>
+    <string name="app_crash_copied">Logs copied to clipboard</string>
+    <string name="app_crash_save_to">Crash Logs saved to</string>
+    <string name="app_crash_no_logs">No error logs found</string>
+    <string name="app_crash_restart">Restart App</string>
+    <string name="app_crash_showlog">Show Logs</string>
+    <string name="app_crash_errlogs">Error Logs</string>
 </resources>

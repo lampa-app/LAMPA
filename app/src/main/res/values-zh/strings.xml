@@ -77,4 +77,14 @@
     <string name="settings_save_fail">无法备份设置</string>
     <string name="settings_rest_fail">无法恢复设置</string>
     <string name="settings_restored">设置已恢复</string>
+    <!--App Errors-->
+    <string name="app_crash_title">抱歉给您带来不便</string>
+    <string name="app_crash_message">有时我们的系统会出现故障，但不用担心。 在下一次更新中我们将解决这个问题。 请单击“重新启动应用程序”按钮继续。</string>
+    <string name="app_crash_copy">将日志复制到剪贴板</string>
+    <string name="app_crash_copied">日志已复制到剪贴板</string>
+    <string name="app_crash_save_to">崩溃日志保存到</string>
+    <string name="app_crash_no_logs">未找到错误日志</string>
+    <string name="app_crash_restart">重新启动应用程序</string>
+    <string name="app_crash_showlog">显示日志</string>
+    <string name="app_crash_errlogs">错误日志</string>
 </resources>

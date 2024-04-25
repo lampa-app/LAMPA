@@ -1,24 +1,5 @@
 package top.rootu.lampa
 
-//import android.os.Bundle
-//import androidx.activity.enableEdgeToEdge
-//import androidx.appcompat.app.AppCompatActivity
-//import androidx.core.view.ViewCompat
-//import androidx.core.view.WindowInsetsCompat
-
-//class CrashActivity : AppCompatActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        setContentView(R.layout.activity_crash)
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
-//    }
-//}
-
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
@@ -27,13 +8,13 @@ import android.os.Bundle
 import android.util.TypedValue
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import top.rootu.lampa.databinding.ActivityCrashBinding
 import top.rootu.lampa.databinding.ErrorLogSheetBinding
+import top.rootu.lampa.helpers.Backup
 
 
 class CrashActivity : AppCompatActivity() {
@@ -68,7 +49,7 @@ class CrashActivity : AppCompatActivity() {
         Runtime.getRuntime().exit(0)
     }
 
-    private fun showBottomSheetDialog(state: Boolean, errorData: String? = "No error logs found") {
+    private fun showBottomSheetDialog(state: Boolean, errorData: String? = getString(R.string.app_crash_no_logs)) {
         if (state) {
             if (bottomSheetDialog != null) {
                 if (bottomSheetDialog?.isShowing == true) {
@@ -85,10 +66,15 @@ class CrashActivity : AppCompatActivity() {
                 showBottomSheetDialog(false)
             }
             dialogBinding.tvErrorLogs.text = errorData
+            dialogBinding.saveErrorLogs.setOnClickListener {
+                if (saveCrashLog(errorData.toString()))
+                    App.toast("${getString(R.string.app_crash_save_to)} ${Backup.DIR}")
+                showBottomSheetDialog(false)
+            }
             dialogBinding.copyErrorLogs.setOnClickListener {
                 copyToClipBoard(errorData.toString())
                 showBottomSheetDialog(false)
-                showToastMessage("Logs copied")
+                App.toast(R.string.app_crash_copied)
             }
 
             bottomSheetDialog?.behavior?.expandedOffset = BottomSheetBehavior.STATE_EXPANDED
@@ -97,6 +83,11 @@ class CrashActivity : AppCompatActivity() {
             // img buttons
             val outValue = TypedValue()
             getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+            dialogBinding.saveErrorLogs.apply {
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(outValue.resourceId)
+            }
             dialogBinding.copyErrorLogs.apply {
                 isClickable = true
                 isFocusable = true

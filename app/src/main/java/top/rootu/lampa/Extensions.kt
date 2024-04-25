@@ -1,29 +1,34 @@
 package top.rootu.lampa
 
-import android.app.Activity
+import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Process
-import android.widget.Toast
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.rootu.lampa.helpers.Backup
+import top.rootu.lampa.helpers.PermHelpers
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
 
 
-fun Activity.handleUncaughtException(showLogs:Boolean?=null) {
-    Thread.setDefaultUncaughtExceptionHandler { _, throwable ->
+fun Application.handleUncaughtException(showLogs:Boolean?=null) {
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
         /**
         here you can report the throwable exception to Sentry or Crashlytics or whatever crash reporting service you're using,
         otherwise you may set the throwable variable to _ if it'll remain unused
          */
         val errorReport = StringBuilder()
+        Log.d("*****", "handleUncaughtException(showLogs:$showLogs)")
         CoroutineScope(Dispatchers.IO).launch {
             var arr = throwable.stackTrace
-            errorReport.append("---------------- Main Crash Name ----------------\n")
+            errorReport.append("---------------- Main Crash ----------------\n")
             errorReport.append(throwable)
             errorReport.append("\n\n")
             errorReport.append("---------------- Stack Strace ----------------\n\n")
@@ -54,22 +59,24 @@ fun Activity.handleUncaughtException(showLogs:Boolean?=null) {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 startActivity(intent)
-                finish()
+                //finish()
                 Process.killProcess(Process.myPid())
                 exitProcess(2)
             }
-
         }
-
-
     }
 }
 
-fun Context.showToastMessage(message: String){
-    Toast.makeText(this,message,Toast.LENGTH_SHORT).show()
-}
 fun Context.copyToClipBoard(errorData:String){
     val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clipData = ClipData.newPlainText("label",errorData)
     clipboardManager.setPrimaryClip(clipData)
+}
+fun Context.saveCrashLog(errorData:String): Boolean {
+    if (!PermHelpers.hasStoragePermissions(this)) {
+        PermHelpers.verifyStoragePermissions(this)
+    }
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val current = LocalDateTime.now().format(formatter)
+    return Backup.writeFile("${current}.crash.txt", errorData)
 }

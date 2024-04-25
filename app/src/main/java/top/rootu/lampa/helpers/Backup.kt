@@ -112,7 +112,7 @@ object Backup {
         return true
     }
 
-    private fun writeFile(fileName: String, buf: String): Boolean {
+    fun writeFile(fileName: String, buf: String): Boolean {
         val dir = DIR
 
         if (!dir.exists())

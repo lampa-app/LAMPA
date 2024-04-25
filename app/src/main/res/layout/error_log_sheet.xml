@@ -34,6 +34,7 @@
                         android:layout_centerVertical="true"
                         android:layout_marginVertical="5dp"
                         android:layout_marginEnd="10dp"
+                        android:contentDescription="@string/close_menu_title"
                         android:elevation="10dp"
                         android:padding="10dp"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -49,6 +50,7 @@
                         android:layout_centerVertical="true"
                         android:layout_marginVertical="5dp"
                         android:layout_toStartOf="@+id/closeDialog"
+                        android:contentDescription="@string/save"
                         android:elevation="10dp"
                         android:padding="10dp"
                         app:layout_constraintEnd_toStartOf="@id/closeDialog"
@@ -56,6 +58,22 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
                         app:srcCompat="@drawable/round_content_copy_24" />
+
+                    <ImageView
+                        android:id="@+id/saveErrorLogs"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_centerVertical="true"
+                        android:layout_marginVertical="5dp"
+                        android:layout_toStartOf="@+id/copyErrorLogs"
+                        android:contentDescription="@string/app_crash_copy"
+                        android:elevation="10dp"
+                        android:padding="10dp"
+                        app:layout_constraintEnd_toStartOf="@id/copyErrorLogs"
+                        app:layout_constraintHorizontal_bias="1"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/round_save_24" />
 
                     <TextView
                         android:id="@+id/tvErrorLogsTitle"
@@ -69,7 +87,7 @@
                         android:autoLink="all"
                         android:clickable="false"
                         android:enabled="false"
-                        android:text="Error Logs"
+                        android:text="@string/app_crash_errlogs"
                         android:textColor="#eee"
                         android:textColorLink="#0019CF"
                         android:textSize="18sp"
@@ -107,7 +125,7 @@
                 android:textAlignment="textStart"
                 android:textColor="#EEE"
                 android:textColorLink="#0019CF"
-                tools:text="Sometimes our system has faults but no worry we already detected this issue.In next update we will fix this issue ,Please click on restart app button to continue our app." />
+                tools:text="Sometimes our system has faults but no worry. In next update we will fix this. Please click on Restart App button to continue." />
 
         </ScrollView>
 
