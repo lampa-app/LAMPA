@@ -14,6 +14,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import top.rootu.lampa.databinding.ActivityCrashBinding
 import top.rootu.lampa.databinding.ErrorLogSheetBinding
 import top.rootu.lampa.helpers.Backup
+import top.rootu.lampa.helpers.PermHelpers
+import top.rootu.lampa.helpers.copyToClipBoard
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 class CrashActivity : AppCompatActivity() {
@@ -36,6 +40,9 @@ class CrashActivity : AppCompatActivity() {
         }
         binding.btShowErrorLogs.setOnClickListener {
             showBottomSheetDialog(true, errorDetails)
+            if (!PermHelpers.hasStoragePermissions(this)) {
+                PermHelpers.verifyStoragePermissions(this)
+            }
         }
         binding.btRestartApp.requestFocus()
     }
@@ -49,7 +56,10 @@ class CrashActivity : AppCompatActivity() {
         Runtime.getRuntime().exit(0)
     }
 
-    private fun showBottomSheetDialog(state: Boolean, errorData: String? = getString(R.string.app_crash_no_logs)) {
+    private fun showBottomSheetDialog(
+        state: Boolean,
+        errorData: String? = getString(R.string.app_crash_no_logs)
+    ) {
         if (state) {
             if (bottomSheetDialog != null) {
                 if (bottomSheetDialog?.isShowing == true) {
@@ -57,7 +67,7 @@ class CrashActivity : AppCompatActivity() {
                 }
             }
             bottomSheetDialog = BottomSheetDialog(this, R.style.TransparentDialog)
-            val dialogBinding  = ErrorLogSheetBinding.inflate(layoutInflater)
+            val dialogBinding = ErrorLogSheetBinding.inflate(layoutInflater)
             bottomSheetDialog?.setContentView(dialogBinding.root)
             bottomSheetDialog?.setCanceledOnTouchOutside(false)
             bottomSheetDialog?.setCancelable(false)
@@ -66,7 +76,9 @@ class CrashActivity : AppCompatActivity() {
             }
             dialogBinding.tvErrorLogs.text = errorData
             dialogBinding.saveErrorLogs.setOnClickListener {
-                if (saveCrashLog(errorData.toString()))
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm")
+                val dtm = LocalDateTime.now().format(formatter)
+                if (Backup.writeFile("${dtm}.crashlog.txt", errorData.toString()))
                     App.toast("${getString(R.string.app_crash_save_to)} ${Backup.DIR}")
                 showBottomSheetDialog(false)
             }
