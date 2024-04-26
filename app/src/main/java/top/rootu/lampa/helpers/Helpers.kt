@@ -189,8 +189,8 @@ object Helpers {
         intent.putExtra("source", card.source)
         intent.putExtra("media_type", card.type)
 
-        val idStr = Gson().toJson(card) // used to get card from HomeWatch
-        intent.putExtra("LampaCardJS", idStr)
+        val idStr = try { Gson().toJson(card) } catch (e: Exception) { null } // used to get card from HomeWatch
+        idStr?.let { intent.putExtra("LampaCardJS", idStr) }
 
         continueWatch?.let { intent.putExtra("continueWatch", it) }
 

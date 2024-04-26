@@ -183,7 +183,7 @@ object WatchNext {
         }
         return try {
             val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
-            //if (isValidJson(json))
+            // if (isValidJson(json))
             Gson().fromJson(json, LampaCard::class.java)
         } catch (_: Exception) {
             null
