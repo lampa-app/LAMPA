@@ -79,12 +79,12 @@
     <string name="settings_restored">Настройки восстановлены</string>
     <!--App Errors-->
     <string name="app_crash_title">Приносим извинения за неудобства</string>
-    <string name="app_crash_message">Иногда в нашей системе возникают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Нажмите кнопку «Перезапустить приложение», чтобы продолжить.</string>
+    <string name="app_crash_message">Иногда в нашей системе возникают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
     <string name="app_crash_copy">Копировать журнал в буфер обмена</string>
     <string name="app_crash_copied">Журнал скопирован в буфер обмена</string>
     <string name="app_crash_save_to">Журнал сбоя сохранен в папку</string>
     <string name="app_crash_no_logs">Журнал ошибок не найден</string>
-    <string name="app_crash_restart">Перезапустить приложение</string>
+    <string name="app_crash_restart">Перезапустить</string>
     <string name="app_crash_showlog">Показать журнал</string>
     <string name="app_crash_errlogs">Журнал ошибок</string>
 </resources>

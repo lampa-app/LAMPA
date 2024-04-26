@@ -59,7 +59,6 @@ fun Application.handleUncaughtException(showLogs:Boolean?=null) {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 startActivity(intent)
-                //finish()
                 Process.killProcess(Process.myPid())
                 exitProcess(2)
             }

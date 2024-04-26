@@ -9,7 +9,6 @@ import android.util.TypedValue
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import androidx.databinding.DataBindingUtil
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import top.rootu.lampa.databinding.ActivityCrashBinding
@@ -24,7 +23,8 @@ class CrashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_crash)
+        binding = ActivityCrashBinding.inflate(layoutInflater) //(R.layout.activity_crash)
+        setContentView(binding.root)
         val errorDetails = intent.getStringExtra("errorDetails")
         val isShownLogs = intent.getStringExtra("isShownLogs")
         if (isShownLogs != null) {
@@ -57,8 +57,7 @@ class CrashActivity : AppCompatActivity() {
                 }
             }
             bottomSheetDialog = BottomSheetDialog(this, R.style.TransparentDialog)
-            val dialogBinding: ErrorLogSheetBinding =
-                DataBindingUtil.inflate(layoutInflater, R.layout.error_log_sheet, null, false)
+            val dialogBinding  = ErrorLogSheetBinding.inflate(layoutInflater)
             bottomSheetDialog?.setContentView(dialogBinding.root)
             bottomSheetDialog?.setCanceledOnTouchOutside(false)
             bottomSheetDialog?.setCancelable(false)
@@ -77,7 +76,7 @@ class CrashActivity : AppCompatActivity() {
                 App.toast(R.string.app_crash_copied)
             }
 
-            bottomSheetDialog?.behavior?.expandedOffset = BottomSheetBehavior.STATE_EXPANDED
+            bottomSheetDialog?.behavior?.state = BottomSheetBehavior.STATE_EXPANDED
             bottomSheetDialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             bottomSheetDialog?.show()
             // img buttons

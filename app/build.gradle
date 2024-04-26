@@ -2,7 +2,6 @@ plugins {
     id 'com.android.application'
     id 'com.google.devtools.ksp'
     id 'kotlin-android'
-    id 'kotlin-kapt'
 }
 
 def getVersionCode = { ->
@@ -66,10 +65,6 @@ android {
                 keyPassword System.getenv('RELEASE_SIGN_KEY_PASSWORD')
             }
         }
-    }
-
-    buildFeatures {
-        dataBinding=true
     }
 
     buildTypes {
