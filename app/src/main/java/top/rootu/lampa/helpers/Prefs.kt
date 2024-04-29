@@ -13,6 +13,7 @@ import top.rootu.lampa.models.CubBookmark
 import top.rootu.lampa.models.Favorite
 import top.rootu.lampa.models.LampaRec
 import top.rootu.lampa.models.WatchNextToAdd
+import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 
 object Prefs {
@@ -106,8 +107,8 @@ object Prefs {
 
     var Context.tmdbApiUrl: String
         get() {
-            return this.appPrefs.getString(TMDB_API, "https://api.themoviedb.org/3/")
-                ?: "https://api.themoviedb.org/3/"
+            return this.appPrefs.getString(TMDB_API, TMDB.APIURL)
+                ?: TMDB.APIURL
         }
         set(url) {
             this.appPrefs.edit().putString(TMDB_API, url).apply()
@@ -115,8 +116,8 @@ object Prefs {
 
     var Context.tmdbImgUrl: String
         get() {
-            return this.appPrefs.getString(TMDB_IMG, "https://image.tmdb.org/")
-                ?: "https://image.tmdb.org/"
+            return this.appPrefs.getString(TMDB_IMG, TMDB.IMGURL)
+                ?: TMDB.IMGURL
         }
         set(url) {
             this.appPrefs.edit().putString(TMDB_IMG, url).apply()

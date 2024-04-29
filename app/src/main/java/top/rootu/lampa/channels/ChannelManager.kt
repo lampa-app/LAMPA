@@ -23,7 +23,7 @@ import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.LampaCard
-import java.util.*
+import java.util.Locale
 
 object ChannelManager {
     private const val TAG = "ChannelManager"

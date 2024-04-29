@@ -23,10 +23,12 @@ class Bookmarks : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.Book }?.forEach {
-                    val card = Gson().fromJson(it.data, LampaCard::class.java)
-                    card.fixCard()
-                    lst.add(card)
+                App.context.CUB?.filter { it.type == LampaProvider.Book }?.forEach { bm ->
+                    val card = try { Gson().fromJson(bm.data, LampaCard::class.java) } catch (e: Exception) { null }
+                    card?.let {
+                        it.fixCard()
+                        lst.add(it)
+                    }
                 }
             // FAV (use ID to match KP_573840 etc)
             App.context.FAV?.card?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }

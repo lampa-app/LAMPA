@@ -24,6 +24,7 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
+import org.brotli.dec.BrotliInputStream;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,14 +35,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
-import org.brotli.dec.BrotliInputStream;
 
+import okhttp3.ConnectionSpec;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import top.rootu.lampa.helpers.Helpers;
@@ -81,15 +83,23 @@ public class HttpHelper {
                 builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
                 builder.hostnameVerifier((hostname, session) -> true);
             }
+            // https://github.com/square/okhttp/issues/3894
+            // The default OkHttp configuration does not support older versions of TLS,
+            // or all cipher suites.  Make our support as reasonably broad as possible.
+            builder.connectionSpecs(Arrays.asList(ConnectionSpec.CLEARTEXT,
+                    new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                            .allEnabledTlsVersions()
+                            .allEnabledCipherSuites()
+                            .build()));
         } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
         }
         if (timeout > 0) {
-            builder.connectTimeout(timeout/2L, TimeUnit.MILLISECONDS);
+            builder.connectTimeout(timeout / 2L, TimeUnit.MILLISECONDS);
             builder.readTimeout(timeout, TimeUnit.MILLISECONDS);
             builder.writeTimeout(timeout, TimeUnit.MILLISECONDS);
             builder.callTimeout(timeout, TimeUnit.MILLISECONDS);
         } else {
-            builder.connectTimeout(DEFAULT_CONNECTION_TIMEOUT/2L, TimeUnit.MILLISECONDS);
+            builder.connectTimeout(DEFAULT_CONNECTION_TIMEOUT / 2L, TimeUnit.MILLISECONDS);
             builder.readTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
             builder.writeTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
             builder.callTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
@@ -100,6 +110,7 @@ public class HttpHelper {
         }
         return builder.build();
     }
+
     /**
      * HTTP request interceptor to allow for gzip, deflate, br-encoded data transfer
      */
@@ -346,6 +357,7 @@ public class HttpHelper {
         }
 
     }
+
     /**
      * HTTP entity wrapper to decompress deflate HTTP responses
      */
@@ -368,6 +380,7 @@ public class HttpHelper {
             return -1;
         }
     }
+
     /**
      * HTTP entity wrapper to decompress br HTTP responses
      */

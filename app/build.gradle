@@ -1,6 +1,6 @@
 plugins {
     id 'com.android.application'
-    id("com.google.devtools.ksp")
+    id 'com.google.devtools.ksp'
     id 'kotlin-android'
 }
 
@@ -108,6 +108,7 @@ android {
 }
 
 dependencies {
+
     // https://developer.android.com/studio/write/java8-support#library-desugaring
     // For AGP 7.4+
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
@@ -124,8 +125,13 @@ dependencies {
     // netcipher
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
+    def actKtxVer = '1.8.0' // 1.8.0 - latest version for API 16
+    //noinspection GradleDependency
+    implementation "androidx.activity:activity-ktx:$actKtxVer"
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.core:core-ktx:1.12.0'
+    def coreKtxVer = '1.12.0' // 1.12.0 - latest version for API 16
+    //noinspection GradleDependency
+    implementation "androidx.core:core-ktx:$coreKtxVer"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     def lifecycleVersion = '2.7.0'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"

@@ -46,4 +46,14 @@
     <style name="Widget.App.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
         <item name="hintTextColor">?attr/colorAccent</item>
     </style>
+    <!-- Transparent Dialog -->
+    <style name="TransparentDialog" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="android:windowCloseOnTouchOutside">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+        <item name="android:windowFrame">@null</item>
+    </style>
 </resources>

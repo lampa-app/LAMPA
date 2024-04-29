@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Updater
+import top.rootu.lampa.helpers.handleUncaughtException
 import top.rootu.lampa.tmdb.TMDB
 
 class App : MultiDexApplication() {
@@ -77,7 +78,8 @@ class App : MultiDexApplication() {
             .addObserver(lifecycleEventObserver)
 
         context.setLanguage()
-
+        // app crash handler
+        handleUncaughtException(showLogs = true)
         // self-update check
         val checkUpdates = true
         if (checkUpdates) {

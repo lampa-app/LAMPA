@@ -31,6 +31,7 @@ import android.widget.LinearLayout
 import android.widget.ListAdapter
 import android.widget.TextView
 import androidx.activity.addCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -108,6 +109,7 @@ import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.collections.set
 
 
 class MainActivity : AppCompatActivity(),
@@ -161,6 +163,7 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         @Suppress("DEPRECATION")
         if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -212,7 +215,7 @@ class MainActivity : AppCompatActivity(),
             val videoUrl: String = data?.data.toString()
             val resultCode = result.resultCode
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Returned video url: $videoUrl")
+                Log.d(TAG, "Returned intent url: $videoUrl")
                 when (resultCode) { // just for debug
                     RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
                     RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
@@ -275,18 +278,22 @@ class MainActivity : AppCompatActivity(),
                         RESULT_OK -> {
                             val pos = it.getLongExtra("extra_position", 0L)
                             val dur = it.getLongExtra("extra_duration", 0L)
-                            if (pos > 0L) {
+                            val url =
+                                if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri")
+                                    .toString()
+                                else videoUrl
+                            if (pos > 0L && dur > 0L) {
                                 val ended = isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
                                     "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
                                 )
-                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
-                            } else {
-                                if (dur == 0L && pos == 0L) {
-                                    Log.i(TAG, "Playback completed")
-                                    resultPlayer(videoUrl, 0, 0, true)
-                                }
+                                resultPlayer(url, pos.toInt(), dur.toInt(), ended)
+                            } else if (pos == 0L && dur == 0L) {
+                                Log.i(TAG, "Playback completed")
+                                resultPlayer(url, 0, 0, true)
+                            } else if (pos > 0L) {
+                                Log.i(TAG, "Playback stopped with no duration! Playback Error?")
                             }
                         }
 
@@ -321,15 +328,18 @@ class MainActivity : AppCompatActivity(),
                 ) { // UPlayer
                     when (resultCode) {
                         RESULT_OK -> {
-                            val pos = it.getLongExtra("position", 0L).toInt()
-                            val dur = it.getLongExtra("duration", 0L).toInt()
-                            val ended = it.getBooleanExtra("isEnded", pos == dur)
-                            if (pos > 0 && dur > 0) {
+                            val pos = it.getLongExtra("position", 0L)
+                            val dur = it.getLongExtra("duration", 0L)
+                            if (pos > 0L && dur > 0L) {
+                                val ended = it.getBooleanExtra(
+                                    "isEnded",
+                                    pos == dur
+                                ) || isAfterEndCreditsPosition(pos, dur)
                                 Log.i(
                                     TAG,
                                     "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
                                 )
-                                resultPlayer(videoUrl, pos, dur, ended)
+                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                             }
                         }
 
@@ -863,7 +873,7 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[3] = "restoreDefaultSettings"
 
 
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
         menu.setTitle(getString(R.string.backup_restore_title))
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
@@ -913,6 +923,7 @@ class MainActivity : AppCompatActivity(),
         }
         val menuDialog = menu.create()
         menuDialog.show()
+        adapter.setSelectedItem(0)
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
         }
@@ -924,6 +935,7 @@ class MainActivity : AppCompatActivity(),
         val menuItemsTitle: Array<String?>
         val menuItemsAction: Array<String?>
         val icons: Array<Int>
+        var current = 0
         if (Helpers.isWebViewAvailable(this)) {
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
@@ -938,6 +950,7 @@ class MainActivity : AppCompatActivity(),
                 menuItemsTitle[0] = getString(R.string.engine_crosswalk_obsolete)
                 menuItemsTitle[1] =
                     "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
+                current = 1
             }
             icons = arrayOf(
                 R.drawable.round_explorer_24,
@@ -955,7 +968,7 @@ class MainActivity : AppCompatActivity(),
             }
             icons = arrayOf(R.drawable.round_explorer_24)
         }
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
         menu.setTitle(getString(R.string.change_engine_title))
         menu.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
@@ -966,6 +979,7 @@ class MainActivity : AppCompatActivity(),
         }
         val menuDialog = menu.create()
         menuDialog.show()
+        adapter.setSelectedItem(current)
     }
 
     fun showUrlInputDialog() {
@@ -1129,93 +1143,6 @@ class MainActivity : AppCompatActivity(),
         this.playActivityJS = lampaActivity
     }
 
-    private fun resultPlayer(
-        endedVideoUrl: String,
-        pos: Int = 0,
-        dur: Int = 0,
-        ended: Boolean = false
-    ) {
-        // store state and duration too for WatchNext
-        val editor = this.lastPlayedPrefs.edit()
-        editor?.putBoolean("ended", ended)
-        editor?.putInt("position", pos)
-        editor?.putInt("duration", dur)
-        editor.apply()
-
-        lifecycleScope.launch {
-            // Add | Remove Continue to Play
-            withContext(Dispatchers.Default) {
-                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
-                if (lampaActivity?.has("movie") == true) {
-                    val card = Gson().fromJson(
-                        lampaActivity.getJSONObject("movie").toString(),
-                        LampaCard::class.java
-                    )
-                    card?.let {
-                        it.fixCard()
-                        try {
-                            if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
-                            if (!ended)
-                                WatchNext.addLastPlayed(it)
-                            else
-                                WatchNext.removeContinueWatch()
-                        } catch (e: Exception) {
-                            if (BuildConfig.DEBUG) Log.d(
-                                "*****",
-                                "resultPlayer Error add $it to WatchNext: $e"
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        val videoUrl =
-            if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
-            else endedVideoUrl
-        if (videoUrl == "") return
-
-        for (i in 0 until playJSONArray.length()) {
-            val io = playJSONArray.getJSONObject(i)
-            if (!io.has("timeline") || !io.has("url")) break
-
-            val timeline = io.optJSONObject("timeline")
-            val hash = timeline?.optString("hash", "0")
-            if (io.optString("url") == videoUrl) {
-                val time: Int = if (ended) 0 else pos / 1000
-                val duration: Int =
-                    if (ended) 0
-                    else if (dur == 0 && timeline?.has("duration") == true)
-                        timeline.optDouble("duration", 0.0).toInt()
-                    else dur / 1000
-
-                val percent: Int = if (duration > 0) time * 100 / duration else 100
-
-                val newTimeline = JSONObject()
-                newTimeline.put("hash", hash)
-                newTimeline.put("time", time.toDouble())
-                newTimeline.put("duration", duration.toDouble())
-                newTimeline.put("percent", percent)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                // for PlayNext
-                io.put("timeline", newTimeline)
-                val resumeio = JSONObject(io.toString())
-                resumeio.put("playlist", playJSONArray)
-                this.resumeJS = resumeio.toString()
-                break
-            }
-            if (i >= playIndex) {
-                val newTimeline = JSONObject()
-                newTimeline.put("hash", hash)
-                newTimeline.put("percent", 100)
-                newTimeline.put("time", 0)
-                newTimeline.put("duration", 0)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                io.put("timeline", newTimeline)
-            }
-        }
-    }
-
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
         runPlayer(jsonObject, "")
@@ -1289,6 +1216,7 @@ class MainActivity : AppCompatActivity(),
             playerChooserDialog.listView.requestFocus()
         } else {
             var videoPosition: Long = 0
+            var videoDuration: Long = 0
             val videoTitle =
                 if (jsonObject.has("title"))
                     jsonObject.optString("title")
@@ -1310,6 +1238,10 @@ class MainActivity : AppCompatActivity(),
                         (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
                     else
                         (timeline.optDouble("time", 0.0) * 1000).toLong()
+                    videoDuration = if (latestTimeline?.has("duration") == true)
+                        (latestTimeline.optDouble("duration", 0.0) * 1000).toLong()
+                    else
+                        (timeline.optDouble("duration", 0.0) * 1000).toLong()
                 }
             }
             // Headers
@@ -1513,11 +1445,12 @@ class MainActivity : AppCompatActivity(),
                     // https://wiki.videolan.org/Android_Player_Intents
                     if (VERSION.SDK_INT > 32) {
                         intent.setPackage(SELECTED_PLAYER)
-                    } else
+                    } else {
                         intent.component = ComponentName(
                             SELECTED_PLAYER!!,
                             "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
                         ) // required for return intent
+                    }
                     intent.putExtra("title", videoTitle)
                     if (playerTimeCode == "continue" && videoPosition > 0L) {
                         intent.putExtra("from_start", false)
@@ -1528,6 +1461,7 @@ class MainActivity : AppCompatActivity(),
                         intent.putExtra("from_start", true)
                         intent.putExtra("position", 0L)
                     }
+                    intent.putExtra("extra_duration", videoDuration)
                 }
 
                 "com.brouken.player" -> {
@@ -1547,8 +1481,12 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
-                    val vimuVersionNumber = getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
-                    if (BuildConfig.DEBUG) Log.d("*****", "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
+                    val vimuVersionNumber =
+                        getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
+                    if (BuildConfig.DEBUG) Log.d(
+                        "*****",
+                        "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber"
+                    )
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
@@ -1567,7 +1505,7 @@ class MainActivity : AppCompatActivity(),
                             Uri.parse(videoUrl),
                             "application/vnd.gtvbox.filelist"
                         )
-                        if (vimuVersionNumber >= 799L ) { // 7.99 and above
+                        if (vimuVersionNumber >= 799L) { // 7.99 and above
                             intent.putStringArrayListExtra("asusfilelist", listUrls)
                             intent.putStringArrayListExtra("asusnamelist", listTitles)
                             intent.putExtra("startindex", playIndex)
@@ -1620,6 +1558,96 @@ class MainActivity : AppCompatActivity(),
                 resultLauncher.launch(intent)
             } catch (e: Exception) {
                 App.toast(R.string.no_launch_player, true)
+            }
+        }
+    }
+
+    private fun resultPlayer(
+        endedVideoUrl: String,
+        pos: Int = 0,
+        dur: Int = 0,
+        ended: Boolean = false
+    ) {
+        // store state and duration too for WatchNext
+        val editor = this.lastPlayedPrefs.edit()
+        editor?.putBoolean("ended", ended)
+        editor?.putInt("position", pos)
+        editor?.putInt("duration", dur)
+        editor.apply()
+
+        lifecycleScope.launch {
+            // Add | Remove Continue to Play
+            withContext(Dispatchers.Default) {
+                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
+                if (lampaActivity?.has("movie") == true) {
+                    val card = try {
+                        Gson().fromJson(
+                            lampaActivity.getJSONObject("movie").toString(),
+                            LampaCard::class.java
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                    card?.let {
+                        it.fixCard()
+                        try {
+                            if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
+                            if (!ended)
+                                WatchNext.addLastPlayed(it)
+                            else
+                                WatchNext.removeContinueWatch()
+                        } catch (e: Exception) {
+                            if (BuildConfig.DEBUG) Log.d(
+                                "*****",
+                                "resultPlayer Error add $it to WatchNext: $e"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        val videoUrl =
+            if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
+            else endedVideoUrl
+        if (videoUrl == "") return
+
+        for (i in 0 until playJSONArray.length()) {
+            val io = playJSONArray.getJSONObject(i)
+            if (!io.has("timeline") || !io.has("url")) break
+
+            val timeline = io.optJSONObject("timeline")
+            val hash = timeline?.optString("hash", "0")
+            if (io.optString("url") == videoUrl) {
+                val time: Int = if (ended) 0 else pos / 1000
+                val duration: Int =
+                    if (ended) 0
+                    else if (dur == 0 && timeline?.has("duration") == true)
+                        timeline.optDouble("duration", 0.0).toInt()
+                    else dur / 1000
+                val percent: Int = if (duration > 0) time * 100 / duration else 100
+
+                val newTimeline = JSONObject()
+                newTimeline.put("hash", hash)
+                newTimeline.put("time", time.toDouble())
+                newTimeline.put("duration", duration.toDouble())
+                newTimeline.put("percent", percent)
+                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                // for PlayNext
+                io.put("timeline", newTimeline)
+                val resumeio = JSONObject(io.toString())
+                resumeio.put("playlist", playJSONArray)
+                this.resumeJS = resumeio.toString()
+                break
+            }
+            if (i >= playIndex) {
+                val newTimeline = JSONObject()
+                newTimeline.put("hash", hash)
+                newTimeline.put("percent", 100)
+                newTimeline.put("time", 0)
+                newTimeline.put("duration", 0)
+                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+                io.put("timeline", newTimeline)
             }
         }
     }

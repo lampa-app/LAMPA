@@ -23,7 +23,9 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object TMDB {
-    const val apiKey = "4ef0d7355d9ffb5151e987764708ce96"
+    const val APIURL = "https://api.themoviedb.org/3/"
+    const val IMGURL = "https://image.tmdb.org/"
+    const val APIKEY = "4ef0d7355d9ffb5151e987764708ce96"
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
 
@@ -65,6 +67,7 @@ object TMDB {
             }
         }
     }
+
     fun initGenres() {
         try {
             // https://developers.themoviedb.org/3/genres/get-movie-list
@@ -133,6 +136,7 @@ object TMDB {
             .dns(dns!!)
             .build()
     }
+
     // For KitKat
     fun permissiveOkHttp(): OkHttpClient {
         val timeout = 30000
@@ -140,7 +144,7 @@ object TMDB {
     }
 
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
-        params["api_key"] = apiKey
+        params["api_key"] = APIKEY
         params["language"] = getLang()
         val apiUrl = App.context.tmdbApiUrl
         val authority = Uri.parse(apiUrl).authority
@@ -173,7 +177,11 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val entities = Gson().fromJson(body, Entities::class.java)
+        val entities = try {
+            Gson().fromJson(body, Entities::class.java)
+        } catch (e: Exception) {
+            null
+        }
         val ret = mutableListOf<Entity>()
 
         entities?.results?.forEach {
@@ -198,7 +206,7 @@ object TMDB {
 
     private fun videoDetail(endpoint: String, lang: String = ""): Entity? {
         val params = mutableMapOf<String, String>()
-        params["api_key"] = apiKey
+        params["api_key"] = APIKEY
         if (lang.isBlank())
             params["language"] = getLang()
         else params["language"] = lang
@@ -238,8 +246,12 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val ent = Gson().fromJson(body, Entity::class.java)
-        fixEntity(ent)
+        val ent = try {
+            Gson().fromJson(body, Entity::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        ent?.let { fixEntity(it) }
         return ent
     }
 

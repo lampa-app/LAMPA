@@ -16,7 +16,7 @@ object Images {
             return
 
         val params = mutableMapOf<String, String>()
-        params["api_key"] = TMDB.apiKey
+        params["api_key"] = TMDB.APIKEY
         params["language"] = TMDB.getLang()
         params["include_image_language"] = "${TMDB.getLang()},en,null"
 
@@ -49,7 +49,7 @@ object Images {
             e.printStackTrace()
         }
 
-        val images = Gson().fromJson(body, Images::class.java)
+        val images = try { Gson().fromJson(body, Images::class.java) } catch (e: Exception) { null }
         images?.let { img ->
             for (i in 0 until img.backdrops.size)
                 img.backdrops[i].file_path = TMDB.imageUrl(img.backdrops[i].file_path).replace("original", "w1280")

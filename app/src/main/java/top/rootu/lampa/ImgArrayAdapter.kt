@@ -6,10 +6,15 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.ListView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import com.google.android.material.textview.MaterialTextView
+
 
 class ImgArrayAdapter : ArrayAdapter<String?> {
     private val images: List<Int>
+    private var selectedItem = 0
 
     constructor(context: Context?, items: List<String?>?, images: List<Int>) : super(
         context!!, android.R.layout.select_dialog_item, items!!
@@ -55,6 +60,22 @@ class ImgArrayAdapter : ArrayAdapter<String?> {
         ).toInt()
         textView.textSize = 18f
         textView.setLines(2)
+        // set selected item
+        val activeItem = view as MaterialTextView?
+        if (position == selectedItem){
+            //activeItem?.isSelected = true
+            //activeItem?.setBackgroundColor(ContextCompat.getColor(parent.context, R.color.white_10))
+            activeItem?.background = ContextCompat.getDrawable(parent.context, R.drawable.active_menu_bg)
+            // for focus on it
+            val top = activeItem?.top ?: 0
+            (parent as ListView).setSelectionFromTop(position, top)
+        } else {
+            activeItem?.setBackgroundColor(ContextCompat.getColor(parent.context, android.R.color.transparent))
+        }
         return view
+    }
+
+    fun setSelectedItem(position: Int) {
+        selectedItem = position
     }
 }

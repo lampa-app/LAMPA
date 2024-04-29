@@ -21,7 +21,6 @@ import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
@@ -29,7 +28,7 @@ import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
-import java.util.*
+import java.util.Locale
 
 
 object WatchNext {
@@ -91,10 +90,16 @@ object WatchNext {
         val lst = mutableListOf<LampaCard>()
         // CUB
         if (App.context.syncEnabled) {
-            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach {
-                val card = Gson().fromJson(it.data, LampaCard::class.java)
-                card.fixCard()
-                lst.add(card)
+            App.context.CUB?.filter { it.type == LampaProvider.Late }?.forEach { bm ->
+                val card: LampaCard? = try {
+                    Gson().fromJson(bm.data, LampaCard::class.java)
+                } catch (e: Exception) {
+                    null
+                }
+                card?.let {
+                    it.fixCard()
+                    lst.add(it)
+                }
             }
         } else {
             // FAV
@@ -176,14 +181,13 @@ object WatchNext {
                 watchNextProgram = WatchNextProgram.fromCursor(cursor)
             }
         }
-        try {
-            val intent = watchNextProgram?.intent
-            val json = intent?.getStringExtra("LampaCardJS")
-            if (isValidJson(json))
-                return Gson().fromJson(json, LampaCard::class.java)
+        return try {
+            val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+            // if (isValidJson(json))
+            Gson().fromJson(json, LampaCard::class.java)
         } catch (_: Exception) {
+            null
         }
-        return null
     }
 
     @SuppressLint("RestrictedApi")
