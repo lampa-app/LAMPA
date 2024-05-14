@@ -140,7 +140,9 @@ dependencies {
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.recommendation:recommendation:1.0.0'
     implementation 'androidx.tvprovider:tvprovider:1.0.0'
-    implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
+    def vectordrawableVersion = '1.1.0' // 1.1.0 - latest version for API 16
+    //noinspection GradleDependency
+    implementation "androidx.vectordrawable:vectordrawable:${vectordrawableVersion}"
     implementation 'org.brotli:dec:0.1.2'
     //glide
     def glideVersion = '4.16.0'
@@ -151,19 +153,20 @@ dependencies {
     }
     ksp "com.github.bumptech.glide:ksp:${glideVersion}"
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
-    // material-ui
-    implementation 'com.google.android.material:material:1.11.0'
+    def muiVersion = '1.11.0' // 1.11.0 - latest version for API 16
+    //noinspection GradleDependency
+    implementation "com.google.android.material:material:${muiVersion}"
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
-    def coroutinesVersion = '1.7.3' // 1.7.3
+    def coroutinesVersion = '1.7.3' // 1.7.3 - latest version for API 16
     //noinspection GradleDependency
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.3.0'
+    implementation 'com.airbnb.android:lottie:6.4.0'
     // tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
