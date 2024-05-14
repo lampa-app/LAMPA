@@ -14,11 +14,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.conscrypt.Conscrypt
 import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Updater
 import top.rootu.lampa.helpers.handleUncaughtException
 import top.rootu.lampa.tmdb.TMDB
+import java.security.Security
 
 class App : MultiDexApplication() {
     init {
@@ -80,6 +82,8 @@ class App : MultiDexApplication() {
         App.context.setLanguage()
         // app crash handler
         handleUncaughtException(showLogs = true)
+        // enable Conscrypt to support TLS v1.3 on older Androids
+        Security.insertProviderAt(Conscrypt.newProvider(), 1)
         // self-update check
         val checkUpdates = true
         if (checkUpdates) {
