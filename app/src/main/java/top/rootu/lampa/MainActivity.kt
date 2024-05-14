@@ -120,8 +120,8 @@ class MainActivity : AppCompatActivity(),
     private var browser: Browser? = null
     private var progressBar: LottieAnimationView? = null // CircularProgressIndicator
     private var browserInit = false
-    private lateinit var resultLauncher: ActivityResultLauncher<Intent?>
-    private lateinit var speechLauncher: ActivityResultLauncher<Intent?>
+    private lateinit var resultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private var isMenuVisible = false
 
     companion object {
@@ -563,7 +563,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (BuildConfig.DEBUG) Log.d("*****", "onNewIntent() processIntent")
         processIntent(intent)
