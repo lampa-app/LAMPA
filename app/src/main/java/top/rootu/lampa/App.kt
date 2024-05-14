@@ -94,10 +94,16 @@ class App : MultiDexApplication() {
                         delay(1000) // wait for network
                         count--
                     }
-                    if (Updater.check() && inForeground) {
-                        val intent = Intent(appContext, UpdateActivity::class.java)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
+                    if (Updater.check()) {
+                        while (count > 0 && !inForeground) { // wait foreground
+                            delay(1000)
+                            count--
+                        }
+                        if (inForeground) {
+                            val intent = Intent(appContext, UpdateActivity::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        }
                     }
                 } catch (_: Exception) {
                 }
