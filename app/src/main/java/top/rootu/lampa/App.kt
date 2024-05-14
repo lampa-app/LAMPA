@@ -94,7 +94,7 @@ class App : MultiDexApplication() {
                         delay(1000) // wait for network
                         count--
                     }
-                    if (Updater.check()) {
+                    if (Updater.check() && inForeground) {
                         val intent = Intent(appContext, UpdateActivity::class.java)
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
