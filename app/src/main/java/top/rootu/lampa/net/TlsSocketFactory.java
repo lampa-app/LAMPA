@@ -2,11 +2,15 @@ package top.rootu.lampa.net;
 
 import android.os.Build;
 
+import org.conscrypt.Conscrypt;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -15,14 +19,19 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 public class TlsSocketFactory extends SSLSocketFactory {
-    private static final String[] TLS_V12_ONLY = {"TLSv1.2"};
+    private static Provider conscrypt;
 
     final SSLSocketFactory delegate;
     public static final X509TrustManager trustAllCerts = new IgnoreSSLTrustManager();
 
     public TlsSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
-        SSLContext context = SSLContext.getInstance("TLSv1.2");
-        context.init(null, new TrustManager[] {trustAllCerts}, new java.security.SecureRandom());
+        if (TlsSocketFactory.conscrypt == null) {
+            TlsSocketFactory.conscrypt = Conscrypt.newProvider();
+            // Add as provider
+            Security.insertProviderAt(conscrypt, 1);
+        }
+        SSLContext context = SSLContext.getInstance("TLS", TlsSocketFactory.conscrypt);
+        context.init(null, new TrustManager[] {trustAllCerts}, null);
         this.delegate = context.getSocketFactory();
     }
 
@@ -38,6 +47,11 @@ public class TlsSocketFactory extends SSLSocketFactory {
     @Override
     public String[] getSupportedCipherSuites() {
         return delegate.getSupportedCipherSuites();
+    }
+
+    @Override
+    public Socket createSocket() throws IOException {
+        return patch(delegate.createSocket());
     }
 
     @Override
@@ -66,10 +80,8 @@ public class TlsSocketFactory extends SSLSocketFactory {
     }
 
     private Socket patch(Socket s) {
-        if (s instanceof SSLSocket
-            && Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT
-        ) {
-            ((SSLSocket) s).setEnabledProtocols(TLS_V12_ONLY);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"});
         }
         return s;
     }
