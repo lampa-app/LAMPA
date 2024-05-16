@@ -18,12 +18,28 @@ import javax.net.ssl.X509TrustManager;
 
 public class TlsSocketFactory extends SSLSocketFactory {
     private static Provider conscrypt;
-    private static final String[] TLS_COMPAT = {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"};
-    private static final String[] TLS_MODERN = {"TLSv1.2", "TLSv1.3"};
-    final SSLSocketFactory delegate;
+    public static final String[] TLS_MODERN = {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"};
+    public static final String[] TLS_RESTRICTED = {"TLSv1.2", "TLSv1.3"};
+    private final String[] enabledProtocols;
+    private final SSLSocketFactory delegate;
     public static final X509TrustManager trustAllCerts = new IgnoreSSLTrustManager();
 
+    public TlsSocketFactory(String[] enabledProtocols) throws KeyManagementException, NoSuchAlgorithmException {
+        this.enabledProtocols = enabledProtocols;
+        this.delegate = getSocketFactory();
+    }
+
     public TlsSocketFactory() throws KeyManagementException, NoSuchAlgorithmException {
+        this.enabledProtocols = TLS_RESTRICTED;
+        this.delegate = getSocketFactory();
+    }
+
+    public TlsSocketFactory(SSLSocketFactory base) {
+        this.enabledProtocols = TLS_RESTRICTED;
+        this.delegate = base;
+    }
+
+    private static SSLSocketFactory getSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
         if (TlsSocketFactory.conscrypt == null) {
             TlsSocketFactory.conscrypt = Conscrypt.newProvider();
             // Add as provider
@@ -31,11 +47,7 @@ public class TlsSocketFactory extends SSLSocketFactory {
         }
         SSLContext context = SSLContext.getInstance("TLS", TlsSocketFactory.conscrypt);
         context.init(null, new TrustManager[]{trustAllCerts}, null);
-        this.delegate = context.getSocketFactory();
-    }
-
-    public TlsSocketFactory(SSLSocketFactory base) {
-        this.delegate = base;
+        return context.getSocketFactory();
     }
 
     @Override
@@ -80,7 +92,7 @@ public class TlsSocketFactory extends SSLSocketFactory {
 
     private Socket patch(Socket s) {
         if (s instanceof SSLSocket) {
-            ((SSLSocket) s).setEnabledProtocols(TLS_COMPAT);
+            ((SSLSocket) s).setEnabledProtocols(enabledProtocols);
         }
         return s;
     }

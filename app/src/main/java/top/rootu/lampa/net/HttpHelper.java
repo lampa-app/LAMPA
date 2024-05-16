@@ -78,8 +78,13 @@ public class HttpHelper {
         }
         try {
             // use Conscrypt for TLS on Android < 10 and trust all certs
-            if (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare() && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                    || (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare())
+            ) {
+                builder.sslSocketFactory(
+                        new TlsSocketFactory(TlsSocketFactory.TLS_MODERN),
+                        TlsSocketFactory.trustAllCerts
+                );
                 builder.hostnameVerifier((hostname, session) -> true);
             }
             // https://github.com/square/okhttp/issues/3894
