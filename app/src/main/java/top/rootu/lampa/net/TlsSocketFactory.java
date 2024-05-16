@@ -1,7 +1,5 @@
 package top.rootu.lampa.net;
 
-import android.os.Build;
-
 import org.conscrypt.Conscrypt;
 
 import java.io.IOException;
@@ -21,8 +19,7 @@ import javax.net.ssl.X509TrustManager;
 public class TlsSocketFactory extends SSLSocketFactory {
     private static Provider conscrypt;
     private static final String[] TLS_COMPAT = {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"};
-    private static final String[] TLS_ONLY = {"TLSv1.2", "TLSv1.3"};
-    private static final String[] TLS_V12_ONLY = {"TLSv1.2"};
+    private static final String[] TLS_MODERN = {"TLSv1.2", "TLSv1.3"};
     final SSLSocketFactory delegate;
     public static final X509TrustManager trustAllCerts = new IgnoreSSLTrustManager();
 
@@ -33,7 +30,7 @@ public class TlsSocketFactory extends SSLSocketFactory {
             Security.insertProviderAt(conscrypt, 1);
         }
         SSLContext context = SSLContext.getInstance("TLS", TlsSocketFactory.conscrypt);
-        context.init(null, new TrustManager[] {trustAllCerts}, null);
+        context.init(null, new TrustManager[]{trustAllCerts}, null);
         this.delegate = context.getSocketFactory();
     }
 

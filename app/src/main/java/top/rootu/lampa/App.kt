@@ -82,8 +82,6 @@ class App : MultiDexApplication() {
         App.context.setLanguage()
         // app crash handler
         handleUncaughtException(showLogs = true)
-        // enable Conscrypt to support TLS v1.3 on older Androids
-        Security.insertProviderAt(Conscrypt.newProvider(), 1)
         // self-update check
         val checkUpdates = true
         if (checkUpdates) {

@@ -1,6 +1,7 @@
 package top.rootu.lampa.net;
 
 import android.net.Uri;
+import android.os.Build;
 
 import com.btr.proxy.selector.pac.PacProxySelector;
 
@@ -76,12 +77,12 @@ public class HttpHelper {
             builder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
         }
         try {
-            // fix android 4.x TLS and trust all SSL
-            if (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare()) { // todo is this still needed?
+            // use Conscrypt for TLS on Android < 10 and trust all certs
+            if (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare() && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                 builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
                 builder.hostnameVerifier((hostname, session) -> true);
             }
-            // https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216
+            // https://github.com/square/okhttp/issues/3894
             // The default OkHttp configuration does not support older versions of TLS,
             // or all cipher suites.  Make our support as reasonably broad as possible.
             builder.connectionSpecs(Arrays.asList(ConnectionSpec.CLEARTEXT,
@@ -89,6 +90,8 @@ public class HttpHelper {
                             .allEnabledTlsVersions()
                             .allEnabledCipherSuites()
                             .build()));
+            // builder.connectionSpecs(Collections.singletonList(ConnectionSpec.MODERN_TLS));
+            // https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216
             // For OkHttp 3.12.x
             // ConnectionSpec.COMPATIBLE_TLS = TLS1.0
             // ConnectionSpec.MODERN_TLS = TLS1.0 + TLS1.1 + TLS1.2 + TLS 1.3
