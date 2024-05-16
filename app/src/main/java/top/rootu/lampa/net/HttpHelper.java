@@ -84,7 +84,11 @@ public class HttpHelper {
             // https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216
             // The default OkHttp configuration does not support older versions of TLS,
             // or all cipher suites.  Make our support as reasonably broad as possible.
-            builder.connectionSpecs(Collections.singletonList(ConnectionSpec.MODERN_TLS));
+            builder.connectionSpecs(Arrays.asList(ConnectionSpec.CLEARTEXT,
+                    new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                            .allEnabledTlsVersions()
+                            .allEnabledCipherSuites()
+                            .build()));
             // For OkHttp 3.12.x
             // ConnectionSpec.COMPATIBLE_TLS = TLS1.0
             // ConnectionSpec.MODERN_TLS = TLS1.0 + TLS1.1 + TLS1.2 + TLS 1.3

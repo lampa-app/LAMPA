@@ -20,7 +20,9 @@ import javax.net.ssl.X509TrustManager;
 
 public class TlsSocketFactory extends SSLSocketFactory {
     private static Provider conscrypt;
-
+    private static final String[] TLS_COMPAT = {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"};
+    private static final String[] TLS_ONLY = {"TLSv1.2", "TLSv1.3"};
+    private static final String[] TLS_V12_ONLY = {"TLSv1.2"};
     final SSLSocketFactory delegate;
     public static final X509TrustManager trustAllCerts = new IgnoreSSLTrustManager();
 
@@ -81,7 +83,7 @@ public class TlsSocketFactory extends SSLSocketFactory {
 
     private Socket patch(Socket s) {
         if (s instanceof SSLSocket) {
-            ((SSLSocket) s).setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"});
+            ((SSLSocket) s).setEnabledProtocols(TLS_COMPAT);
         }
         return s;
     }
