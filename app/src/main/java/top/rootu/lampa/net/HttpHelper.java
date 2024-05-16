@@ -79,7 +79,7 @@ public class HttpHelper {
         try {
             // use Conscrypt for TLS on Android < 10 and trust all certs
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
-                    || (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare())
+                    && (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare())
             ) {
                 builder.sslSocketFactory(
                         new TlsSocketFactory(TlsSocketFactory.TLS_MODERN),
