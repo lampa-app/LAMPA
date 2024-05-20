@@ -223,9 +223,19 @@ object Helpers {
             return deviceName.contains("(m7332_eu)")
         }
 
+    private val isHuaweiDevice: Boolean
+        get() {
+            val manufacturer = Build.MANUFACTURER
+            val brand = Build.BRAND
+            return manufacturer.lowercase(Locale.getDefault())
+                .contains("huawei") || brand.lowercase(
+                Locale.getDefault()
+            ).contains("huawei")
+        }
+
     val isAndroidTV: Boolean
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback")
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice
         }
 
     val isGoogleTV: Boolean // not accurate
