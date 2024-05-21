@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Process
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,9 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
         val errorReport = StringBuilder()
         CoroutineScope(Dispatchers.IO).launch {
             var arr = throwable.stackTrace
+            errorReport.append("---------------- Device Info ----------------\n")
+            errorReport.append("Model: ${Helpers.deviceName}\n")
+            errorReport.append("Android SDK: ${Build.VERSION.SDK_INT}\n")
             errorReport.append("---------------- Main Crash ----------------\n")
             errorReport.append(throwable)
             errorReport.append("\n\n")

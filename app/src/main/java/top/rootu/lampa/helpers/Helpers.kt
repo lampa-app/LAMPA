@@ -199,7 +199,7 @@ object Helpers {
         return intent
     }
 
-    private val deviceName: String
+    val deviceName: String
         get() = String.format("%s (%s)", Build.MODEL, Build.PRODUCT)
 
     @JvmStatic
@@ -238,9 +238,9 @@ object Helpers {
             return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice
         }
 
-    val isGoogleTV: Boolean // not accurate
+    val isGoogleTV: Boolean // wide posters on home
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            return App.context.packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         }
 
     val isAmazonDev: Boolean

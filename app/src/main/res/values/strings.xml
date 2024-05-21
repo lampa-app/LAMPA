@@ -68,8 +68,8 @@
     <string name="ch_bookmarks">Bookmarks</string>
     <string name="title_main">Home</string>
     <!--Settings-->
-    <string name="update_chan_title">Update Home Channels</string>
-    <string name="update_home_title">Update Recommendations</string>
+    <string name="update_chan_title">Update TV Home Channels</string>
+    <string name="update_home_title">Update TV Recommendations</string>
     <string name="backup_restore_title">Settings Backup &amp; Restore</string>
     <string name="backup_all_title">Lampa &amp; App Settings Backup</string>
     <string name="restore_app_title">Restore App Preferences</string>
