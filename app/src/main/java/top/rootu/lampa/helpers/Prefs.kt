@@ -342,7 +342,7 @@ object Prefs {
             return try {
                 val buf = defPrefs.getString(LOR_KEY, "[]")
                 Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.cubLook.contains(it) }
+                    .filter { this.FAV?.look?.contains(it) == true || this.cubLook.contains(it) }
             } catch (e: Exception) {
                 emptyList()
             }
@@ -353,7 +353,7 @@ object Prefs {
             return try {
                 val buf = defPrefs.getString(VIR_KEY, "[]")
                 Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.cubViewed.contains(it) }
+                    .filter { this.FAV?.viewed?.contains(it) == true || this.cubViewed.contains(it) }
             } catch (e: Exception) {
                 emptyList()
             }
@@ -364,7 +364,7 @@ object Prefs {
             return try {
                 val buf = defPrefs.getString(SCR_KEY, "[]")
                 Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.cubSheduled.contains(it) }
+                    .filter { this.FAV?.scheduled?.contains(it) == true || this.cubSheduled.contains(it) }
             } catch (e: Exception) {
                 emptyList()
             }
@@ -375,7 +375,7 @@ object Prefs {
             return try {
                 val buf = defPrefs.getString(COR_KEY, "[]")
                 Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.cubContinued.contains(it) }
+                    .filter { this.FAV?.continued?.contains(it) == true || this.cubContinued.contains(it) }
             } catch (e: Exception) {
                 emptyList()
             }
@@ -386,7 +386,7 @@ object Prefs {
             return try {
                 val buf = defPrefs.getString(THR_KEY, "[]")
                 Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.cubThrown.contains(it) }
+                    .filter { this.FAV?.thrown?.contains(it) == true || this.cubThrown.contains(it) }
             } catch (e: Exception) {
                 emptyList()
             }
