@@ -19,7 +19,7 @@ class Like : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.Like }?.forEach { bm ->
+                App.context.CUB?.filter { it.type == LampaProvider.LIKE }?.forEach { bm ->
                     val card = try {
                         Gson().fromJson(bm.data, LampaCard::class.java)
                     } catch (e: Exception) {

@@ -93,14 +93,19 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
+import top.rootu.lampa.helpers.Prefs.contToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
+import top.rootu.lampa.helpers.Prefs.lookToRemove
 import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.resumeJS
+import top.rootu.lampa.helpers.Prefs.schdToRemove
+import top.rootu.lampa.helpers.Prefs.thrwToRemove
 import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
@@ -604,26 +609,46 @@ class MainActivity : AppCompatActivity(),
                         if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
                     runVoidJsFunc(
                         "Lampa.Favorite.add",
-                        "'${LampaProvider.Late}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                        "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
                     )
                 }
             }
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToRemove: ${this.wathToRemove}")
         this.wathToRemove.forEach {// delete items from later
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Late}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LATE}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() bookToRemove: ${this.bookToRemove}")
         this.bookToRemove.forEach {// delete items from bookmarks
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Book}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.BOOK}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() likeToRemove: ${this.likeToRemove}")
         this.likeToRemove.forEach {// delete items from likes
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Like}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LIKE}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() histToRemove: ${this.histToRemove}")
         this.histToRemove.forEach {// delete items from history
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.Hist}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.HIST}', {id: $it}")
+        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() lookToRemove: ${this.lookToRemove}")
+        this.lookToRemove.forEach {// delete items from look
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LOOK}', {id: $it}")
+        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() viewToRemove: ${this.viewToRemove}")
+        this.viewToRemove.forEach {// delete items from viewed
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.VIEW}', {id: $it}")
+        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() schdToRemove: ${this.schdToRemove}")
+        this.schdToRemove.forEach {// delete items from scheduled
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.SCHD}', {id: $it}")
+        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() contToRemove: ${this.contToRemove}")
+        this.contToRemove.forEach {// delete items from continued
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.CONT}', {id: $it}")
+        }
+        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() thrwToRemove: ${this.thrwToRemove}")
+        this.thrwToRemove.forEach {// delete items from thrown
+            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.THRW}', {id: $it}")
         }
         // don't do it again
         App.context.clearPending()
@@ -700,7 +725,7 @@ class MainActivity : AppCompatActivity(),
                     if (it.encodedPath?.contains("update_channel") == true) {
                         intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
-                            LampaProvider.Recs -> {
+                            LampaProvider.RECS -> {
                                 // Open Main
                                 "{" +
                                         "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
@@ -712,7 +737,7 @@ class MainActivity : AppCompatActivity(),
                                         "}"
                             }
 
-                            LampaProvider.Like, LampaProvider.Book, LampaProvider.Hist -> {
+                            LampaProvider.LIKE, LampaProvider.BOOK, LampaProvider.HIST -> {
                                 "{" +
                                         "title: '" + getChannelDisplayName(channel) + "'," +
                                         "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +

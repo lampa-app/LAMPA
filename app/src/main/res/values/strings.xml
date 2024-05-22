@@ -66,6 +66,11 @@
     <string name="ch_liked">Liked</string>
     <string name="ch_history">History</string>
     <string name="ch_bookmarks">Bookmarks</string>
+    <string name="ch_look">Looking</string>
+    <string name="ch_viewed">Viewed</string>
+    <string name="ch_scheduled">Scheduled</string>
+    <string name="ch_continued">Continued</string>
+    <string name="ch_thrown">Thrown</string>
     <string name="title_main">Home</string>
     <!--Settings-->
     <string name="update_chan_title">Update TV Home Channels</string>

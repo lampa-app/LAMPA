@@ -19,7 +19,7 @@ class History : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.Hist }
+                App.context.CUB?.filter { it.type == LampaProvider.HIST }
                     ?.toMutableList()
                     ?.sortedBy { it.time }
                     ?.forEach { bm ->

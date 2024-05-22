@@ -185,7 +185,7 @@ object RecsService {
     }
 
     private fun getRecs(): List<LampaCard> {
-        return LampaProvider.get(LampaProvider.Recs, true)?.items?.take(MAX_RECS_CAP).orEmpty()
+        return LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     private fun Context.drawTextToBitmap(bitmap: Bitmap?, mText: String): Bitmap? {

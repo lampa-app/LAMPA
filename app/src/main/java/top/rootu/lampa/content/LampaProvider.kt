@@ -14,17 +14,27 @@ data class ReleaseID(
 
 object LampaProvider {
     // this is channel internal id
-    const val Recs = "recs"
-    const val Like = "like"
-    const val Hist = "history"
-    const val Book = "book"
-    const val Late = "wath"
+    const val RECS = "recs"
+    const val BOOK = "book"
+    const val LATE = "wath"
+    const val LIKE = "like"
+    const val HIST = "history"
+    const val LOOK = "look"
+    const val VIEW = "viewed"
+    const val SCHD = "scheduled"
+    const val CONT = "continued"
+    const val THRW = "thrown"
 
     private val providers = mapOf(
-        Recs to Recs(),
-        Like to Like(),
-        Hist to History(),
-        Book to Bookmarks(),
+        RECS to Recs(),
+        BOOK to Bookmarks(),
+        LIKE to Like(),
+        HIST to History(),
+        LOOK to Look(),
+        VIEW to Viewed(),
+        SCHD to Scheduled(),
+        CONT to Continued(),
+        THRW to Thrown(),
     )
 
     fun get(name: String, filter: Boolean): ReleaseID? {

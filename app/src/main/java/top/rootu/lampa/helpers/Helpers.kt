@@ -31,14 +31,24 @@ import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Prefs.addBookToRemove
+import top.rootu.lampa.helpers.Prefs.addContToRemove
 import top.rootu.lampa.helpers.Prefs.addHistToRemove
 import top.rootu.lampa.helpers.Prefs.addLikeToRemove
+import top.rootu.lampa.helpers.Prefs.addLookToRemove
+import top.rootu.lampa.helpers.Prefs.addSchdToRemove
+import top.rootu.lampa.helpers.Prefs.addThrwToRemove
+import top.rootu.lampa.helpers.Prefs.addViewToRemove
 import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
 import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.bookToRemove
+import top.rootu.lampa.helpers.Prefs.contToRemove
 import top.rootu.lampa.helpers.Prefs.histToRemove
 import top.rootu.lampa.helpers.Prefs.likeToRemove
+import top.rootu.lampa.helpers.Prefs.lookToRemove
+import top.rootu.lampa.helpers.Prefs.schdToRemove
+import top.rootu.lampa.helpers.Prefs.thrwToRemove
+import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LampaCard
@@ -315,22 +325,32 @@ object Helpers {
             when (action) {
                 "rem" -> {
                     when (where) {
-                        LampaProvider.Late -> App.context.addWatchNextToRemove(listOf(id))
-                        LampaProvider.Book -> App.context.addBookToRemove(listOf(id))
-                        LampaProvider.Like -> App.context.addLikeToRemove(listOf(id))
-                        LampaProvider.Hist -> App.context.addHistToRemove(listOf(id))
+                        LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
+                        LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
+                        LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
+                        LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
+                        LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
+                        LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
+                        LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
+                        LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
+                        LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
                     }
                     if (BuildConfig.DEBUG) {
                         Log.d("*****", "book items to remove: ${App.context.bookToRemove}")
-                        Log.d("*****", "like items to remove: ${App.context.likeToRemove}")
                         Log.d("*****", "wath items to remove: ${App.context.wathToRemove}")
+                        Log.d("*****", "like items to remove: ${App.context.likeToRemove}")
                         Log.d("*****", "hist items to remove: ${App.context.histToRemove}")
+                        Log.d("*****", "look items to remove: ${App.context.lookToRemove}")
+                        Log.d("*****", "view items to remove: ${App.context.viewToRemove}")
+                        Log.d("*****", "schd items to remove: ${App.context.schdToRemove}")
+                        Log.d("*****", "cont items to remove: ${App.context.contToRemove}")
+                        Log.d("*****", "thrw items to remove: ${App.context.thrwToRemove}")
                     }
                 }
 
                 "add" -> {
                     when (where) {
-                        LampaProvider.Late -> App.context.addWatchNextToAdd(
+                        LampaProvider.LATE -> App.context.addWatchNextToAdd(
                             WatchNextToAdd(
                                 id,
                                 card
