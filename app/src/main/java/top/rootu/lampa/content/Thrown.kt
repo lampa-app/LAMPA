@@ -3,6 +3,7 @@ package top.rootu.lampa.content
 import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.helpers.Prefs.CUB
+import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.thrwToRemove
 import top.rootu.lampa.models.LampaCard
@@ -29,6 +30,9 @@ class Thrown : LampaProviderI() {
                         lst.add(it)
                     }
                 }
+            // FAV (use ID to match KP_573840 etc)
+            App.context.FAV?.card?.filter { App.context.FAV?.thrown?.contains(it.id.toString()) == true }
+                ?.forEach { lst.add(it) }
             // exclude pending
             return lst.filter { !App.context.thrwToRemove.contains(it.id.toString()) }
                 .reversed()

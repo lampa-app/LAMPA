@@ -36,10 +36,7 @@ class Bookmarks : LampaProviderI() {
                 }
             // FAV (use ID to match KP_573840 etc)
             App.context.FAV?.card?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }
-                ?.forEach {
-                    it.fixCard() // not needed as don in FAV.get() but for sure
-                    lst.add(it)
-                }
+                ?.forEach { lst.add(it) }
             // exclude pending
             return lst.filter { !App.context.bookToRemove.contains(it.id.toString()) }
                 .reversed()

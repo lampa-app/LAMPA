@@ -18,7 +18,6 @@ class Recs : LampaProviderI() {
             val filtered = App.context.REC?.filterAll(generateFilters())
                 ?.distinctBy { it.id } // make unique
                 ?.shuffled() // randomize order
-
             if (BuildConfig.DEBUG)
                 Log.d("*****", "Recs cards total: ${App.context.REC?.size} | filtered: ${filtered?.size}")
             if (!filtered.isNullOrEmpty()) {
