@@ -50,8 +50,10 @@ public class Http {
     }
 
     public String Get(String url, JSONObject headers, int timeout) throws Exception {
-        if (!url.startsWith("http"))
-            return "";
+        if (!url.toLowerCase().startsWith("http")) {
+            this.lastErrorCode = 400;
+            throw new Exception("Bad Request (Invalid protocol; use http or https)");
+        }
         Request.Builder rb = getReqBuilder(url, headers);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
         Response response = client.newCall(rb.build()).execute();
@@ -65,8 +67,10 @@ public class Http {
     }
 
     public String Post(String url, String data, JSONObject headers, int timeout) throws Exception {
-        if (!url.startsWith("http"))
-            return "";
+        if (!url.toLowerCase().startsWith("http")) {
+            this.lastErrorCode = 400;
+            throw new Exception("Bad Request (Invalid protocol; use http or https)");
+        }
         Request.Builder rb = getReqBuilder(url, headers);
         RequestBody requestBody = RequestBody.create(
                 MediaType.parse(headers.optString("Content-Type", "application/x-www-form-urlencoded")),
