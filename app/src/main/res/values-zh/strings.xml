@@ -63,6 +63,11 @@
     <string name="ch_liked">喜欢</string>
     <string name="ch_history">浏览历史</string>
     <string name="ch_bookmarks">书签</string>
+    <string name="ch_look">正在观看</string>
+    <string name="ch_viewed">已查看</string>
+    <string name="ch_scheduled">计划</string>
+    <string name="ch_continued">待续</string>
+    <string name="ch_thrown">丢弃</string>
     <string name="title_main">首页</string>
     <!--Settings-->
     <string name="update_chan_title">更新渠道和推荐</string>
