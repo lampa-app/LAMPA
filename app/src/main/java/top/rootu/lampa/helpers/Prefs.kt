@@ -180,7 +180,7 @@ object Prefs {
     val Context.REC: List<LampaRec>?
         get() {
             return try {
-                val buf = defPrefs.getString(REC_KEY, "{}") ?: "{}"
+                val buf = defPrefs.getString(REC_KEY, "[]") ?: "[]"
                 Gson().fromJson(buf, Array<LampaRec>::class.java).toList()
             } catch (e: Exception) {
                 null
@@ -196,7 +196,7 @@ object Prefs {
     val Context.CUB: List<CubBookmark>?
         get() {
             return try {
-                val buf = defPrefs.getString(CUB_KEY, "{}") ?: "{}"
+                val buf = defPrefs.getString(CUB_KEY, "[]") ?: "[]"
                 Gson().fromJson(buf, Array<CubBookmark>::class.java).toList()
             } catch (e: Exception) {
                 null
