@@ -16,9 +16,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels
-import top.rootu.lampa.channels.LampaChannels.updateBookChannel
-import top.rootu.lampa.channels.LampaChannels.updateHistChannel
-import top.rootu.lampa.channels.LampaChannels.updateLikeChannel
+import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
@@ -48,9 +46,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
         when (eo.optString("name")) {
             "activity" -> {
-                if (BuildConfig.DEBUG) Log.d("*****", "activity changed: ${eo.optString("value", "")}")
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "activity changed: ${eo.optString("value", "")}"
+                )
                 MainActivity.lampaActivity = eo.optString("value", "{}")
             }
+
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
@@ -398,28 +400,21 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (where != null && isAndroidTV) {
             Log.d(TAG, "***** updateChannel [$where]")
             when (where) {
-                LampaProvider.Hist -> {
+                LampaProvider.HIST,
+                LampaProvider.BOOK,
+                LampaProvider.LIKE,
+                LampaProvider.LOOK,
+                LampaProvider.VIEW,
+                LampaProvider.SCHD,
+                LampaProvider.CONT,
+                LampaProvider.THRW -> {
                     CoroutineScope(Dispatchers.IO).launch {
                         delay(5000)
-                        updateHistChannel()
+                        updateChanByName(where)
                     }
                 }
 
-                LampaProvider.Book -> {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        delay(5000)
-                        updateBookChannel()
-                    }
-                }
-
-                LampaProvider.Like -> {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        delay(5000)
-                        updateLikeChannel()
-                    }
-                }
-
-                LampaProvider.Late -> {
+                LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
                     CoroutineScope(Dispatchers.IO).launch {
                         delay(5000)

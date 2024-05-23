@@ -1,6 +1,7 @@
 package top.rootu.lampa.net;
 
 import android.net.Uri;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 
@@ -78,9 +79,14 @@ public class HttpHelper {
             builder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
         }
         try {
-            // fix android 4.x TLS and trust all SSL
-            if (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare()) {
-                builder.sslSocketFactory(new TlsSocketFactory(), TlsSocketFactory.trustAllCerts);
+            // use Conscrypt for TLS on Android < 10 and trust all certs
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                    && (!Helpers.isBrokenTCL() && !Helpers.isWisdomShare())
+            ) {
+                builder.sslSocketFactory(
+                        new TlsSocketFactory(TlsSocketFactory.TLS_MODERN),
+                        TlsSocketFactory.trustAllCerts
+                );
                 builder.hostnameVerifier((hostname, session) -> true);
             }
             // https://github.com/square/okhttp/issues/3894
@@ -91,6 +97,12 @@ public class HttpHelper {
                             .allEnabledTlsVersions()
                             .allEnabledCipherSuites()
                             .build()));
+            // builder.connectionSpecs(Collections.singletonList(ConnectionSpec.MODERN_TLS));
+            // https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216
+            // For OkHttp 3.12.x
+            // ConnectionSpec.COMPATIBLE_TLS = TLS1.0
+            // ConnectionSpec.MODERN_TLS = TLS1.0 + TLS1.1 + TLS1.2 + TLS 1.3
+            // ConnectionSpec.RESTRICTED_TLS = TLS 1.2 + TLS 1.3
         } catch (NoSuchAlgorithmException | KeyManagementException ignore) {
         }
         if (timeout > 0) {

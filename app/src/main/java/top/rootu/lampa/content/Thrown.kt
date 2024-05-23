@@ -4,14 +4,14 @@ import com.google.gson.Gson
 import top.rootu.lampa.App
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
-import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.syncEnabled
+import top.rootu.lampa.helpers.Prefs.thrwToRemove
 import top.rootu.lampa.models.LampaCard
 
-class Like : LampaProviderI() {
+class Thrown : LampaProviderI() {
 
     override fun get(): ReleaseID {
-        return ReleaseID(Like.get())
+        return ReleaseID(Thrown.get())
     }
 
     companion object {
@@ -19,7 +19,7 @@ class Like : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.LIKE }?.forEach { bm ->
+                App.context.CUB?.filter { it.type == LampaProvider.THRW }?.forEach { bm ->
                     val card = try {
                         Gson().fromJson(bm.data, LampaCard::class.java)
                     } catch (e: Exception) {
@@ -31,10 +31,10 @@ class Like : LampaProviderI() {
                     }
                 }
             // FAV (use ID to match KP_573840 etc)
-            App.context.FAV?.card?.filter { App.context.FAV?.like?.contains(it.id.toString()) == true }
+            App.context.FAV?.card?.filter { App.context.FAV?.thrown?.contains(it.id.toString()) == true }
                 ?.forEach { lst.add(it) }
             // exclude pending
-            return lst.filter { !App.context.likeToRemove.contains(it.id.toString()) }
+            return lst.filter { !App.context.thrwToRemove.contains(it.id.toString()) }
                 .reversed()
         }
     }

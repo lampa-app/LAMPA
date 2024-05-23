@@ -12,10 +12,15 @@ import androidx.tvprovider.media.tv.TvContractCompat
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
-import top.rootu.lampa.content.LampaProvider.Book
-import top.rootu.lampa.content.LampaProvider.Hist
-import top.rootu.lampa.content.LampaProvider.Like
-import top.rootu.lampa.content.LampaProvider.Recs
+import top.rootu.lampa.content.LampaProvider.BOOK
+import top.rootu.lampa.content.LampaProvider.CONT
+import top.rootu.lampa.content.LampaProvider.HIST
+import top.rootu.lampa.content.LampaProvider.LIKE
+import top.rootu.lampa.content.LampaProvider.LOOK
+import top.rootu.lampa.content.LampaProvider.RECS
+import top.rootu.lampa.content.LampaProvider.SCHD
+import top.rootu.lampa.content.LampaProvider.THRW
+import top.rootu.lampa.content.LampaProvider.VIEW
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
@@ -32,10 +37,15 @@ object ChannelManager {
     fun getChannelDisplayName(name: String): String {
         App.context.setLanguage()
         return when (name) {
-            Recs -> App.context.getString(R.string.ch_recs)
-            Like -> App.context.getString(R.string.ch_liked)
-            Book -> App.context.getString(R.string.ch_bookmarks)
-            Hist -> App.context.getString(R.string.ch_history)
+            RECS -> App.context.getString(R.string.ch_recs)
+            LIKE -> App.context.getString(R.string.ch_liked)
+            BOOK -> App.context.getString(R.string.ch_bookmarks)
+            HIST -> App.context.getString(R.string.ch_history)
+            LOOK -> App.context.getString(R.string.ch_look)
+            VIEW -> App.context.getString(R.string.ch_viewed)
+            SCHD -> App.context.getString(R.string.ch_scheduled)
+            CONT -> App.context.getString(R.string.ch_continued)
+            THRW -> App.context.getString(R.string.ch_thrown)
             else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString() }
         }
     }
@@ -276,7 +286,7 @@ object ChannelManager {
         }
 
         var usePoster = true // use backdrop for recs
-        if (!card.background_image.isNullOrEmpty() && provName == Recs) {
+        if (!card.background_image.isNullOrEmpty() && provName == RECS) {
             val poster = card.background_image
             preview.setPosterArtUri(Uri.parse(poster))
                 .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)

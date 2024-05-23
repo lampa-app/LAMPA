@@ -115,7 +115,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.14'
-    def okhttpVersion = '3.12.12' // 3.12.12 - latest API16-19 compatible
+    def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
     //noinspection GradleDependency
     implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
     //noinspection GradleDependency
@@ -148,7 +148,8 @@ dependencies {
     ksp "com.github.bumptech.glide:ksp:${glideVersion}"
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
     // material-ui
-    implementation 'com.google.android.material:material:1.12.0'
+    def muiVersion = '1.12.0'
+    implementation "com.google.android.material:material:${muiVersion}"
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
@@ -166,7 +167,7 @@ dependencies {
     def webkitVersion = '1.11.0'
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
-    implementation 'org.conscrypt:conscrypt-android:2.2.1'
+    implementation 'org.conscrypt:conscrypt-android:2.5.2'
     // https://download.01.org/crosswalk/releases/crosswalk/android/stable/latest/
     liteApi 'org.xwalk:xwalk_shared_library:23.53.589.4'
     fullApi 'org.xwalk:xwalk_core_library:23.53.589.4'

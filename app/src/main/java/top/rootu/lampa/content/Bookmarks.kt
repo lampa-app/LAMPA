@@ -23,8 +23,12 @@ class Bookmarks : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.Book }?.forEach { bm ->
-                    val card = try { Gson().fromJson(bm.data, LampaCard::class.java) } catch (e: Exception) { null }
+                App.context.CUB?.filter { it.type == LampaProvider.BOOK }?.forEach { bm ->
+                    val card = try {
+                        Gson().fromJson(bm.data, LampaCard::class.java)
+                    } catch (e: Exception) {
+                        null
+                    }
                     card?.let {
                         it.fixCard()
                         lst.add(it)
@@ -32,10 +36,7 @@ class Bookmarks : LampaProviderI() {
                 }
             // FAV (use ID to match KP_573840 etc)
             App.context.FAV?.card?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }
-                ?.forEach {
-                    it.fixCard() // not needed as don in FAV.get() but for sure
-                    lst.add(it)
-                }
+                ?.forEach { lst.add(it) }
             // exclude pending
             return lst.filter { !App.context.bookToRemove.contains(it.id.toString()) }
                 .reversed()

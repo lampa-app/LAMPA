@@ -30,40 +30,82 @@ object LampaChannels {
             var like = emptyList<LampaCard>()
             var book = emptyList<LampaCard>()
             var hist = emptyList<LampaCard>()
+            var look = emptyList<LampaCard>()
+            var view = emptyList<LampaCard>()
+            var schd = emptyList<LampaCard>()
+            var cont = emptyList<LampaCard>()
+            var thrw = emptyList<LampaCard>()
 
             if (!sync) {
-                val thR = thread {
-                    recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
+                val thRE = thread {
+                    recs = LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty()
+                        .take(MAX_RECS_CAP)
                 }
-                val thL = thread {
-                    like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
+                val thLI = thread {
+                    like = LampaProvider.get(LampaProvider.LIKE, false)?.items.orEmpty()
                 }
-                val thF = thread {
-                    book = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
+                val thFB = thread {
+                    book = LampaProvider.get(LampaProvider.BOOK, false)?.items.orEmpty()
                 }
-                val thH = thread {
-                    hist = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
+                val thHI = thread {
+                    hist = LampaProvider.get(LampaProvider.HIST, false)?.items.orEmpty()
                 }
-                thR.join()
-                ChannelManager.update(LampaProvider.Recs, recs)
-                thL.join()
-                ChannelManager.update(LampaProvider.Like, like)
-                thF.join()
-                ChannelManager.update(LampaProvider.Book, book)
-                thH.join()
-                ChannelManager.update(LampaProvider.Hist, hist)
+                val thLO = thread {
+                    look = LampaProvider.get(LampaProvider.LOOK, false)?.items.orEmpty()
+                }
+                val thVI = thread {
+                    view = LampaProvider.get(LampaProvider.VIEW, false)?.items.orEmpty()
+                }
+                val thSC = thread {
+                    schd = LampaProvider.get(LampaProvider.SCHD, false)?.items.orEmpty()
+                }
+                val thCO = thread {
+                    cont = LampaProvider.get(LampaProvider.CONT, false)?.items.orEmpty()
+                }
+                val thTH = thread {
+                    thrw = LampaProvider.get(LampaProvider.THRW, false)?.items.orEmpty()
+                }
+                thRE.join()
+                ChannelManager.update(LampaProvider.RECS, recs)
+                thLI.join()
+                ChannelManager.update(LampaProvider.LIKE, like)
+                thFB.join()
+                ChannelManager.update(LampaProvider.BOOK, book)
+                thHI.join()
+                ChannelManager.update(LampaProvider.HIST, hist)
+                thLO.join()
+                ChannelManager.update(LampaProvider.LOOK, look)
+                thVI.join()
+                ChannelManager.update(LampaProvider.VIEW, view)
+                thSC.join()
+                ChannelManager.update(LampaProvider.SCHD, schd)
+                thCO.join()
+                ChannelManager.update(LampaProvider.CONT, cont)
+                thTH.join()
+                ChannelManager.update(LampaProvider.THRW, thrw)
                 CoroutineScope(Dispatchers.IO).launch {
                     WatchNext.updateWatchNext()
                 }
             } else {
-                recs = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
-                ChannelManager.update(LampaProvider.Recs, recs)
-                like = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
-                ChannelManager.update(LampaProvider.Like, like)
-                book = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
-                ChannelManager.update(LampaProvider.Book, book)
-                hist = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
-                ChannelManager.update(LampaProvider.Hist, hist)
+                recs = LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty()
+                    .take(MAX_RECS_CAP)
+                ChannelManager.update(LampaProvider.RECS, recs)
+                like = LampaProvider.get(LampaProvider.LIKE, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.LIKE, like)
+                book = LampaProvider.get(LampaProvider.BOOK, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.BOOK, book)
+                hist = LampaProvider.get(LampaProvider.HIST, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.HIST, hist)
+                look = LampaProvider.get(LampaProvider.LOOK, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.LOOK, look)
+                view = LampaProvider.get(LampaProvider.VIEW, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.VIEW, view)
+                schd = LampaProvider.get(LampaProvider.SCHD, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.SCHD, schd)
+                cont = LampaProvider.get(LampaProvider.CONT, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.CONT, cont)
+                thrw = LampaProvider.get(LampaProvider.THRW, false)?.items.orEmpty()
+                ChannelManager.update(LampaProvider.THRW, thrw)
                 CoroutineScope(Dispatchers.IO).launch {
                     WatchNext.updateWatchNext()
                 }
@@ -78,44 +120,21 @@ object LampaChannels {
         synchronized(lock) {
             if (BuildConfig.DEBUG)
                 Log.d(TAG, "updateRecsChannel")
-            val list = LampaProvider.get(LampaProvider.Recs, true)?.items.orEmpty().take(MAX_RECS_CAP)
-            ChannelManager.update(LampaProvider.Recs, list)
+            val list =
+                LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP)
+            ChannelManager.update(LampaProvider.RECS, list)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun updateLikeChannel() {
+    fun updateChanByName(name: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
             return
         synchronized(lock) {
             if (BuildConfig.DEBUG)
-                Log.d(TAG, "updateLikeChannel")
-            val list = LampaProvider.get(LampaProvider.Like, false)?.items.orEmpty()
-            ChannelManager.update(LampaProvider.Like, list)
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun updateHistChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
-            return
-        synchronized(lock) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "updateHistChannel")
-            val list = LampaProvider.get(LampaProvider.Hist, false)?.items.orEmpty()
-            ChannelManager.update(LampaProvider.Hist, list)
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun updateBookChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV)
-            return
-        synchronized(lock) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "updateBookChannel")
-            val list = LampaProvider.get(LampaProvider.Book, false)?.items.orEmpty()
-            ChannelManager.update(LampaProvider.Book, list)
+                Log.d(TAG, "updateChanByName($name)")
+            val list = LampaProvider.get(name, false)?.items.orEmpty()
+            ChannelManager.update(name, list)
         }
     }
 }

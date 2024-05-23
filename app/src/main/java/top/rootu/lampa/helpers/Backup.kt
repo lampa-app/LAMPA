@@ -3,11 +3,11 @@ package top.rootu.lampa.helpers
 import android.content.Context
 import android.os.Build
 import android.os.Environment
-import androidx.preference.PreferenceManager
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.xml.sax.InputSource
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Prefs.defPrefs
 import java.io.File
 import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
@@ -47,7 +47,7 @@ object Backup {
         if (buf.isBlank())
             return false
         val pref = if (which.isNullOrEmpty())
-            PreferenceManager.getDefaultSharedPreferences(this)
+            defPrefs
         else
             getSharedPreferences(which, Context.MODE_PRIVATE)
         val edit = pref.edit()

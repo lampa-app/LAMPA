@@ -16,7 +16,7 @@
     <string name="menu_title">Выберите действие</string>
     <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»\nили нажмите кнопку «Меню»</string>
     <string name="error_app_not_found">Не найдено подходящих приложений</string>
-    <string name="exit">Выйти из приложения</string>
+    <string name="exit">Завершить работу</string>
     <string name="input_url_title">Укажите адрес Lampa</string>
     <string name="select_player">Выбор плеера</string>
     <string name="select_player_reset">Выбранный плеер сброшен</string>
@@ -63,10 +63,15 @@
     <string name="ch_liked">Нравится</string>
     <string name="ch_history">История</string>
     <string name="ch_bookmarks">Закладки</string>
+    <string name="ch_look">Смотрю</string>
+    <string name="ch_viewed">Просмотрено</string>
+    <string name="ch_scheduled">Запланировано</string>
+    <string name="ch_continued">Продолжение следует</string>
+    <string name="ch_thrown">Брошено</string>
     <string name="title_main">Главная</string>
     <!--Settings-->
-    <string name="update_chan_title">Обновить каналы и рекомендации</string>
-    <string name="update_home_title">Обновить рекомендации</string>
+    <string name="update_chan_title">Обновить каналы Android TV</string>
+    <string name="update_home_title">Обновить ТВ-рекомендации</string>
     <string name="backup_restore_title">Резервирование и восстановление</string>
     <string name="backup_all_title">Сделать резервную копию всех настроек</string>
     <string name="restore_app_title">Восстановить настройки приложения</string>

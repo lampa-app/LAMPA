@@ -18,9 +18,9 @@ import androidx.tvprovider.media.tv.TvContractCompat
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
-import top.rootu.lampa.content.LampaProvider.Book
-import top.rootu.lampa.content.LampaProvider.Hist
-import top.rootu.lampa.content.LampaProvider.Like
+import top.rootu.lampa.content.LampaProvider.BOOK
+import top.rootu.lampa.content.LampaProvider.HIST
+import top.rootu.lampa.content.LampaProvider.LIKE
 import java.nio.charset.Charset
 
 
@@ -43,7 +43,6 @@ object ChannelHelper {
         val builder = Channel.Builder()
         builder.setType(TvContractCompat.Channels.TYPE_PREVIEW)
             .setDisplayName(displayName)
-//            .setInternalProviderId(name)
             .setInternalProviderData(name)
             .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
 
@@ -54,9 +53,9 @@ object ChannelHelper {
         val channelId = channelUri?.let { ContentUris.parseId(it) }
         // set channel images
         val icon = when (name) {
-            Book -> R.drawable.ch_book_shape
-            Hist -> R.drawable.ch_hist_shape
-            Like -> R.drawable.ch_like_shape
+            BOOK -> R.drawable.ch_book_shape
+            HIST -> R.drawable.ch_hist_shape
+            LIKE -> R.drawable.ch_like_shape
             else -> R.drawable.lampa_logo_round
         }
 //        val themedContext = ContextThemeWrapper(App.context, R.style.Theme_LAMPA)

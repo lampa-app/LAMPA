@@ -1,13 +1,12 @@
 package top.rootu.lampa.helpers
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.text.Spanned
 import androidx.core.content.FileProvider
 import androidx.core.text.HtmlCompat
 import com.google.gson.Gson
-import info.guardianproject.netcipher.client.TlsOnlySocketFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,20 +15,15 @@ import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.models.Release
 import top.rootu.lampa.models.Releases
+import top.rootu.lampa.net.TlsSocketFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
 import java.security.GeneralSecurityException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 
 object Updater {
@@ -38,39 +32,14 @@ object Updater {
     private var releases: Releases? = null
     private var newVersion: Release? = null
 
-    /**
-     * Avoid SSLv3 as the only protocol available.
-     * Trust all certs and hostnames (insecure).
-     */
     init {
-        val trustAllCertificates = arrayOf<TrustManager>(
-            @SuppressLint("CustomX509TrustManager")
-            object : X509TrustManager {
-                override fun getAcceptedIssuers(): Array<X509Certificate> {
-                    return arrayOf() // Not relevant.
-                }
-
-                @SuppressLint("TrustAllX509TrustManager")
-                override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {
-                    // Do nothing. Just allow them all.
-                }
-
-                @SuppressLint("TrustAllX509TrustManager")
-                override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {
-                    // Do nothing. Just allow them all.
-                }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            try {
+                // Only TLSv1.2 and TLSv1.3 protocol available and trust all certs (insecure).
+                val socketFactory: SSLSocketFactory = TlsSocketFactory()
+                HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
+            } catch (_: GeneralSecurityException) {
             }
-        )
-        val trustAllHostnames = HostnameVerifier { _, _ ->
-            true // Just allow them all.
-        }
-        try {
-            val sslContext = SSLContext.getInstance("TLSv1.2")
-            sslContext.init(null, trustAllCertificates, SecureRandom())
-            val noSSLv3Factory: SSLSocketFactory = TlsOnlySocketFactory(sslContext.socketFactory)
-            HttpsURLConnection.setDefaultSSLSocketFactory(noSSLv3Factory)
-            HttpsURLConnection.setDefaultHostnameVerifier(trustAllHostnames)
-        } catch (_: GeneralSecurityException) {
         }
     }
 
