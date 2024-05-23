@@ -131,7 +131,7 @@ dependencies {
     def coreKtxVer = '1.13.1'
     implementation "androidx.core:core-ktx:$coreKtxVer"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    def lifecycleVersion = '2.7.0'
+    def lifecycleVersion = '2.8.0'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
     implementation 'androidx.preference:preference-ktx:1.2.1'
