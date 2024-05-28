@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
+import net.gotev.speech.Logger
 import net.gotev.speech.Speech
 import net.gotev.speech.SpeechDelegate
 import net.gotev.speech.SpeechRecognitionNotAvailable
@@ -1190,15 +1191,19 @@ class MainActivity : AppCompatActivity(),
             packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
         val excludedAppsPackageNames = hashSetOf(
             "com.android.gallery3d",
-            "com.lonelycatgames.xplore",
             "com.android.tv.frameworkpackagestubs",
             "com.google.android.tv.frameworkpackagestubs",
-            "com.instantbits.cast.webvideo",
-            "com.ghisler.android.totalcommander",
             "com.google.android.apps.photos",
-            "com.mixplorer.silver",
             "com.estrongs.android.pop",
-            "pl.solidexplorer2"
+            "com.estrongs.android.pop.pro",
+            "com.ghisler.android.totalcommander",
+            "com.instantbits.cast.webvideo",
+            "com.lonelycatgames.xplore",
+            "com.mixplorer.silver",
+            "com.opera.browser",
+            "org.droidtv.contentexplorer",
+            "pl.solidexplorer2",
+            "nextapp.fx"
         )
         val filteredList: MutableList<ResolveInfo> = mutableListOf()
         for (info in resInfo) {
@@ -1839,6 +1844,8 @@ class MainActivity : AppCompatActivity(),
                             onSpeech(res, true, success)
                         }
                     })
+                if (BuildConfig.DEBUG)
+                    Logger.setLogLevel(Logger.LogLevel.DEBUG)
                 return true
             } catch (exc: SpeechRecognitionNotAvailable) {
                 Log.e("speech", "Speech recognition is not available on this device!")
