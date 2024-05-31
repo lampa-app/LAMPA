@@ -113,7 +113,7 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
-    implementation 'org.mozilla:rhino:1.7.14'
+    implementation 'org.mozilla:rhino:1.7.15'
     def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
     //noinspection GradleDependency
     implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
@@ -166,7 +166,7 @@ dependencies {
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.4.0'
+    implementation 'com.airbnb.android:lottie:6.4.1'
     // tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
