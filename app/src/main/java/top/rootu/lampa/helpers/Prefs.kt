@@ -22,6 +22,7 @@ object Prefs {
     const val STORAGE_PREFERENCES = "storage"
     private const val APP_LAST_PLAYED = "last_played"
     private const val APP_URL = "url"
+    private const val APP_URL_HISTORY = "lampa_history"
     private const val APP_PLAYER = "player"
     private const val IPTV_PLAYER = "iptv_player"
     private const val LAMPA_SOURCE = "source"
@@ -45,6 +46,8 @@ object Prefs {
     private const val SYNC_KEY = "sync_account"
     private const val PLAY_ACT_KEY = "playActivityJS"
     private const val RESUME_KEY = "resumeJS"
+
+    data class InputHistory(val input: String, val timestamp: Long)
 
     val Context.appPrefs: SharedPreferences
         get() {
@@ -465,6 +468,40 @@ object Prefs {
             .putString(COR_KEY, "[]")
             .putString(THR_KEY, "[]")
             .apply()
+    }
+
+    val Context.urlHistory: List<String>
+        get() {
+            return try {
+                val buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+                Gson().fromJson(buf, Array<InputHistory>::class.java).sortedBy { -it.timestamp }
+                    .map { it.input }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+
+    fun Context.addUrlHistory(v: String) {
+        try {
+            var buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+            val lst = Gson().fromJson(buf, Array<InputHistory>::class.java).filter { it.input != v }
+                .sortedBy { it.timestamp }.toMutableList()
+            lst.add(InputHistory(v, System.currentTimeMillis()))
+            buf = Gson().toJson(lst)
+            defPrefs.edit()
+                .putString(APP_URL_HISTORY, buf)
+                .apply()
+        } catch (_: Exception) {
+        }
+    }
+
+    fun Context.clearUrlHistory() {
+        try {
+            defPrefs.edit()
+                .putString(APP_URL_HISTORY, "[]")
+                .apply()
+        } catch (_: Exception) {
+        }
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.DialogInterface
+import android.content.DialogInterface.BUTTON_NEGATIVE
+import android.content.DialogInterface.BUTTON_NEUTRAL
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,7 +19,6 @@ import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Parcelable
 import android.speech.RecognizerIntent
-import android.text.InputType
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -27,6 +28,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.ListAdapter
 import android.widget.TextView
@@ -42,12 +44,9 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.setMargins
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +86,7 @@ import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs.addUrlHistory
 import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
@@ -106,6 +106,7 @@ import top.rootu.lampa.helpers.Prefs.resumeJS
 import top.rootu.lampa.helpers.Prefs.schdToRemove
 import top.rootu.lampa.helpers.Prefs.thrwToRemove
 import top.rootu.lampa.helpers.Prefs.tvPlayer
+import top.rootu.lampa.helpers.Prefs.urlHistory
 import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
@@ -1010,33 +1011,67 @@ class MainActivity : AppCompatActivity(),
 
     fun showUrlInputDialog() {
         val mainActivity = this
+        val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        var dialog: AlertDialog? = null
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
-        // Set up the input
-        val wrapper = TextInputLayout(this)
-        val input = TextInputEditText(wrapper.context)
-        input.setSingleLine()
-        input.textSize = 18f
-        input.inputType = InputType.TYPE_CLASS_TEXT
-        input.setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-        val margin =
-            dp2px(mainActivity, 14.5f)
-        val params = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        params.setMargins(margin)
-        input.layoutParams = params
-        wrapper.addView(input)
-        builder.setView(wrapper)
 
+        val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
+        val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+        val adapter = ArrayAdapter(input.context, android.R.layout.simple_dropdown_item_1line, input.context.urlHistory.toMutableList())
+        // Set up the input
+        input?.apply {
+            setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
+            setAdapter(adapter)
+            setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus && !this.isPopupShowing) {
+                    this.showDropDown()
+                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
+                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.INVISIBLE
+//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.INVISIBLE
+                } else {
+                    this.dismissDropDown()
+                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
+//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
+                }
+            }
+            setOnItemClickListener { _, _, _, _ ->
+                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
+//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
+                dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+            }
+            setOnClickListener {
+                this.dismissDropDown()
+                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
+//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
+                inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
+            }
+            setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                    return@OnEditorActionListener true
+                }
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+                    return@OnEditorActionListener true
+                }
+                false
+            })
+        }
+
+        builder.setView(view)
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
-            LAMPA_URL = input.text.toString()
+            LAMPA_URL = input?.text.toString()
             if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (this.appUrl != LAMPA_URL) {
                     this.appUrl = LAMPA_URL
+                    this.addUrlHistory(LAMPA_URL)
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
                 }
@@ -1047,8 +1082,8 @@ class MainActivity : AppCompatActivity(),
             }
             hideSystemUI()
         }
-        builder.setNegativeButton(R.string.cancel) { dialog: DialogInterface, _: Int ->
-            dialog.cancel()
+        builder.setNegativeButton(R.string.cancel) { di: DialogInterface, _: Int ->
+            di.cancel()
             if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
                 appExit()
             } else {
@@ -1056,11 +1091,13 @@ class MainActivity : AppCompatActivity(),
                 hideSystemUI()
             }
         }
-        builder.setNeutralButton(R.string.exit) { dialog: DialogInterface, _: Int ->
-            dialog.cancel()
+        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
+            di.cancel()
             appExit()
         }
-        builder.show()
+        // show dialog
+        dialog = builder.create()
+        dialog.show()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
