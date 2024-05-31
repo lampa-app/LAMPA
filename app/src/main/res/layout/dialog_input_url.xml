@@ -27,7 +27,6 @@
         android:popupBackground="@android:color/transparent"
         android:scrollbars="none"
         android:singleLine="true"
-        android:textColor="?attr/colorOnBackground"
         android:textSize="20sp"
         tools:ignore="LabelFor" />
 
