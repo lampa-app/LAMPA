@@ -495,6 +495,19 @@ object Prefs {
         }
     }
 
+    fun Context.remUrlHistory(v: String) {
+        try {
+            var buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+            val lst = Gson().fromJson(buf, Array<InputHistory>::class.java).filter { it.input != v }
+                .sortedBy { it.timestamp }.toMutableList()
+            buf = Gson().toJson(lst)
+            defPrefs.edit()
+                .putString(APP_URL_HISTORY, buf)
+                .apply()
+        } catch (_: Exception) {
+        }
+    }
+
     fun Context.clearUrlHistory() {
         try {
             defPrefs.edit()

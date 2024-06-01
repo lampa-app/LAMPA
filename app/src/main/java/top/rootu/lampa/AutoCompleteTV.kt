@@ -5,11 +5,13 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.AutoCompleteTextView
 import android.widget.ListPopupWindow
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import top.rootu.lampa.helpers.Helpers.dp2px
+import top.rootu.lampa.helpers.Prefs.remUrlHistory
 
 
 // Extension of AppCompatAutoCompleteTextView that automatically hides the soft keyboard
@@ -54,6 +56,18 @@ class AutoCompleteTV @JvmOverloads constructor(
             hideKeyboard()
             // have to return false here otherwise scrolling won't work
             false
+        }
+        popupWindow?.listView?.setOnItemLongClickListener { parent, view, position, id ->
+            val url = adapter.getItem(position) as String?
+            if (BuildConfig.DEBUG) Log.d(
+                "*****",
+                "OnItemLongClickListener in popupWindow, position = $position, url = $url"
+            )
+            if (!url.isNullOrEmpty()) {
+                view.context.remUrlHistory(url) // update Prefs
+                MainActivity.urlAdapter.remove(url) // update GUI
+            }
+            true
         }
     }
 }

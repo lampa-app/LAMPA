@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.SearchManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.DialogInterface
 import android.content.DialogInterface.BUTTON_NEGATIVE
 import android.content.DialogInterface.BUTTON_NEUTRAL
@@ -160,6 +161,7 @@ class MainActivity : AppCompatActivity(),
             "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+        lateinit var urlAdapter: ArrayAdapter<String>
     }
 
     private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
@@ -1009,8 +1011,16 @@ class MainActivity : AppCompatActivity(),
         adapter.setSelectedItem(current)
     }
 
+    private class UrlAdapter(context: Context) :
+        ArrayAdapter<String>(
+            context,
+            android.R.layout.simple_list_item_1,
+            context.urlHistory.toMutableList()
+        )
+
     fun showUrlInputDialog() {
         val mainActivity = this
+        urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
         val builder = AlertDialog.Builder(mainActivity)
@@ -1018,11 +1028,10 @@ class MainActivity : AppCompatActivity(),
 
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
-        val adapter = ArrayAdapter(input.context, android.R.layout.simple_dropdown_item_1line, input.context.urlHistory.toMutableList())
         // Set up the input
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-            setAdapter(adapter)
+            setAdapter(urlAdapter)
             setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus && !this.isPopupShowing) {
                     this.showDropDown()
