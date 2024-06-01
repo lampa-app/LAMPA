@@ -45,7 +45,7 @@ class AutoCompleteTV @JvmOverloads constructor(
     private fun setListViewBasedOnChildren(listView: ListView) {
         val vMargin = dp2px(listView.context, 10F)
         val marginLayoutParams = listView.layoutParams as MarginLayoutParams
-        marginLayoutParams.setMargins(0, vMargin, 0, vMargin)
+        marginLayoutParams.setMargins(0, vMargin, 0, 0)
 
         listView.updateLayoutParams {
             width = ViewGroup.LayoutParams.WRAP_CONTENT
