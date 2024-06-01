@@ -43,7 +43,7 @@ class AutoCompleteTV @JvmOverloads constructor(
 
 
     private fun setListViewBasedOnChildren(listView: ListView) {
-        val vMargin = dp2px(listView.context, 10f)
+        val vMargin = dp2px(listView.context, 10F)
         val marginLayoutParams = listView.layoutParams as MarginLayoutParams
         marginLayoutParams.setMargins(0, vMargin, 0, vMargin)
 
@@ -60,7 +60,7 @@ class AutoCompleteTV @JvmOverloads constructor(
         popupWindow?.listView?.apply {
             isVerticalScrollBarEnabled = false
             isVerticalFadingEdgeEnabled = true
-            setFadingEdgeLength(dp2px(this.context, 80.0F))
+            setFadingEdgeLength(dp2px(this.context, 72.0F))
             background = ColorDrawable(Color.TRANSPARENT)
             overScrollMode = OVER_SCROLL_NEVER
             // update listview layout

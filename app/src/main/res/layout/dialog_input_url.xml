@@ -21,7 +21,7 @@
             android:imeOptions="actionDone|flagNoExtractUi"
             android:maxLines="1"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="16dp"
+            android:paddingVertical="14dp"
             android:popupBackground="@android:color/transparent"
             android:scrollbars="none"
             android:singleLine="true"
