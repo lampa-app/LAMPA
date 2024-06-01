@@ -6,7 +6,6 @@ import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.DialogInterface
-import android.content.DialogInterface.BUTTON_NEGATIVE
 import android.content.DialogInterface.BUTTON_NEUTRAL
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
@@ -1025,38 +1024,31 @@ class MainActivity : AppCompatActivity(),
         var dialog: AlertDialog? = null
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
-
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
         // Set up the input
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
             setAdapter(urlAdapter)
-            setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus && !this.isPopupShowing) {
-                    this.showDropDown()
-                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
-                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.INVISIBLE
-//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.INVISIBLE
-                } else {
+            if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+                setOnFocusChangeListener { _, hasFocus ->
+                    if (hasFocus && !this.isPopupShowing) {
+                        this.showDropDown()
+                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
+                    } else {
+                        this.dismissDropDown()
+                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    }
+                }
+                setOnItemClickListener { _, _, _, _ ->
+                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+                }
+                setOnClickListener {
                     this.dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
+                    inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
                 }
-            }
-            setOnItemClickListener { _, _, _, _ ->
-                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
-            }
-            setOnClickListener {
-                this.dismissDropDown()
-                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
-                inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
             }
             setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
                 if (actionId == EditorInfo.IME_ACTION_NEXT) {
@@ -1071,7 +1063,6 @@ class MainActivity : AppCompatActivity(),
                 false
             })
         }
-
         builder.setView(view)
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->

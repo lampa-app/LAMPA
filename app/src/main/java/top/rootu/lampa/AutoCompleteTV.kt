@@ -5,11 +5,14 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
-import android.util.Log
+import android.view.ViewGroup
+import android.view.ViewGroup.MarginLayoutParams
 import android.view.inputmethod.InputMethodManager
 import android.widget.AutoCompleteTextView
 import android.widget.ListPopupWindow
+import android.widget.ListView
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
+import androidx.core.view.updateLayoutParams
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Prefs.remUrlHistory
 
@@ -38,6 +41,17 @@ class AutoCompleteTV @JvmOverloads constructor(
         imm?.hideSoftInputFromWindow(rootView.windowToken, 0)
     }
 
+
+    private fun setListViewBasedOnChildren(listView: ListView) {
+        val vMargin = dp2px(listView.context, 10f)
+        val marginLayoutParams = listView.layoutParams as MarginLayoutParams
+        marginLayoutParams.setMargins(0, vMargin, 0, vMargin)
+
+        listView.updateLayoutParams {
+            width = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+    }
+
     // add scroll listener to dropdown in order to hide IME when scrolled
     @SuppressLint("ClickableViewAccessibility")
     override fun showDropDown() {
@@ -49,6 +63,8 @@ class AutoCompleteTV @JvmOverloads constructor(
             setFadingEdgeLength(dp2px(this.context, 80.0F))
             background = ColorDrawable(Color.TRANSPARENT)
             overScrollMode = OVER_SCROLL_NEVER
+            // update listview layout
+            setListViewBasedOnChildren(this)
         }
         // the popup list view shouldn't be null here because the dropdown was just shown
         // ... perhaps unless it's empty
