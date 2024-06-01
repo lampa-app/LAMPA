@@ -127,7 +127,9 @@ dependencies {
     def actKtxVer = '1.8.0' // 1.8.0 - latest version for API 16
     //noinspection GradleDependency
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    def appCompatVer = '1.6.1' // 1.6.1 - latest version for API 16
+    //noinspection GradleDependency
+    implementation "androidx.appcompat:appcompat:$appCompatVer"
     def coreKtxVer = '1.12.0' // 1.12.0 - latest version for API 16
     //noinspection GradleDependency
     implementation "androidx.core:core-ktx:$coreKtxVer"
