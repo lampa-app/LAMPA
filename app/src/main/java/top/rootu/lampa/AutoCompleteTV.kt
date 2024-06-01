@@ -57,12 +57,9 @@ class AutoCompleteTV @JvmOverloads constructor(
             // have to return false here otherwise scrolling won't work
             false
         }
-        popupWindow?.listView?.setOnItemLongClickListener { parent, view, position, id ->
+        // handle remove url from history
+        popupWindow?.listView?.setOnItemLongClickListener { _, view, position, _ ->
             val url = adapter.getItem(position) as String?
-            if (BuildConfig.DEBUG) Log.d(
-                "*****",
-                "OnItemLongClickListener in popupWindow, position = $position, url = $url"
-            )
             if (!url.isNullOrEmpty()) {
                 view.context.remUrlHistory(url) // update Prefs
                 MainActivity.urlAdapter.remove(url) // update GUI
