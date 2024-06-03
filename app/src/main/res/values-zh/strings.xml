@@ -73,6 +73,7 @@
     <string name="update_chan_title">更新渠道和推荐</string>
     <string name="update_home_title">更新建议</string>
     <string name="backup_restore_title">设置备份和恢复 恢复</string>
+    <string name="backup_all">备份所有设置</string>
     <string name="backup_all_title">Lampa 设置备份</string>
     <string name="restore_app_title">恢复应用程序首选项</string>
     <string name="restore_storage_title">恢复 Lampa 设置</string>

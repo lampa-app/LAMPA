@@ -1091,13 +1091,36 @@ class MainActivity : AppCompatActivity(),
                 hideSystemUI()
             }
         }
-        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
-            di.cancel()
-            appExit()
+//        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
+//            di.cancel()
+//            appExit()
+//        }
+        builder.setNeutralButton(R.string.backup_all) { _: DialogInterface, _: Int ->
+            //Do nothing here because we override this button later
         }
         // show dialog
         dialog = builder.create()
         dialog.show()
+        // setup backup button
+        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
+            val wantToCloseDialog = false
+            // Do stuff, possibly set wantToCloseDialog to true then...
+            lifecycleScope.launch {
+                dumpStorage() // fixme: add callback
+                delay(3000)
+                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
+                    App.toast(
+                        getString(
+                            R.string.settings_saved_toast,
+                            Backup.DIR.toString()
+                        )
+                    )
+                else
+                    App.toast(R.string.settings_save_fail)
+            }
+            if (wantToCloseDialog) dialog.dismiss()
+            // else dialog stays open
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
