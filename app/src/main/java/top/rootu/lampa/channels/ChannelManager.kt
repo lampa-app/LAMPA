@@ -248,20 +248,23 @@ object ChannelManager {
 
         if (card.type == "tv") {
             type = TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
-            card.number_of_seasons?.let { info.add("S$it") }
+            card.number_of_seasons?.let { info.add("S$it") } ?: info.add(App.context.getString(R.string.series))
         }
 
-        card.genres?.joinToString(", ") { g ->
-            g?.name?.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-            }.toString()
-        }?.let { info.add(it) }
+        card.genres?.joinToString(", ") { el ->
+            el?.let { genre ->
+                genre.name?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            } ?: ""
+        }.takeIf { !it.isNullOrEmpty() }
+            ?.let { info.add(it) }
 
-//        var country = card.production_countries?.joinToString(", ") { it.iso_3166_1 } ?: ""
-//        if (country.isEmpty())
-//            country = card.origin_country?.joinToString(", ") ?: ""
-//        if (country.isNotEmpty())
-//            info.add(country)
+        var country = card.production_countries?.joinToString(", ") { it.iso_3166_1.toString() } ?: ""
+        if (country.isEmpty())
+            country = card.origin_country?.joinToString(", ") ?: ""
+        if (country.isEmpty())
+            country = card.original_language?.uppercase() ?: ""
+        if (country.isNotEmpty())
+            info.add(country)
 
         val preview = PreviewProgram.Builder()
             .setChannelId(channelId)
@@ -277,8 +280,15 @@ object ChannelManager {
             .setSearchable(true)
             .setLive(false)
 
-        card.release_year?.let {
-            preview.setReleaseDate(it)
+        val releaseYear = if (!card.release_year.isNullOrEmpty()) card.release_year
+        else if (card.type == "tv" && !card.first_air_date.isNullOrEmpty())
+            card.first_air_date.substringBefore("-", card.first_air_date)
+        else if (!card.release_date.isNullOrEmpty())
+            card.release_date.substringBefore("-", card.release_date)
+        else ""
+
+        if (releaseYear.isNotEmpty()) {
+            preview.setReleaseDate(releaseYear)
         }
 
         card.vote_average?.let {
