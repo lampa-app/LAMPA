@@ -251,12 +251,13 @@ object ChannelManager {
             card.number_of_seasons?.let { info.add("S$it") } ?: info.add(App.context.getString(R.string.series))
         }
 
-        card.genres?.joinToString(", ") { el ->
-            el?.let { genre ->
-                genre.name?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-            } ?: ""
-        }.takeIf { !it.isNullOrEmpty() }
-            ?.let { info.add(it) }
+        val genreList: MutableList<String> = ArrayList()
+        card.genres?.forEach { g ->
+            if (g?.name?.isNotEmpty() == true)
+                genreList.add(g.name.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString() })
+        }
+        if (genreList.isNotEmpty())
+            info.add(genreList.joinToString(", "))
 
         var country = card.production_countries?.joinToString(", ") { it.iso_3166_1.toString() } ?: ""
         if (country.isEmpty())
