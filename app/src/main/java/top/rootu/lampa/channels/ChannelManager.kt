@@ -245,13 +245,12 @@ object ChannelManager {
         card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
         var type = TvContractCompat.PreviewPrograms.TYPE_MOVIE
-
         if (card.type == "tv") {
             type = TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
             card.number_of_seasons?.let { info.add("S$it") } ?: info.add(App.context.getString(R.string.series))
         }
 
-        val genreList: MutableList<String> = ArrayList()
+        val genreList = mutableListOf<String>()
         card.genres?.forEach { g ->
             if (g?.name?.isNotEmpty() == true)
                 genreList.add(g.name.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString() })
