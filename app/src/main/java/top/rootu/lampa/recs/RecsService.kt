@@ -130,7 +130,7 @@ object RecsService {
                         }.toString()
                     }?.let { info.add(it) }
 
-                    builder.setBadgeIcon(R.drawable.logo_icon)
+                    builder.setBadgeIcon(R.drawable.lampa_logo_icon)
                         .setIdTag("${card.id}")
                         .setTitle(recTitle)
                         .setContentImage(bitmap)
