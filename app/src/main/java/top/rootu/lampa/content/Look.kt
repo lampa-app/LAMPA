@@ -1,7 +1,7 @@
 package top.rootu.lampa.content
 
-import com.google.gson.Gson
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.lookToRemove
@@ -20,11 +20,7 @@ class Look : LampaProviderI() {
             // CUB
             if (App.context.syncEnabled)
                 App.context.CUB?.filter { it.type == LampaProvider.LOOK }?.forEach { bm ->
-                    val card = try {
-                        Gson().fromJson(bm.data, LampaCard::class.java)
-                    } catch (e: Exception) {
-                        null
-                    }
+                    val card = getJson(bm.data, LampaCard::class.java)
                     card?.let {
                         it.fixCard()
                         lst.add(it)

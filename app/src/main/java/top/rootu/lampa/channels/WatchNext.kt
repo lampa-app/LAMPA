@@ -12,7 +12,6 @@ import androidx.tvprovider.media.tv.TvContractCompat.WatchNextPrograms.WATCH_NEX
 import androidx.tvprovider.media.tv.TvContractCompat.WatchNextPrograms.WATCH_NEXT_TYPE_WATCHLIST
 import androidx.tvprovider.media.tv.TvContractCompat.buildWatchNextProgramUri
 import androidx.tvprovider.media.tv.WatchNextProgram
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.rootu.lampa.App
@@ -20,6 +19,7 @@ import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
@@ -91,11 +91,7 @@ object WatchNext {
         // CUB
         if (App.context.syncEnabled) {
             App.context.CUB?.filter { it.type == LampaProvider.LATE }?.forEach { bm ->
-                val card: LampaCard? = try {
-                    Gson().fromJson(bm.data, LampaCard::class.java)
-                } catch (e: Exception) {
-                    null
-                }
+                val card = getJson(bm.data, LampaCard::class.java)
                 card?.let {
                     it.fixCard()
                     lst.add(it)
@@ -181,13 +177,9 @@ object WatchNext {
                 watchNextProgram = WatchNextProgram.fromCursor(cursor)
             }
         }
-        return try {
-            val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
-            // if (isValidJson(json))
-            Gson().fromJson(json, LampaCard::class.java)
-        } catch (_: Exception) {
-            null
-        }
+        val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+        // if (isValidJson(json))
+        return getJson(json, LampaCard::class.java)
     }
 
     @SuppressLint("RestrictedApi")

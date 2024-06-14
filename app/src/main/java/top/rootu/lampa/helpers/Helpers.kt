@@ -318,6 +318,14 @@ object Helpers {
         }
     }
 
+    fun <T> getJson(json: String?, cls: Class<T>?): T? {
+        return try {
+            Gson().fromJson(json, cls)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
         // actions: add | rem
         if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")

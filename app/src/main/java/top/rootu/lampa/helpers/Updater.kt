@@ -6,13 +6,13 @@ import android.os.Build
 import android.text.Spanned
 import androidx.core.content.FileProvider
 import androidx.core.text.HtmlCompat
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.models.Release
 import top.rootu.lampa.models.Releases
 import top.rootu.lampa.net.TlsSocketFactory
@@ -54,11 +54,7 @@ object Updater {
             val body = connection?.inputStream?.use {
                 it.bufferedReader(Charset.defaultCharset()).readText()
             } ?: return false
-            releases = try {
-                Gson().fromJson(body, Releases::class.java)
-            } catch (e: Exception) {
-                null
-            }
+            releases = getJson(body, Releases::class.java)
             releases?.let {
                 it.forEach { rel ->
                     val majorVersionDouble: Double = try {
@@ -207,7 +203,7 @@ object Updater {
 
             downloadApk(destination, onProgress)
 
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 val uri = Uri.fromFile(destination)
                 val install = Intent(Intent.ACTION_VIEW)
                 install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

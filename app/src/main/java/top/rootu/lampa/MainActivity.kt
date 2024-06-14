@@ -47,7 +47,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -77,6 +76,7 @@ import top.rootu.lampa.helpers.Backup.loadFromBackup
 import top.rootu.lampa.helpers.Backup.saveSettings
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isTvBox
@@ -1670,14 +1670,10 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Default) {
                 val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
                 if (lampaActivity?.has("movie") == true) {
-                    val card = try {
-                        Gson().fromJson(
-                            lampaActivity.getJSONObject("movie").toString(),
-                            LampaCard::class.java
-                        )
-                    } catch (e: Exception) {
-                        null
-                    }
+                    val card = getJson(
+                        lampaActivity.getJSONObject("movie").toString(),
+                        LampaCard::class.java
+                    )
                     card?.let {
                         it.fixCard()
                         try {
