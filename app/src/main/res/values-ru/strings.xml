@@ -1,5 +1,8 @@
 <resources>
-    <string name="no_activity_found">Lampa: Нет приложения для открытия ссылки данного типа</string>
+    <string name="no_activity_found">Нет приложения, позволяющего открыть ссылку этого типа.</string>
+    <string name="no_player_activity_found">Подходящего мультимедиа-плеера не найдено. Пожалуйста, установите плеер из Google Play Store или любого другого источника. Мы рекомендуем Just Player, Vimu Media Player, VLC.</string>
+    <string name="no_torrent_activity_found">Нет приложения для открытия торрент-ссылок. Пожалуйста, установите TorrServe или любое другое приложение, работающее с торрентами.</string>
+    <string name="no_youtube_activity_found">Нет приложения для открытия ссылок YouTube. Пожалуйста, установите приложение YouTube.</string>
     <string name="no_launch_player">Lampa: Выбранный плеер не поддерживает воспроизведение этого видео</string>
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>

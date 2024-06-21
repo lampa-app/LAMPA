@@ -1259,6 +1259,7 @@ class MainActivity : AppCompatActivity(),
             "com.ghisler.android.totalcommander",
             "com.instantbits.cast.webvideo",
             "com.lonelycatgames.xplore",
+            "com.mitv.videoplayer",
             "com.mixplorer.silver",
             "com.opera.browser",
             "org.droidtv.contentexplorer",
@@ -1273,7 +1274,7 @@ class MainActivity : AppCompatActivity(),
             filteredList.add(info)
         }
         if (filteredList.isEmpty()) {
-            App.toast(R.string.no_activity_found, true)
+            App.toast(R.string.no_player_activity_found, true)
             return
         }
         var playerPackageExist = false

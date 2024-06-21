@@ -1,6 +1,9 @@
 <resources>
-    <string name="no_activity_found">​​Lampa：没有应用程序可以打开此类链接</string>
-    <string name="no_launch_player">Lampa：所选播放器不支持该视频</string>
+    <string name="no_activity_found">​​没有应用程序可以打开此类链接。</string>
+    <string name="no_player_activity_found">​​未找到匹配的播放器。请从 Google Play 商店或任何其他来源安装播放器。我们推荐 Just Player、Vimu Media Player、VLC。</string>
+    <string name="no_torrent_activity_found">​​没有应用程序可以打开 torrent 链接。请安装 TorrServe 或任何其他支持 torrent 的应用程序。</string>
+    <string name="no_youtube_activity_found">​​没有应用程序可以打开 YouTube 链接。请安装 YouTube 应用。</string>
+    <string name="no_launch_player">所选播放器不支持该视频</string>
     <string name="invalid_url">请输入一个有效的网址，例如：\nhttp://lampa.mx</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>

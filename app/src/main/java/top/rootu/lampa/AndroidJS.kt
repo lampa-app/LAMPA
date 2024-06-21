@@ -185,8 +185,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                Log.d(TAG, e.message, e)
-                App.toast(R.string.no_activity_found, true)
+                if (BuildConfig.DEBUG) Log.d(TAG, e.message, e)
+                App.toast(R.string.no_torrent_activity_found, true)
             }
         }
         // update Recs to filter viewed
@@ -210,8 +210,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                Log.d(TAG, e.message, e)
-                App.toast(R.string.no_activity_found, true)
+                if (BuildConfig.DEBUG) Log.d(TAG, e.message, e)
+                App.toast(R.string.no_youtube_activity_found, true)
             }
         }
     }
@@ -229,7 +229,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String?, returnI: Int) {
-        Log.d("JS", str!!)
+        if (BuildConfig.DEBUG) Log.d("JS", str!!)
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
@@ -343,7 +343,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun openPlayer(link: String, jsonStr: String) {
-        Log.d(TAG, "openPlayer: $link json:$jsonStr")
+        if (BuildConfig.DEBUG) Log.d(TAG, "openPlayer: $link json:$jsonStr")
         val jsonObject: JSONObject = try {
             JSONObject(jsonStr.ifEmpty { "{}" })
         } catch (e: Exception) {
@@ -398,7 +398,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null && isAndroidTV) {
-            Log.d(TAG, "***** updateChannel [$where]")
+            if (BuildConfig.DEBUG) Log.d(TAG, "***** updateChannel [$where]")
             when (where) {
                 LampaProvider.HIST,
                 LampaProvider.BOOK,
