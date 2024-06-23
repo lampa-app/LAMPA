@@ -19,6 +19,7 @@ import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Parcelable
 import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -1740,6 +1741,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun displaySpeechRecognizer() {
+        // Get SpeechRecognizer instance
+        if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
+            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+        } else {
+            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+        }
         if (VERSION.SDK_INT < 18) {
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1747,6 +1754,7 @@ class MainActivity : AppCompatActivity(),
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
+                putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
             }
             // This starts the activity and populates the intent with the speech text.
             try {
