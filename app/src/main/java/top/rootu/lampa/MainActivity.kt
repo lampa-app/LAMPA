@@ -474,6 +474,8 @@ class MainActivity : AppCompatActivity(),
             }
         }
         hideSystemUI()
+        // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
