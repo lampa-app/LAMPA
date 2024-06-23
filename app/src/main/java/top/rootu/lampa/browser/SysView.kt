@@ -35,6 +35,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             isFocusable = true
             isFocusableInTouchMode = true
             scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
+            keepScreenOn = true
         }
         val settings = browser?.settings
         settings?.apply {
