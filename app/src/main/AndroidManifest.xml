@@ -84,6 +84,7 @@
             android:allowTaskReparenting="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:exported="true"
+            android:keepScreenOn="true"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
