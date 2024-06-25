@@ -322,6 +322,7 @@ object Helpers {
         return try {
             Gson().fromJson(json, cls)
         } catch (e: Exception) {
+            if (BuildConfig.DEBUG) Log.d("*****", "Error getJson $json as ${cls!!.name}: $e")
             null
         }
     }

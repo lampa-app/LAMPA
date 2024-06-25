@@ -106,7 +106,7 @@ data class LampaCard(
     val last_air_date: String?, // 2014, 2023-11-19
     val number_of_seasons: Int?, // 1,
     val number_of_episodes: Int?, // 12,
-    val next_episode_to_air: String?, // ""
+    // val next_episode_to_air: String?, // "" | { "id": 5220956, "overview": "", "name": "Эпизод 5", "vote_average": 7.5, "vote_count": 2, "air_date": "2024-06-25", "episode_number": 5, "episode_type": "standard", "production_code": "", "runtime": null, "season_number": 1, "show_id": 114479, "still_path": "/3ZPtAcaLnzJ6dAPw97hB9bKc19o.jpg" }
     val persons: Persons?,
     val simular: Simular?,
     val status: String?, // "released", "Ended", "returning series", ...
@@ -218,7 +218,6 @@ data class LampaRec(
             null,
             release_date,
             first_air_date,
-            null,
             null,
             null,
             null,
