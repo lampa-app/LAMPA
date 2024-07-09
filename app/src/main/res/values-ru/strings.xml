@@ -88,7 +88,7 @@
     <string name="settings_restored">Настройки восстановлены</string>
     <!--App Errors-->
     <string name="app_crash_title">Приносим извинения за неудобства</string>
-    <string name="app_crash_message">Иногда в нашей системе возникают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
+    <string name="app_crash_message">Иногда у Лампы бывают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Вы можете сообщить об этой ошибке в нашем Telegram-канале — @lampa_group. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
     <string name="app_crash_copy">Копировать журнал в буфер обмена</string>
     <string name="app_crash_copied">Журнал скопирован в буфер обмена</string>
     <string name="app_crash_save_to">Журнал сбоя сохранен в папку</string>

@@ -243,9 +243,28 @@ object Helpers {
             ).contains("huawei")
         }
 
+    private val isBrokenATV: Boolean
+        get() {
+            val bb = hashSetOf(
+                "b861re",
+                "b866",
+                "redbox mini 616",
+                "streaming box 8000",
+                "box q",
+                "dv8235",
+                "leap-s1",
+                "s7xx",
+                "55u730gu",
+                "ax95",
+                "sbdv-00006"
+            )
+            val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
+            return match
+        }
+
     val isAndroidTV: Boolean
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
         }
 
     val isGoogleTV: Boolean // wide posters on home

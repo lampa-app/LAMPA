@@ -91,7 +91,7 @@
     <string name="settings_restored">Settings restored</string>
     <!--App Errors-->
     <string name="app_crash_title">Sorry for the Inconvenience</string>
-    <string name="app_crash_message">Sometimes our system has faults but no worry. In next update we will fix this. Please click on Restart App button to continue.</string>
+    <string name="app_crash_message">Sometimes Lampa has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>
     <string name="app_crash_copy">Copy Logs to Clipboard</string>
     <string name="app_crash_copied">Logs copied to clipboard</string>
     <string name="app_crash_save_to">Crash Logs saved to</string>
