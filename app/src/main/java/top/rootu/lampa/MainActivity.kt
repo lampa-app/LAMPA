@@ -1427,13 +1427,13 @@ class MainActivity : AppCompatActivity(),
                     }
 
                     if (listUrls.size > 1 || haveQuality) {
-                        val firstHash =
-                            ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString(
-                                "hash",
-                                "0"
-                            )
-                        if (firstHash != "0") {
-                            intent.putExtra("playlistTitle", firstHash)
+                        val playObj = playJSONArray[0] as JSONObject
+                        if (playObj.has("timeline")) {
+                            val firstHash =
+                                (playObj["timeline"] as JSONObject).optString("hash", "0")
+                            if (firstHash != "0") {
+                                intent.putExtra("playlistTitle", firstHash)
+                            }
                         }
 
                         if (listTitles.size > 0) {
