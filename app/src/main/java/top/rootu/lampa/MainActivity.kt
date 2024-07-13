@@ -1447,17 +1447,19 @@ class MainActivity : AppCompatActivity(),
                             var qualitySet = ""
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
-                                val itemQualityMap =
-                                    (playJSONArray[i] as JSONObject)["quality"] as JSONObject
-                                val keys = itemQualityMap.keys()
-                                while (keys.hasNext()) {
-                                    val key = keys.next()
-                                    val value = itemQualityMap.getString(key)
-                                    if (value == videoUrl) qualitySet = key
-                                    if (qualityMap.contains(key).not()) {
-                                        qualityMap[key] = arrayListOf()
+                                // val itemQualityMap = (playJSONArray[i] as JSONObject)["quality"] as JSONObject
+                                val itemQualityMap = (playJSONArray[i] as JSONObject).optJSONObject("quality")
+                                itemQualityMap?.let {
+                                    val keys = itemQualityMap.keys()
+                                    while (keys.hasNext()) {
+                                        val key = keys.next()
+                                        val value = itemQualityMap.getString(key)
+                                        if (value == videoUrl) qualitySet = key
+                                        if (qualityMap.contains(key).not()) {
+                                            qualityMap[key] = arrayListOf()
+                                        }
+                                        qualityMap.getValue(key).add(value)
                                     }
-                                    qualityMap.getValue(key).add(value)
                                 }
                             }
                             val qualityKeys = ArrayList(qualityMap.keys.toList())
@@ -1702,13 +1704,26 @@ class MainActivity : AppCompatActivity(),
             else endedVideoUrl
         if (videoUrl == "") return
 
-        for (i in 0 until playJSONArray.length()) {
+        var returnIndex = -1
+        for (i in playJSONArray.length() - 1 downTo 0) {
             val io = playJSONArray.getJSONObject(i)
             if (!io.has("timeline") || !io.has("url")) break
 
             val timeline = io.optJSONObject("timeline")
             val hash = timeline?.optString("hash", "0")
-            if (io.optString("url") == videoUrl) {
+
+            val qualityObj = io.optJSONObject("quality")
+            var foundInQuality = false
+            qualityObj?.let {
+                for (key in it.keys()) {
+                    if (it[key] == videoUrl) {
+                        foundInQuality = true
+                    }
+                }
+            }
+
+            if (io.optString("url") == videoUrl || foundInQuality) {
+                returnIndex = i
                 val time: Int = if (ended) 0 else pos / 1000
                 val duration: Int =
                     if (ended) 0
@@ -1728,9 +1743,13 @@ class MainActivity : AppCompatActivity(),
                 val resumeio = JSONObject(io.toString())
                 resumeio.put("playlist", playJSONArray)
                 this.resumeJS = resumeio.toString()
-                break
+                //break
             }
-            if (i >= playIndex) {
+            if (i in playIndex until returnIndex) {
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "mark complete index $i (in range from $playIndex to $returnIndex)"
+                )
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
                 newTimeline.put("percent", 100)
