@@ -1743,7 +1743,6 @@ class MainActivity : AppCompatActivity(),
                 val resumeio = JSONObject(io.toString())
                 resumeio.put("playlist", playJSONArray)
                 this.resumeJS = resumeio.toString()
-                //break
             }
             if (i in playIndex until returnIndex) {
                 if (BuildConfig.DEBUG) Log.d(
