@@ -246,17 +246,18 @@ object Helpers {
     private val isBrokenATV: Boolean
         get() {
             val bb = hashSetOf(
+                "55u730gu",
+                "ax95",
                 "b861re",
                 "b866",
-                "redbox mini 616",
-                "streaming box 8000",
                 "box q",
                 "dv8235",
                 "leap-s1",
+                "redbox mini 616",
                 "s7xx",
-                "55u730gu",
-                "ax95",
-                "sbdv-00006"
+                "sberbox",
+                "sbdv-00006",
+                "streaming box 8000"
             )
             val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
             return match
