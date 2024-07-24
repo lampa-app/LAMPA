@@ -171,14 +171,17 @@ dependencies {
     implementation 'com.airbnb.android:lottie:6.4.1'
     // tests
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     // webkit
     def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
     implementation 'org.conscrypt:conscrypt-android:2.5.2'
+    // crosswalk
+    // https://habr.com/ru/articles/263649/
+    // https://habr.com/ru/articles/263655/
     // https://download.01.org/crosswalk/releases/crosswalk/android/stable/latest/
     liteApi 'org.xwalk:xwalk_shared_library:23.53.589.4'
     fullApi 'org.xwalk:xwalk_core_library:23.53.589.4'
