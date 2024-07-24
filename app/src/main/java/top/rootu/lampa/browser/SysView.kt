@@ -48,6 +48,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             useWideViewPort = true
             cacheMode = WebSettings.LOAD_NO_CACHE
             setRenderPriority(WebSettings.RenderPriority.HIGH)
+            setNeedInitialFocus(false)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings?.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW

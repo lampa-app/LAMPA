@@ -529,7 +529,6 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar?.visibility = View.GONE
-            browser?.setFocus()
             Log.d("*****", "LAMPA onLoadFinished $url")
             if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
             processIntent(intent, 1000)
@@ -822,6 +821,8 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+        // fix focus
+        browser?.setFocus()
     }
 
     private fun showMenuDialog() {
