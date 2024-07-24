@@ -37,6 +37,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
             keepScreenOn = true
         }
+        setFocus()
         val settings = browser?.settings
         settings?.apply {
             javaScriptEnabled = true
@@ -255,6 +256,10 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
     override fun goBack() {
         browser?.goBack()
+    }
+
+    override fun setFocus() {
+        browser?.requestFocus(View.FOCUS_DOWN)
     }
 
 }
