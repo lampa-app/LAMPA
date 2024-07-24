@@ -93,6 +93,7 @@ import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
+import top.rootu.lampa.helpers.Prefs.autostart
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
 import top.rootu.lampa.helpers.Prefs.contToRemove
@@ -826,8 +827,8 @@ class MainActivity : AppCompatActivity(),
     private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(5)
-        val menuItemsAction = arrayOfNulls<String?>(5)
+        val menuItemsTitle = arrayOfNulls<String?>(6)
+        val menuItemsAction = arrayOfNulls<String?>(6)
 
         menuItemsTitle[0] =
             if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) getString(R.string.update_chan_title)
@@ -839,14 +840,17 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[2] = "showBrowserInputDialog"
         menuItemsTitle[3] = getString(R.string.backup_restore_title)
         menuItemsAction[3] = "showBackupDialog"
-        menuItemsTitle[4] = getString(R.string.exit)
-        menuItemsAction[4] = "appExit"
+        menuItemsTitle[4] = getString(R.string.autostart_title)
+        menuItemsAction[4] = "showAutostart"
+        menuItemsTitle[5] = getString(R.string.exit)
+        menuItemsAction[5] = "appExit"
 
         val icons = arrayOf(
             if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
             R.drawable.round_link_24,
             R.drawable.round_explorer_24,
             R.drawable.round_settings_backup_restore_24,
+            R.drawable.round_power_24,
             R.drawable.round_exit_to_app_24,
         )
         val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
@@ -871,6 +875,7 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 "showBackupDialog" -> showBackupDialog()
+                "showAutostart" -> showAutostart()
                 "appExit" -> appExit()
             }
         }
@@ -958,6 +963,37 @@ class MainActivity : AppCompatActivity(),
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
         }
+    }
+
+    private fun showAutostart() {
+        val current = this.autostart ?: "0" // ?.toIntOrNull() ?: 0
+        val mainActivity = this
+        val menu = AlertDialog.Builder(mainActivity)
+        val menuItemsTitle: Array<String?> = arrayOfNulls(3)
+        menuItemsTitle[0] = getString(R.string.autostart_off)
+        menuItemsTitle[1] = getString(R.string.autostart_onboot)
+        menuItemsTitle[2] = getString(R.string.autostart_onresume)
+
+        val menuItemsAction: Array<String?> = arrayOfNulls(3)
+        menuItemsAction[0] = "0"
+        menuItemsAction[1] = "1"
+        menuItemsAction[2] = "2"
+        val icons: Array<Int> = arrayOf(
+            R.drawable.round_close_24,
+            R.drawable.round_power_24,
+            R.drawable.round_settings_backup_restore_24
+        )
+        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
+        menu.setTitle(getString(R.string.autostart_title))
+        menu.setAdapter(adapter) { dialog, which ->
+            dialog.dismiss()
+            if (menuItemsAction[which] != current) {
+                menuItemsAction[which]?.let { this.autostart = it }
+            }
+        }
+        val menuDialog = menu.create()
+        menuDialog.show()
+        adapter.setSelectedItem(current.toIntOrNull() ?: 0)
     }
 
     private fun showBrowserInputDialog() {

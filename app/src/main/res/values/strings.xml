@@ -99,4 +99,9 @@
     <string name="app_crash_restart">Restart App</string>
     <string name="app_crash_showlog">Show Logs</string>
     <string name="app_crash_errlogs">Error Logs</string>
+    <!--Autostart-->
+    <string name="autostart_title">Autostart Options</string>
+    <string name="autostart_off">Disabled</string>
+    <string name="autostart_onboot">Start on Boot</string>
+    <string name="autostart_onresume">Load after Sleep</string>
 </resources>

@@ -47,6 +47,7 @@ object Prefs {
     private const val SYNC_KEY = "sync_account"
     private const val PLAY_ACT_KEY = "playActivityJS"
     private const val RESUME_KEY = "resumeJS"
+    private const val AUTOSTART_KEY = "autostart"
 
     data class InputHistory(val input: String, val timestamp: Long)
 
@@ -160,6 +161,14 @@ object Prefs {
         }
         set(json) {
             defPrefs.edit().putString(RESUME_KEY, json).apply()
+        }
+
+    var Context.autostart: String?
+        get() {
+            return appPrefs.getString(AUTOSTART_KEY, "0")
+        }
+        set(value) {
+            appPrefs.edit().putString(AUTOSTART_KEY, value).apply()
         }
 
     val Context.FAV: Favorite?
