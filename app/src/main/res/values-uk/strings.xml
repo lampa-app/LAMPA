@@ -19,7 +19,7 @@
     <string name="menu_title">Виберіть дію</string>
     <string name="change_url_press_back">Щоб змінити адресу, натисніть і утримуйте кнопку «Назад»\nабо натисніть кнопку «Меню»</string>
     <string name="error_app_not_found">Не знайдено відповідних додатків</string>
-    <string name="exit">Вийти з додатку</string>
+    <string name="exit">Вийти</string>
     <string name="input_url_title">Введіть URL-адресу Lampa</string>
     <string name="select_player">Вибір плеєра</string>
     <string name="select_player_reset">Вибраний плеєр було скинуто</string>
@@ -89,7 +89,7 @@
     <!--App Errors-->
     <string name="app_crash_title">Перепрошуємо за незручності</string>
     <string name="app_crash_message">Іноді у Lampa трапляються помилки, але не хвилюйтеся. У наступному оновленні ми це виправимо. Ви можете повідомити про цю помилку в нашому Telegram-каналі - @lampa_group. Натисніть кнопку «Перезапустити», щоб продовжити.</string>
-    <string name="app_crash_copy">Копіювати журнал у буфер обміну</string>
+    <string name="app_crash_copy">Копіювати журнал в буфер обміну</string>
     <string name="app_crash_copied">Журнал скопійовано в буфер обміну</string>
     <string name="app_crash_save_to">Журнал помилок збережено в папку</string>
     <string name="app_crash_no_logs">Журнал помилок не знайдено</string>
