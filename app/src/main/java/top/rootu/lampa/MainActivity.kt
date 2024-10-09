@@ -1079,6 +1079,8 @@ class MainActivity : AppCompatActivity(),
                     this.addUrlHistory(LAMPA_URL)
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
+                } else {
+                    browser?.loadUrl(LAMPA_URL) // reload current URL
                 }
             } else {
                 println("URL '$LAMPA_URL' is invalid")
