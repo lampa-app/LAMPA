@@ -34,7 +34,7 @@
     <string name="update_cur_version">Встановлена версія</string>
     <string name="update_new_version">Знайдено нову версію</string>
     <string name="update_loading">Завантаження оновлення…</string>
-    <string name="use_as_default">Запам'ятати вибір</string>
+    <string name="use_as_default">Запам\'ятати вибір</string>
     <string name="startup_not_found_title">Сервіс Crosswalk не знайдено</string>
     <string name="startup_not_found_message">Для роботи APP_NAME потрібний сервіс Crosswalk. Встановіть спочатку його, а потім перезапустіть APP_NAME.</string>
     <string name="startup_older_version_title">Потрібен новий Crosswalk</string>
