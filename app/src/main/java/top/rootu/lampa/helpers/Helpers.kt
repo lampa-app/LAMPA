@@ -257,7 +257,8 @@ object Helpers {
                 "s7xx",
                 "sberbox",
                 "sbdv-00006",
-                "streaming box 8000"
+                "streaming box 8000",
+                "tyson"
             )
             val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
             return match
