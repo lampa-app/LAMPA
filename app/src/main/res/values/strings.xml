@@ -1,8 +1,11 @@
 <resources>
     <string name="app_name" translatable="false">LAMPA</string>
     <string name="provider_auth" translatable="false">top.rootu.lampa</string>
-    <string name="no_activity_found">Lampa: There is no application to open this type of link</string>
-    <string name="no_launch_player">Lampa: The selected player does not support playing this video</string>
+    <string name="no_activity_found">There is no application to open this type of link.</string>
+    <string name="no_player_activity_found">No matching multimedia player found. Please, install player from Google Play Store or any other source. We recommend Just Player, Vimu Media Player, VLC.</string>
+    <string name="no_torrent_activity_found">There is no application to open torrent links. Please, install TorrServe or any other App working with torrents.</string>
+    <string name="no_youtube_activity_found">There is no application to open YouTube links. Please, install YouTube App.</string>
+    <string name="no_launch_player">The selected player does not support playing this video</string>
     <string name="invalid_url">Enter the correct website address, for example:\nhttp://lampa.mx</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
@@ -76,6 +79,7 @@
     <string name="update_chan_title">Update TV Home Channels</string>
     <string name="update_home_title">Update TV Recommendations</string>
     <string name="backup_restore_title">Settings Backup &amp; Restore</string>
+    <string name="backup_all">Backup All Settings</string>
     <string name="backup_all_title">Lampa &amp; App Settings Backup</string>
     <string name="restore_app_title">Restore App Preferences</string>
     <string name="restore_storage_title">Restore Lampa Settings</string>
@@ -87,7 +91,7 @@
     <string name="settings_restored">Settings restored</string>
     <!--App Errors-->
     <string name="app_crash_title">Sorry for the Inconvenience</string>
-    <string name="app_crash_message">Sometimes our system has faults but no worry. In next update we will fix this. Please click on Restart App button to continue.</string>
+    <string name="app_crash_message">Sometimes Lampa has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>
     <string name="app_crash_copy">Copy Logs to Clipboard</string>
     <string name="app_crash_copied">Logs copied to clipboard</string>
     <string name="app_crash_save_to">Crash Logs saved to</string>

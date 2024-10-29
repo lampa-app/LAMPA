@@ -243,9 +243,29 @@ object Helpers {
             ).contains("huawei")
         }
 
+    private val isBrokenATV: Boolean
+        get() {
+            val bb = hashSetOf(
+                "55u730gu",
+                "ax95",
+                "b861re",
+                "b866",
+                "box q",
+                "dv8235",
+                "leap-s1",
+                "redbox mini 616",
+                "s7xx",
+                "sberbox",
+                "sbdv-00006",
+                "streaming box 8000"
+            )
+            val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
+            return match
+        }
+
     val isAndroidTV: Boolean
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
         }
 
     val isGoogleTV: Boolean // wide posters on home
@@ -314,6 +334,15 @@ object Helpers {
             // throws on almost any non-valid json
             Gson().getAdapter(JsonElement::class.java).fromJson(json)
         } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun <T> getJson(json: String?, cls: Class<T>?): T? {
+        return try {
+            Gson().fromJson(json, cls)
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) Log.d("*****", "Error getJson $json as ${cls!!.name}: $e")
             null
         }
     }

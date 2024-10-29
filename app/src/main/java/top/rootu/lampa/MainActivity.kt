@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.SearchManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.DialogInterface
-import android.content.DialogInterface.BUTTON_NEGATIVE
 import android.content.DialogInterface.BUTTON_NEUTRAL
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
@@ -19,6 +19,7 @@ import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.Parcelable
 import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -47,7 +48,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -77,6 +77,7 @@ import top.rootu.lampa.helpers.Backup.loadFromBackup
 import top.rootu.lampa.helpers.Backup.saveSettings
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isTvBox
@@ -160,6 +161,7 @@ class MainActivity : AppCompatActivity(),
             "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+        lateinit var urlAdapter: ArrayAdapter<String>
     }
 
     private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
@@ -472,6 +474,8 @@ class MainActivity : AppCompatActivity(),
             }
         }
         hideSystemUI()
+        // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
@@ -817,6 +821,8 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+        // fix focus
+        browser?.setFocus()
     }
 
     private fun showMenuDialog() {
@@ -1009,45 +1015,45 @@ class MainActivity : AppCompatActivity(),
         adapter.setSelectedItem(current)
     }
 
+    private class UrlAdapter(context: Context) :
+        ArrayAdapter<String>(
+            context,
+            android.R.layout.simple_list_item_1,
+            context.urlHistory.toMutableList()
+        )
+
     fun showUrlInputDialog() {
         val mainActivity = this
+        urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
-
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
-        val adapter = ArrayAdapter(input.context, android.R.layout.simple_dropdown_item_1line, input.context.urlHistory.toMutableList())
         // Set up the input
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
-            setAdapter(adapter)
-            setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus && !this.isPopupShowing) {
-                    this.showDropDown()
-                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
-                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.INVISIBLE
-//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.INVISIBLE
-                } else {
+            setAdapter(urlAdapter)
+            if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+                setOnFocusChangeListener { _, hasFocus ->
+                    if (hasFocus && !this.isPopupShowing) {
+                        this.showDropDown()
+                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
+                    } else {
+                        this.dismissDropDown()
+                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    }
+                }
+                setOnItemClickListener { _, _, _, _ ->
+                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+                }
+                setOnClickListener {
                     this.dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                    dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
+                    inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
                 }
-            }
-            setOnItemClickListener { _, _, _, _ ->
-                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
-            }
-            setOnClickListener {
-                this.dismissDropDown()
-                dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                dialog?.getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
-//                dialog?.getButton(BUTTON_POSITIVE)?.visibility = View.VISIBLE
-                inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
             }
             setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
                 if (actionId == EditorInfo.IME_ACTION_NEXT) {
@@ -1062,7 +1068,6 @@ class MainActivity : AppCompatActivity(),
                 false
             })
         }
-
         builder.setView(view)
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
@@ -1074,6 +1079,8 @@ class MainActivity : AppCompatActivity(),
                     this.addUrlHistory(LAMPA_URL)
                     browser?.loadUrl(LAMPA_URL)
                     App.toast(R.string.change_url_press_back)
+                } else {
+                    browser?.loadUrl(LAMPA_URL) // reload current URL
                 }
             } else {
                 println("URL '$LAMPA_URL' is invalid")
@@ -1091,13 +1098,36 @@ class MainActivity : AppCompatActivity(),
                 hideSystemUI()
             }
         }
-        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
-            di.cancel()
-            appExit()
+//        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
+//            di.cancel()
+//            appExit()
+//        }
+        builder.setNeutralButton(R.string.backup_all) { _: DialogInterface, _: Int ->
+            //Do nothing here because we override this button later
         }
         // show dialog
         dialog = builder.create()
         dialog.show()
+        // setup backup button
+        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
+            val wantToCloseDialog = false
+            // Do stuff, possibly set wantToCloseDialog to true then...
+            lifecycleScope.launch {
+                dumpStorage() // fixme: add callback
+                delay(3000)
+                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
+                    App.toast(
+                        getString(
+                            R.string.settings_saved_toast,
+                            Backup.DIR.toString()
+                        )
+                    )
+                else
+                    App.toast(R.string.settings_save_fail)
+            }
+            if (wantToCloseDialog) dialog.dismiss()
+            // else dialog stays open
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -1236,6 +1266,7 @@ class MainActivity : AppCompatActivity(),
             "com.ghisler.android.totalcommander",
             "com.instantbits.cast.webvideo",
             "com.lonelycatgames.xplore",
+            "com.mitv.videoplayer",
             "com.mixplorer.silver",
             "com.opera.browser",
             "org.droidtv.contentexplorer",
@@ -1250,7 +1281,7 @@ class MainActivity : AppCompatActivity(),
             filteredList.add(info)
         }
         if (filteredList.isEmpty()) {
-            App.toast(R.string.no_activity_found, true)
+            App.toast(R.string.no_player_activity_found, true)
             return
         }
         var playerPackageExist = false
@@ -1400,13 +1431,13 @@ class MainActivity : AppCompatActivity(),
                     }
 
                     if (listUrls.size > 1 || haveQuality) {
-                        val firstHash =
-                            ((playJSONArray[0] as JSONObject)["timeline"] as JSONObject).optString(
-                                "hash",
-                                "0"
-                            )
-                        if (firstHash != "0") {
-                            intent.putExtra("playlistTitle", firstHash)
+                        val playObj = playJSONArray[0] as JSONObject
+                        if (playObj.has("timeline")) {
+                            val firstHash =
+                                (playObj["timeline"] as JSONObject).optString("hash", "0")
+                            if (firstHash != "0") {
+                                intent.putExtra("playlistTitle", firstHash)
+                            }
                         }
 
                         if (listTitles.size > 0) {
@@ -1420,17 +1451,19 @@ class MainActivity : AppCompatActivity(),
                             var qualitySet = ""
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
-                                val itemQualityMap =
-                                    (playJSONArray[i] as JSONObject)["quality"] as JSONObject
-                                val keys = itemQualityMap.keys()
-                                while (keys.hasNext()) {
-                                    val key = keys.next()
-                                    val value = itemQualityMap.getString(key)
-                                    if (value == videoUrl) qualitySet = key
-                                    if (qualityMap.contains(key).not()) {
-                                        qualityMap[key] = arrayListOf()
+                                // val itemQualityMap = (playJSONArray[i] as JSONObject)["quality"] as JSONObject
+                                val itemQualityMap = (playJSONArray[i] as JSONObject).optJSONObject("quality")
+                                itemQualityMap?.let {
+                                    val keys = itemQualityMap.keys()
+                                    while (keys.hasNext()) {
+                                        val key = keys.next()
+                                        val value = itemQualityMap.getString(key)
+                                        if (value == videoUrl) qualitySet = key
+                                        if (qualityMap.contains(key).not()) {
+                                            qualityMap[key] = arrayListOf()
+                                        }
+                                        qualityMap.getValue(key).add(value)
                                     }
-                                    qualityMap.getValue(key).add(value)
                                 }
                             }
                             val qualityKeys = ArrayList(qualityMap.keys.toList())
@@ -1647,14 +1680,10 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Default) {
                 val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
                 if (lampaActivity?.has("movie") == true) {
-                    val card = try {
-                        Gson().fromJson(
-                            lampaActivity.getJSONObject("movie").toString(),
-                            LampaCard::class.java
-                        )
-                    } catch (e: Exception) {
-                        null
-                    }
+                    val card = getJson(
+                        lampaActivity.getJSONObject("movie").toString(),
+                        LampaCard::class.java
+                    )
                     card?.let {
                         it.fixCard()
                         try {
@@ -1679,13 +1708,26 @@ class MainActivity : AppCompatActivity(),
             else endedVideoUrl
         if (videoUrl == "") return
 
-        for (i in 0 until playJSONArray.length()) {
+        var returnIndex = -1
+        for (i in playJSONArray.length() - 1 downTo 0) {
             val io = playJSONArray.getJSONObject(i)
             if (!io.has("timeline") || !io.has("url")) break
 
             val timeline = io.optJSONObject("timeline")
             val hash = timeline?.optString("hash", "0")
-            if (io.optString("url") == videoUrl) {
+
+            val qualityObj = io.optJSONObject("quality")
+            var foundInQuality = false
+            qualityObj?.let {
+                for (key in it.keys()) {
+                    if (it[key] == videoUrl) {
+                        foundInQuality = true
+                    }
+                }
+            }
+
+            if (io.optString("url") == videoUrl || foundInQuality) {
+                returnIndex = i
                 val time: Int = if (ended) 0 else pos / 1000
                 val duration: Int =
                     if (ended) 0
@@ -1705,9 +1747,12 @@ class MainActivity : AppCompatActivity(),
                 val resumeio = JSONObject(io.toString())
                 resumeio.put("playlist", playJSONArray)
                 this.resumeJS = resumeio.toString()
-                break
             }
-            if (i >= playIndex) {
+            if (i in playIndex until returnIndex) {
+                if (BuildConfig.DEBUG) Log.d(
+                    "*****",
+                    "mark complete index $i (in range from $playIndex to $returnIndex)"
+                )
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
                 newTimeline.put("percent", 100)
@@ -1720,6 +1765,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun displaySpeechRecognizer() {
+        // Get SpeechRecognizer instance
+        if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
+            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+        } else {
+            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+        }
         if (VERSION.SDK_INT < 18) {
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1727,6 +1778,7 @@ class MainActivity : AppCompatActivity(),
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
+                putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
             }
             // This starts the activity and populates the intent with the speech text.
             try {

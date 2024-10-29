@@ -26,7 +26,7 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
             errorReport.append("---------------- Device Info ----------------\n")
             errorReport.append("Model: ${Helpers.deviceName}\n")
             errorReport.append("Android SDK: ${Build.VERSION.SDK_INT}\n")
-            errorReport.append("---------------- Main Crash ----------------\n")
+            errorReport.append("\n---------------- Main Crash ----------------\n")
             errorReport.append(throwable)
             errorReport.append("\n\n")
             errorReport.append("---------------- Stack Strace ----------------\n\n")
@@ -38,7 +38,7 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
 
             /** If the exception was thrown in a background thread inside
             then the actual exception can be found with getCause*/
-            errorReport.append("background thread Crash Log ----------------\n")
+            errorReport.append("- background thread Crash Log ----------------\n")
             val cause: Throwable? = throwable.cause
             if (cause != null) {
                 errorReport.append("Main Crash Name - $cause".trimIndent())
@@ -49,7 +49,7 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
                     errorReport.append("\n")
                 }
             }
-            errorReport.append("end of background thread Crash Log ----------------\n\n")
+            errorReport.append("\n- end of background thread Crash Log ----------------\n\n")
 
             val intent = Intent(this@handleUncaughtException, CrashActivity::class.java).apply {
                 putExtra("errorDetails", errorReport.toString())

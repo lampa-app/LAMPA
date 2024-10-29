@@ -2,13 +2,13 @@ package top.rootu.lampa.tmdb
 
 import android.net.Uri
 import android.os.Build
-import com.google.gson.Gson
 import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
@@ -177,11 +177,7 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val entities = try {
-            Gson().fromJson(body, Entities::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        val entities = getJson(body, Entities::class.java)
         val ret = mutableListOf<Entity>()
 
         entities?.results?.forEach {
@@ -246,11 +242,7 @@ object TMDB {
         if (body.isNullOrEmpty())
             return null
 
-        val ent = try {
-            Gson().fromJson(body, Entity::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        val ent = getJson(body, Entity::class.java)
         ent?.let { fixEntity(it) }
         return ent
     }

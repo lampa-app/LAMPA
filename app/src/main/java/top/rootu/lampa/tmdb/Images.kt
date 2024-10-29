@@ -2,13 +2,13 @@ package top.rootu.lampa.tmdb
 
 import android.net.Uri
 import android.os.Build
-import com.google.gson.Gson
 import okhttp3.Request
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
-import java.io.IOException
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.entity.Images
+import java.io.IOException
 
 object Images {
     fun get(entity: Entity) {
@@ -49,7 +49,7 @@ object Images {
             e.printStackTrace()
         }
 
-        val images = try { Gson().fromJson(body, Images::class.java) } catch (e: Exception) { null }
+        val images = getJson(body, Images::class.java)
         images?.let { img ->
             for (i in 0 until img.backdrops.size)
                 img.backdrops[i].file_path = TMDB.imageUrl(img.backdrops[i].file_path).replace("original", "w1280")

@@ -1,5 +1,8 @@
 <resources>
-    <string name="no_activity_found">Lampa: Нет приложения для открытия ссылки данного типа</string>
+    <string name="no_activity_found">Нет приложения, позволяющего открыть ссылку этого типа.</string>
+    <string name="no_player_activity_found">Подходящего мультимедиа-плеера не найдено. Пожалуйста, установите плеер из Google Play Store или любого другого источника. Мы рекомендуем Just Player, Vimu Media Player, VLC.</string>
+    <string name="no_torrent_activity_found">Нет приложения для открытия торрент-ссылок. Пожалуйста, установите TorrServe или любое другое приложение, работающее с торрентами.</string>
+    <string name="no_youtube_activity_found">Нет приложения для открытия ссылок YouTube. Пожалуйста, установите приложение YouTube.</string>
     <string name="no_launch_player">Lampa: Выбранный плеер не поддерживает воспроизведение этого видео</string>
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
@@ -73,6 +76,7 @@
     <string name="update_chan_title">Обновить каналы Android TV</string>
     <string name="update_home_title">Обновить ТВ-рекомендации</string>
     <string name="backup_restore_title">Резервирование и восстановление</string>
+    <string name="backup_all">Резервная копия</string>
     <string name="backup_all_title">Сделать резервную копию всех настроек</string>
     <string name="restore_app_title">Восстановить настройки приложения</string>
     <string name="restore_storage_title">Восстановить настройки Lampa</string>
@@ -84,7 +88,7 @@
     <string name="settings_restored">Настройки восстановлены</string>
     <!--App Errors-->
     <string name="app_crash_title">Приносим извинения за неудобства</string>
-    <string name="app_crash_message">Иногда в нашей системе возникают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
+    <string name="app_crash_message">Иногда у Лампы бывают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Вы можете сообщить об этой ошибке в нашем Telegram-канале — @lampa_group. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
     <string name="app_crash_copy">Копировать журнал в буфер обмена</string>
     <string name="app_crash_copied">Журнал скопирован в буфер обмена</string>
     <string name="app_crash_save_to">Журнал сбоя сохранен в папку</string>

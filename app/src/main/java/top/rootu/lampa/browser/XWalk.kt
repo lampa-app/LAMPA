@@ -67,4 +67,6 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
 
     override fun goBack() {}
 
+    override fun setFocus() {}
+
 }

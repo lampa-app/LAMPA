@@ -164,4 +164,5 @@ interface Browser {
     fun setBackgroundColor(color: Int)
     fun canGoBack(): Boolean
     fun goBack()
+    fun setFocus()
 }

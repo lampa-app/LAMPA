@@ -35,7 +35,9 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             isFocusable = true
             isFocusableInTouchMode = true
             scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
+            keepScreenOn = true
         }
+        setFocus()
         val settings = browser?.settings
         settings?.apply {
             javaScriptEnabled = true
@@ -46,6 +48,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             useWideViewPort = true
             cacheMode = WebSettings.LOAD_NO_CACHE
             setRenderPriority(WebSettings.RenderPriority.HIGH)
+            setNeedInitialFocus(false)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings?.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -254,6 +257,10 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
     override fun goBack() {
         browser?.goBack()
+    }
+
+    override fun setFocus() {
+        browser?.requestFocus(View.FOCUS_DOWN)
     }
 
 }

@@ -26,6 +26,35 @@ data class CubBookmark(
     val time: Long? // 0, 1650748577390
 )
 
+//data class CubData( // data in cub bookmarks
+//    val source: String?, // "cub", "tmdb", ...
+//    val id: String, // "id": 385687, "19885", ...
+//    val name: String?, // "Шерлок",
+//    val original_name: String?, // "Sherlock",
+//    val title: String?, // "Форсаж 10",
+//    val original_title: String?, // "Fast X",
+//    val original_language: String?, // "en",
+//    val poster_path: String?, // "/MSc1kcaHXvvyGgoyjDa60jxdqq.jpg",
+//    val backdrop_path: String?, // "/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg",
+//    val overview: String?, // "Дом Торетто и его семья становятся мишенью для мстительного сына наркобарона Эрнана Рейеса.",
+//    val release_date: String?, // "2023-05-17",
+//    val first_air_date: String?, // "2010-07-25",
+//    val genre_ids: List<String?>?, // [28,80,53],
+//    val popularity: Double?, // 591.695,
+//    val origin_country: List<String?>?, // [ "GB" ]
+//    val vote_count: Int?, // 5224,
+//    val vote_average: Double?, // 7.122,
+//    val imdb_id: String?, // "tt5433140",
+//    val imdb_rating: String?, // "5.8",
+//    val kinopoisk_id: String?, // "959062",
+//    val kp_rating: String?, // "6.0",
+//    val status: String?, // "released", "Ended", "returning series", ...
+//    val release_quality: String?, // "4K",
+//    val number_of_seasons: String?, // "4",
+//    val number_of_episodes: String?, // "12",
+//    val next_episode_to_air: String? // ""
+//)
+
 //data class TimeTable(
 //    val id: Int?,
 //    val season: Int?,
@@ -33,7 +62,7 @@ data class CubBookmark(
 //    val scanned: Int?,
 //    val scanned_time: Long?,
 //)
-//
+
 //data class Episodes(
 //    val air_date: String?,
 //    val season_number: Int?,
@@ -46,35 +75,43 @@ data class CubBookmark(
 // https://stackoverflow.com/questions/27626355/gson-deserializing-with-changing-field-types
 // https://proandroiddev.com/safe-parsing-kotlin-data-classes-with-gson-4d560fe3cdd2
 data class LampaCard(
-    var source: String?, //"KP","tmdb","cub","ivi","okko" etc
-    var type: String?, //"movie","tv","Scripted" etc
-    val id: String?, //"KP_1227897","84958","0a88d69f-6f33-49aa-91db-ee6e0c3fdff1"
-    val name: String?, //"Топ Гир: Лучшее",
-    val original_name: String?, //"Top Gear: Best of",
-    val title: String?, //"Топ Гир: Лучшее",
-    val original_title: String?, //"Top Gear: Best of",
+    var source: String?, // "KP","tmdb","cub","ivi","okko" etc
+    var type: String?, // "movie","tv","Scripted" etc
+    val id: String?, // "KP_1227897","84958","0a88d69f-6f33-49aa-91db-ee6e0c3fdff1"
+    val name: String?, // "Топ Гир: Лучшее",
+    val original_name: String?, // "Top Gear: Best of",
+    val title: String?, // "Топ Гир: Лучшее",
+    val original_title: String?, // "Top Gear: Best of",
+    val original_language: String?, // "en",
     val overview: String?,
-    val img: String?, //"https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
-    val background_image: String?,
-    val genres: List<Genre?>?,
+    val poster_path: String?, // "/MSc1kcaHXvvyGgoyjDa60jxdqq.jpg",
+    val backdrop_path: String?, // "/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg",
+    var img: String?, // "https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
+    var background_image: String?,
+    val genre_ids: List<String?>?, // [28,80,53],
+    var genres: List<Genre?>?,
     val popularity: Double?,
+    val origin_country: List<String?>?, // [ "GB" ]
     val production_companies: List<ProductionCompany>?,
     val production_countries: List<ProductionCountry>?,
-    val vote_average: Double?, //9.1,
-    val vote_count: Int?, //7217,
-    val kinopoisk_id: String?, //1227897,
-    val kp_rating: Double?, //9,
-    val imdb_id: String?, //"",
-    val imdb_rating: Double?, //0,
-    val first_air_date: String?, //2006, 1989-12-17
-    val last_air_date: String?, //2014, 2023-11-19
-    val number_of_seasons: Int?, //1,
-    val number_of_episodes: Int?, //12,
+    val vote_average: Double?, // 9.1,
+    val vote_count: Int?, // 7217,
+    val kinopoisk_id: String?, // 1227897,
+    val kp_rating: Double?, // 9,
+    val imdb_id: String?, // "",
+    val imdb_rating: Double?, // 0,
+    val release_year: String?, // "2006", "2023"
+    val release_date: String?, // "2006", "2023-07-19"
+    val first_air_date: String?, // 2006, 1989-12-17
+    val last_air_date: String?, // 2014, 2023-11-19
+    val number_of_seasons: Int?, // 1,
+    val number_of_episodes: Int?, // 12,
+    // val next_episode_to_air: String?, // "" | { "id": 5220956, "overview": "", "name": "Эпизод 5", "vote_average": 7.5, "vote_count": 2, "air_date": "2024-06-25", "episode_number": 5, "episode_type": "standard", "production_code": "", "runtime": null, "season_number": 1, "show_id": 114479, "still_path": "/3ZPtAcaLnzJ6dAPw97hB9bKc19o.jpg" }
     val persons: Persons?,
     val simular: Simular?,
-    val runtime: Int?, //0,
-    val release_date: String?, //"2006", "2023-07-19"
-    val release_year: String?, //"2006", "2023"
+    val status: String?, // "released", "Ended", "returning series", ...
+    val release_quality: String?, // "4K",
+    val runtime: Int?, // 0,
     val adult: Boolean?, // false
     // "seasons": [{...}],
 ) {
@@ -97,10 +134,16 @@ data class LampaCard(
                 "tv"
             else
                 "movie"
-//        if (!poster_path.isNullOrEmpty() && img.isNullOrEmpty())
-//            img = TMDB.imageUrl(poster_path)
-//        if (!backdrop_path.isNullOrEmpty() && background_image.isNullOrEmpty())
-//            background_image = TMDB.imageUrl(backdrop_path)
+        // fix genres
+        if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty())
+            genres = genre_ids.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
+        // fix posters
+        if (!poster_path.isNullOrEmpty() && img.isNullOrEmpty())
+            img = TMDB.imageUrl(poster_path)
+                .replace("original", "w342")
+        if (!backdrop_path.isNullOrEmpty() && background_image.isNullOrEmpty())
+            background_image = TMDB.imageUrl(backdrop_path)
+                .replace("original", "w1280")
     }
 
     override fun toString(): String {
@@ -112,16 +155,17 @@ data class LampaCard(
 data class LampaRec(
     val id: String, // "84958"
     val name: String?,
-    val title: String?,
     val original_name: String?,
-    val original_language: String?, // "en"
+    val title: String?,
     val original_title: String?,
+    val original_language: String?, // "en"
     val overview: String?,
     val poster_path: String?, // "/82HaUMIagdh5PLflUOVrHn5GsI9.jpg"
     val backdrop_path: String?, // "/aRKQdF6AGbhnF9IAyJbte5epH5R.jpg"
     val media_type: String?, // "movie" | "tv"
-    val genre_ids: List<String?>?,
+    val genre_ids: List<String?>?, // [28,80,53],
     val popularity: Double?, // 126.38
+    val origin_country: List<String?>?, // [ "GB" ]
     val release_date: String?, // "2023-06-09"
     val first_air_date: String?, // "2022-05-05"
     val vote_average: Double?, // 8.239
@@ -153,11 +197,16 @@ data class LampaRec(
             original_name,
             title,
             original_title,
+            original_language,
             overview,
+            poster_path,
+            backdrop_path,
             img,
             backdrop,
+            genre_ids,
             genres,
             popularity,
+            origin_country,
             null,
             null,
             vote_average,
@@ -166,6 +215,8 @@ data class LampaRec(
             null,
             null,
             null,
+            null,
+            release_date,
             first_air_date,
             null,
             null,
@@ -173,7 +224,7 @@ data class LampaRec(
             null,
             null,
             null,
-            release_date,
+            null,
             null,
             adult,
         )

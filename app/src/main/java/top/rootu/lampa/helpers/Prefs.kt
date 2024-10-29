@@ -9,6 +9,7 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.models.CubBookmark
 import top.rootu.lampa.models.Favorite
 import top.rootu.lampa.models.LampaRec
@@ -163,17 +164,13 @@ object Prefs {
 
     val Context.FAV: Favorite?
         get() {
-            return try {
-                val buf = defPrefs.getString(FAV_KEY, "{}") ?: "{}"
-                val fav = Gson().fromJson(buf, Favorite::class.java).apply {
-                    this.card?.forEach {
-                        it.fixCard()
-                    }
+            val buf = defPrefs.getString(FAV_KEY, "{}") ?: "{}"
+            val fav = getJson(buf, Favorite::class.java)?.apply {
+                this.card?.forEach {
+                    it.fixCard()
                 }
-                return fav
-            } catch (e: Exception) {
-                null
             }
+            return fav
         }
 
     fun Context.saveFavorite(json: String) {
@@ -182,12 +179,8 @@ object Prefs {
 
     val Context.REC: List<LampaRec>?
         get() {
-            return try {
-                val buf = defPrefs.getString(REC_KEY, "[]") ?: "[]"
-                Gson().fromJson(buf, Array<LampaRec>::class.java).toList()
-            } catch (e: Exception) {
-                null
-            }
+            val buf = defPrefs.getString(REC_KEY, "[]") ?: "[]"
+            return getJson(buf, Array<LampaRec>::class.java)?.toList()
         }
 
 
@@ -198,12 +191,8 @@ object Prefs {
 
     val Context.CUB: List<CubBookmark>?
         get() {
-            return try {
-                val buf = defPrefs.getString(CUB_KEY, "[]") ?: "[]"
-                Gson().fromJson(buf, Array<CubBookmark>::class.java).toList()
-            } catch (e: Exception) {
-                null
-            }
+            val buf = defPrefs.getString(CUB_KEY, "[]") ?: "[]"
+            return getJson(buf, Array<CubBookmark>::class.java)?.toList()
         }
 
     fun Context.saveAccountBookmarks(json: String) {
@@ -284,115 +273,88 @@ object Prefs {
 
     val Context.wathToAdd: List<WatchNextToAdd>
         get() {
-            return try {
-                val buf = defPrefs.getString(WNA_KEY, "[]")
-                val arr = Gson().fromJson(buf, Array<WatchNextToAdd>::class.java)
-                if (this.syncEnabled)
-                    arr.filter { !this.isInCubWatchNext(it.id) }
-                else
-                    arr.filter { !this.isInLampaWatchNext(it.id) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(WNA_KEY, "[]")
+            val arr = getJson(buf, Array<WatchNextToAdd>::class.java)
+            return if (this.syncEnabled)
+                arr?.filter { !this.isInCubWatchNext(it.id) } ?: emptyList()
+            else
+                arr?.filter { !this.isInLampaWatchNext(it.id) } ?: emptyList()
         }
 
     val Context.wathToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(WNR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.wath?.contains(it) == true || this.cubWatchNext.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(WNR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.wath?.contains(it) == true || this.cubWatchNext.contains(it) }
+                ?: emptyList()
         }
 
     val Context.bookToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(BMR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.book?.contains(it) == true || this.cubBook.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(BMR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.book?.contains(it) == true || this.cubBook.contains(it) }
+                ?: emptyList()
         }
 
     val Context.likeToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(LKR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.like?.contains(it) == true || this.cubLike.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(LKR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.like?.contains(it) == true || this.cubLike.contains(it) }
+                ?: emptyList()
         }
 
     val Context.histToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(HSR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.history?.contains(it) == true || this.cubHistory.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(HSR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.history?.contains(it) == true || this.cubHistory.contains(it) }
+                ?: emptyList()
         }
 
     val Context.lookToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(LOR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.look?.contains(it) == true || this.cubLook.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(LOR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.look?.contains(it) == true || this.cubLook.contains(it) }
+                ?: emptyList()
         }
 
     val Context.viewToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(VIR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.viewed?.contains(it) == true || this.cubViewed.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(VIR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.viewed?.contains(it) == true || this.cubViewed.contains(it) }
+                ?: emptyList()
         }
 
     val Context.schdToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(SCR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.scheduled?.contains(it) == true || this.cubSheduled.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(SCR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.scheduled?.contains(it) == true || this.cubSheduled.contains(it) }
+                ?: emptyList()
         }
 
     val Context.contToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(COR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.continued?.contains(it) == true || this.cubContinued.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(COR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter {
+                    this.FAV?.continued?.contains(it) == true || this.cubContinued.contains(
+                        it
+                    )
+                }
+                ?: emptyList()
         }
 
     val Context.thrwToRemove: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(THR_KEY, "[]")
-                Gson().fromJson(buf, Array<String>::class.java)
-                    .filter { this.FAV?.thrown?.contains(it) == true || this.cubThrown.contains(it) }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(THR_KEY, "[]")
+            return getJson(buf, Array<String>::class.java)
+                ?.filter { this.FAV?.thrown?.contains(it) == true || this.cubThrown.contains(it) }
+                ?: emptyList()
         }
 
     fun Context.addWatchNextToAdd(item: WatchNextToAdd) {
@@ -472,36 +434,42 @@ object Prefs {
 
     val Context.urlHistory: List<String>
         get() {
-            return try {
-                val buf = defPrefs.getString(APP_URL_HISTORY, "[]")
-                Gson().fromJson(buf, Array<InputHistory>::class.java).sortedBy { -it.timestamp }
-                    .map { it.input }
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+            return getJson(buf, Array<InputHistory>::class.java)
+                ?.sortedBy { -it.timestamp }
+                ?.map { it.input }
+                ?: emptyList()
         }
 
     fun Context.addUrlHistory(v: String) {
-        try {
-            var buf = defPrefs.getString(APP_URL_HISTORY, "[]")
-            val lst = Gson().fromJson(buf, Array<InputHistory>::class.java).filter { it.input != v }
-                .sortedBy { it.timestamp }.toMutableList()
-            lst.add(InputHistory(v, System.currentTimeMillis()))
-            buf = Gson().toJson(lst)
-            defPrefs.edit()
-                .putString(APP_URL_HISTORY, buf)
-                .apply()
-        } catch (_: Exception) {
-        }
+        var buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+        val lst = getJson(buf, Array<InputHistory>::class.java)
+            ?.filter { it.input != v }
+            ?.sortedBy { it.timestamp }
+            ?.toMutableList()
+        lst?.add(InputHistory(v, System.currentTimeMillis()))
+        buf = Gson().toJson(lst)
+        defPrefs.edit()
+            .putString(APP_URL_HISTORY, buf)
+            .apply()
+    }
+
+    fun Context.remUrlHistory(v: String) {
+        var buf = defPrefs.getString(APP_URL_HISTORY, "[]")
+        val lst = getJson(buf, Array<InputHistory>::class.java)
+            ?.filter { it.input != v }
+            ?.sortedBy { it.timestamp }
+            ?.toMutableList()
+        buf = Gson().toJson(lst)
+        defPrefs.edit()
+            .putString(APP_URL_HISTORY, buf)
+            .apply()
     }
 
     fun Context.clearUrlHistory() {
-        try {
-            defPrefs.edit()
-                .putString(APP_URL_HISTORY, "[]")
-                .apply()
-        } catch (_: Exception) {
-        }
+        defPrefs.edit()
+            .putString(APP_URL_HISTORY, "[]")
+            .apply()
     }
 
     @Suppress("UNCHECKED_CAST")

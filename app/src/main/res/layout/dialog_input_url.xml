@@ -8,27 +8,25 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="6dp">
+        android:layout_marginHorizontal="14dp"
+        android:layout_marginVertical="6dp">
 
-    <top.rootu.lampa.AutoCompleteTV
-        android:id="@+id/etLampaUrl"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginBottom="10dp"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="18dp"
-        android:dropDownSelector="@drawable/dropdown_selector"
-        android:imeOptions="actionDone|flagNoExtractUi"
-        android:maxLines="1"
-        android:popupBackground="@android:color/transparent"
-        android:scrollbars="none"
-        android:singleLine="true"
-        android:textSize="20sp"
-        tools:ignore="LabelFor" />
+        <top.rootu.lampa.AutoCompleteTV
+            android:id="@+id/etLampaUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginBottom="5dp"
+            android:dropDownSelector="@drawable/dropdown_selector"
+            android:imeOptions="actionDone|flagNoExtractUi"
+            android:maxLines="1"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="14dp"
+            android:popupBackground="@android:color/transparent"
+            android:scrollbars="none"
+            android:singleLine="true"
+            android:textSize="20sp"
+            tools:ignore="LabelFor" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
