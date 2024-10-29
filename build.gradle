@@ -4,7 +4,7 @@ buildscript {
     // https://developer.android.com/build/releases/gradle-plugin
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-gradle-plugin
     // https://mvnrepository.com/artifact/com.android.tools/r8?repo=google
-    ext.kp_version = '1.9.23'
+    ext.kp_version = '2.0.0'
     ext.gp_version = '8.3.0'
     ext.tools_version = '8.2.47'
     repositories {
@@ -23,7 +23,7 @@ buildscript {
 }
 
 plugins {
-    id 'com.google.devtools.ksp' version "${kp_version}-1.0.19" apply false
+    id 'com.google.devtools.ksp' version "${kp_version}-1.0.23" apply false
     id 'org.jetbrains.kotlin.android' version "${kp_version}" apply false
 }
 

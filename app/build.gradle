@@ -111,7 +111,7 @@ dependencies {
 
     // https://developer.android.com/studio/write/java8-support#library-desugaring
     // For AGP 7.4+
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.2'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.15'
@@ -125,13 +125,13 @@ dependencies {
     // netcipher
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
-    def actKtxVer = '1.9.0'
+    def actKtxVer = '1.9.3'
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
     def coreKtxVer = '1.13.1'
     implementation "androidx.core:core-ktx:$coreKtxVer"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    def lifecycleVersion = '2.8.0'
+    def lifecycleVersion = '2.8.6'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
     implementation 'androidx.preference:preference-ktx:1.2.1'
@@ -153,21 +153,21 @@ dependencies {
     // speech
     implementation 'net.gotev:speech:1.6.2'
     // coroutines
-    def coroutinesVersion = '1.8.1'
+    def coroutinesVersion = '1.9.0'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     // json serializer
     implementation 'com.google.code.gson:gson:2.11.0'
     // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.4.1'
+    implementation 'com.airbnb.android:lottie:6.6.0'
     // tests
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     // webkit
-    def webkitVersion = '1.11.0'
+    def webkitVersion = '1.12.1'
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
-    implementation 'org.conscrypt:conscrypt-android:2.5.2'
+    implementation 'org.conscrypt:conscrypt-android:2.5.3'
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
     fullApi fileTree(dir: 'libs', include: ['xwalk_core_library-23.53.589.4.aar'])
