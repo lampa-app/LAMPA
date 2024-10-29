@@ -127,7 +127,9 @@ dependencies {
     // androidx
     def actKtxVer = '1.9.3'
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    implementation 'androidx.appcompat:appcompat:1.7.0'
+    def appcompatVersion = '1.6.1' // 1.6.1 - latest version for API < 21
+    //noinspection GradleDependency
+    implementation "androidx.appcompat:appcompat:$appcompatVersion"
     def coreKtxVer = '1.13.1'
     implementation "androidx.core:core-ktx:$coreKtxVer"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -164,7 +166,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     // webkit
-    def webkitVersion = '1.12.1'
+    def webkitVersion = '1.11.0'  // 1.11.0 - latest version for API < 21
+    //noinspection GradleDependency
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
     implementation 'org.conscrypt:conscrypt-android:2.5.3'
