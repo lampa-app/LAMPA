@@ -23,7 +23,7 @@ import top.rootu.lampa.helpers.Prefs.remUrlHistory
 class AutoCompleteTV @JvmOverloads constructor(
     context: Context,
     attributeSet: AttributeSet? = null,
-    defStyleAttr: Int = R.attr.autoCompleteTextViewStyle
+    defStyleAttr: Int = androidx.appcompat.R.attr.autoCompleteTextViewStyle
 ) : AppCompatAutoCompleteTextView(context, attributeSet, defStyleAttr) {
 
     companion object {
