@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Build
 import okhttp3.Dns
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
@@ -116,7 +117,7 @@ object TMDB {
     fun startWithQuad9DNS(): OkHttpClient {
 
         val bootstrapClient = OkHttpClient.Builder().build()
-        val okUrl = HttpUrl.parse("https://dns.quad9.net/dns-query")
+        val okUrl = "https://dns.quad9.net/dns-query".toHttpUrlOrNull()
 
         var dns: Dns? = okUrl?.let {
             DnsOverHttps.Builder().client(bootstrapClient)
@@ -167,8 +168,8 @@ object TMDB {
                 startWithQuad9DNS() else permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                body = response.body()?.string()
-                response.body()?.close()
+                body = response.body.toString()
+                response.body?.close()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -232,8 +233,8 @@ object TMDB {
                 startWithQuad9DNS() else permissiveOkHttp()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                body = response.body()?.string()
-                response.body()?.close()
+                body = response.body.toString()
+                response.body?.close()
             }
         } catch (e: Exception) {
             e.printStackTrace()
