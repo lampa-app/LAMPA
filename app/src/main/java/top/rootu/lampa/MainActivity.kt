@@ -1,7 +1,6 @@
 package top.rootu.lampa
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -197,7 +196,7 @@ class MainActivity : AppCompatActivity(),
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
             JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             JSONArray()
         }
         // Some external video player api specs:
@@ -418,7 +417,7 @@ class MainActivity : AppCompatActivity(),
         speechLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
+            if (result.resultCode == RESULT_OK) {
                 // There are no request codes
                 val data: Intent? = result.data
                 val spokenText: String? =
@@ -686,6 +685,8 @@ class MainActivity : AppCompatActivity(),
     private fun processIntent(intent: Intent?, delay: Long = 0) {
         var intID = -1
         var mediaType = ""
+        var source = ""
+
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
@@ -697,11 +698,15 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+
         if (intent?.hasExtra("id") == true)
             intID = intent.getIntExtra("id", -1)
 
-        if (intent?.hasExtra("media_type") == true)
-            mediaType = intent.getStringExtra("media_type") ?: ""
+        if (intent?.hasExtra("media") == true)
+            mediaType = intent.getStringExtra("media") ?: ""
+
+        if (intent?.hasExtra("source") == true)
+            source = intent.getStringExtra("source") ?: ""
 
         intent?.data?.let {
             if (it.host?.contains("themoviedb.org") == true && it.pathSegments.size >= 2) {
@@ -789,10 +794,9 @@ class MainActivity : AppCompatActivity(),
         } else
         // open card
             if (intID >= 0 && mediaType.isNotEmpty()) {
-
-                var source = intent?.getStringExtra("source")
-                if (source.isNullOrEmpty())
-                    source = "tmdb"
+//                var source = intent?.getStringExtra("source")
+                if (source.isEmpty())
+                    source = "cub"
 
 //            ID in card json _must_ be INT in case TMDB at least, or bookmarks don't match
 //            var card = intent?.getStringExtra("LampaCardJS")
@@ -1025,7 +1029,7 @@ class MainActivity : AppCompatActivity(),
     fun showUrlInputDialog() {
         val mainActivity = this
         urlAdapter = UrlAdapter(mainActivity)
-        val inputManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
@@ -1440,7 +1444,7 @@ class MainActivity : AppCompatActivity(),
                             }
                         }
 
-                        if (listTitles.size > 0) {
+                        if (listTitles.isNotEmpty()) {
                             intent.putStringArrayListExtra("titleList", listTitles)
                         } else {
                             intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
@@ -1477,7 +1481,7 @@ class MainActivity : AppCompatActivity(),
                                 if (qualityIndex < 1) 0 else qualityIndex
                             )
                         } else {
-                            if (listUrls.size > 0) {
+                            if (listUrls.isNotEmpty()) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
                             } else {
                                 intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
@@ -1511,7 +1515,7 @@ class MainActivity : AppCompatActivity(),
                         intent.putExtra("video_list.name", listTitles.toTypedArray())
                         intent.putExtra("video_list_is_explicit", true)
                     }
-                    if (subsUrls.size > 0) {
+                    if (subsUrls.isNotEmpty()) {
                         val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
                         for (i in 0 until subsUrls.size) {
                             parcelableSubsArr[i] = Uri.parse(subsUrls[i])
@@ -1525,7 +1529,7 @@ class MainActivity : AppCompatActivity(),
                 "is.xyz.mpv" -> {
                     // http://mpv-android.github.io/mpv-android/intent.html
                     intent.setPackage(SELECTED_PLAYER)
-                    if (subsUrls.size > 0) {
+                    if (subsUrls.isNotEmpty()) {
                         val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
                         for (i in 0 until subsUrls.size) {
                             parcelableSubsArr[i] = Uri.parse(subsUrls[i])
@@ -1569,7 +1573,7 @@ class MainActivity : AppCompatActivity(),
                     intent.putExtra("title", videoTitle)
                     if (playerTimeCode == "continue" || playerTimeCode == "again")
                         intent.putExtra("position", videoPosition.toInt())
-                    if (subsUrls.size > 0) {
+                    if (subsUrls.isNotEmpty()) {
                         val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
                         for (i in 0 until subsUrls.size) {
                             parcelableSubsArr[i] = Uri.parse(subsUrls[i])
@@ -1592,7 +1596,7 @@ class MainActivity : AppCompatActivity(),
                     // see https://vimu.tv/player-api
                     if (listUrls.size <= 1) {
                         intent.putExtra("forcename", videoTitle)
-                        if (subsUrls.size > 0) {
+                        if (subsUrls.isNotEmpty()) {
                             intent.putStringArrayListExtra(
                                 "asussrtlist",
                                 subsUrls
@@ -1656,7 +1660,7 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
                 resultLauncher.launch(intent)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 App.toast(R.string.no_launch_player, true)
             }
         }
@@ -1783,7 +1787,7 @@ class MainActivity : AppCompatActivity(),
             // This starts the activity and populates the intent with the speech text.
             try {
                 speechLauncher.launch(intent)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 App.toast(R.string.not_found_speech, false)
             }
         } else {
@@ -1795,7 +1799,7 @@ class MainActivity : AppCompatActivity(),
             val etSearch = view.findViewById<AppCompatEditText?>(R.id.etSearchQuery)
             val btnVoice = view.findViewById<AppCompatImageButton?>(R.id.btnVoiceSearch)
             val inputManager =
-                getSystemService(Activity.INPUT_METHOD_SERVICE) as? InputMethodManager
+                getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
 
             etSearch?.apply {
                 setOnClickListener {
@@ -1936,14 +1940,14 @@ class MainActivity : AppCompatActivity(),
                 if (BuildConfig.DEBUG)
                     Logger.setLogLevel(Logger.LogLevel.DEBUG)
                 return true
-            } catch (exc: SpeechRecognitionNotAvailable) {
+            } catch (_: SpeechRecognitionNotAvailable) {
                 Log.e("speech", "Speech recognition is not available on this device!")
                 App.toast(R.string.search_no_voice_recognizer)
                 // You can prompt the user if he wants to install Google App to have
                 // speech recognition, and then you can simply call:
                 SpeechUtil.redirectUserToGoogleAppOnPlayStore(context)
                 // to redirect the user to the Google App page on Play Store
-            } catch (exc: GoogleVoiceTypingDisabledException) {
+            } catch (_: GoogleVoiceTypingDisabledException) {
                 Log.e("speech", "Google voice typing must be enabled!")
             }
         }

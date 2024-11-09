@@ -197,7 +197,7 @@ object Helpers {
         val intID = card.id?.toIntOrNull() // required for processIntent()
         intID?.let { intent.putExtra("id", it) }
         intent.putExtra("source", card.source)
-        intent.putExtra("media_type", card.type)
+        intent.putExtra("media", card.type)
 
         val idStr = try { Gson().toJson(card) } catch (e: Exception) { null } // used to get card from HomeWatch
         idStr?.let { intent.putExtra("LampaCardJS", idStr) }

@@ -175,6 +175,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (!TextUtils.isEmpty(poster)) {
             intent.putExtra("poster", poster)
         }
+        val category = jSONObject.optString("media")
+        if (!TextUtils.isEmpty(category)) {
+            intent.putExtra("category", category)
+        }
         if (jSONObject.optJSONObject("data") != null) {
             val optJSONObject = jSONObject.optJSONObject("data")
             if (optJSONObject != null) {
