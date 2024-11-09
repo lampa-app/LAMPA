@@ -368,9 +368,9 @@ public class MyXWalkDialogManager {
         } else if (id == DIALOG_SIGNATURE_CHECK_ERROR) {
             if (mSignatureCheckErrorDialog == null) {
                 mSignatureCheckErrorDialog = buildAlertDialog();
-                setTitle(mSignatureCheckErrorDialog, R.string.startup_signature_check_error_title);
+                setTitle(mSignatureCheckErrorDialog, org.xwalk.core.R.string.startup_signature_check_error_title);
                 setMessage(mSignatureCheckErrorDialog,
-                        R.string.startup_signature_check_error_message);
+                        org.xwalk.core.R.string.startup_signature_check_error_message);
                 setNegativeButton(mSignatureCheckErrorDialog, R.string.xwalk_close);
             }
             return mSignatureCheckErrorDialog;
@@ -416,7 +416,7 @@ public class MyXWalkDialogManager {
             if (mDecompressingDialog == null) {
                 mDecompressingDialog = buildProgressDialog();
                 setTitle(mDecompressingDialog, R.string.crosswalk_install_title);
-                setMessage(mDecompressingDialog, R.string.decompression_progress_message);
+                setMessage(mDecompressingDialog, org.xwalk.core.R.string.decompression_progress_message);
                 setNegativeButton(mDecompressingDialog, R.string.xwalk_cancel);
                 mDecompressingDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
             }

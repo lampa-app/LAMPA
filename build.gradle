@@ -5,8 +5,8 @@ buildscript {
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-gradle-plugin
     // https://mvnrepository.com/artifact/com.android.tools/r8?repo=google
     ext.kp_version = '2.0.0'
-    ext.gp_version = '8.3.0'
-    ext.tools_version = '8.2.47'
+    ext.gp_version = '8.7.1'
+    ext.tools_version = '8.7.14'
     repositories {
         google()
         mavenCentral()
@@ -17,7 +17,6 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$gp_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kp_version"
-        // 8.x have verify release issues on api19
         classpath("com.android.tools:r8:$tools_version")
     }
 }

@@ -33,10 +33,10 @@ def getVersionName = { ->
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
     defaultConfig {
         applicationId "top.rootu.lampa"
-        minSdkVersion 19
+        minSdkVersion 21
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 28
         versionCode getVersionCode()
@@ -115,10 +115,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
     implementation 'org.mozilla:rhino:1.7.15'
-    def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
-    //noinspection GradleDependency
+    def okhttpVersion = '3.12.13'
     implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
-    //noinspection GradleDependency
     implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
     // multidex
     implementation 'androidx.multidex:multidex:2.0.1'
@@ -127,13 +125,12 @@ dependencies {
     // androidx
     def actKtxVer = '1.9.3'
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    def appcompatVersion = '1.6.1' // 1.6.1 - latest version for API < 21
-    //noinspection GradleDependency
+    def appcompatVersion = '1.7.0'
     implementation "androidx.appcompat:appcompat:$appcompatVersion"
-    def coreKtxVer = '1.13.1'
+    def coreKtxVer = '1.15.0'
     implementation "androidx.core:core-ktx:$coreKtxVer"
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    def lifecycleVersion = '2.8.6'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    def lifecycleVersion = '2.8.7'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
     implementation 'androidx.preference:preference-ktx:1.2.1'
@@ -166,8 +163,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     // webkit
-    def webkitVersion = '1.11.0'  // 1.11.0 - latest version for API < 21
-    //noinspection GradleDependency
+    def webkitVersion = '1.12.1'
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
     implementation 'org.conscrypt:conscrypt-android:2.5.3'
