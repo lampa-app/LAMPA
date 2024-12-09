@@ -228,8 +228,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun httpReq(str: String?, returnI: Int) {
-        if (BuildConfig.DEBUG) Log.d("JS", str!!)
+    fun httpReq(str: String, returnI: Int) {
+        if (BuildConfig.DEBUG) Log.d("JS", str)
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
