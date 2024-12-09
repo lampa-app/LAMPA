@@ -57,10 +57,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
 
-            "file_view" -> {
-                MainActivity.playerFileView = eo.optJSONObject("value")
-            }
-
             "playlist_next" -> {
                 MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
             }
