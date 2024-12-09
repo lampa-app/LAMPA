@@ -546,7 +546,6 @@ class MainActivity : AppCompatActivity(),
                 runJsStorageChangeField("language")
                 runJsStorageChangeField("source")
                 runJsStorageChangeField("account_use") // get sync state
-                runJsStorageChangeField("account_user") // for profile id
                 runJsStorageChangeField("recomends_list", "[]") // force update recs var
                 changeTmdbUrls()
                 syncBookmarks()

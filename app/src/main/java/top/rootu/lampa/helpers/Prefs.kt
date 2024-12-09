@@ -45,7 +45,6 @@ object Prefs {
     private const val COR_KEY = "cont_rem"
     private const val THR_KEY = "thrw_rem"
     private const val SYNC_KEY = "sync_account"
-    private const val PROF_KEY = "account_profile"
     private const val PLAY_ACT_KEY = "playActivityJS"
     private const val RESUME_KEY = "resumeJS"
 
@@ -206,14 +205,6 @@ object Prefs {
         }
         set(enabled) {
             this.appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
-        }
-
-    var Context.accProfile: String?
-        get() {
-            return this.appPrefs.getString(PROF_KEY, "")
-        }
-        set(id) {
-            this.appPrefs.edit().putString(PROF_KEY, id).apply()
         }
 
     private fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {

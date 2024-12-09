@@ -21,7 +21,6 @@ import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
-import top.rootu.lampa.helpers.Prefs.accProfile
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
@@ -45,9 +44,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
         if (!eo.has("name") || !eo.has("value")) return
 
-        val fw =
-            if (App.context.syncEnabled == true) "file_view_${App.context.accProfile}" else "file_view"
-
         when (eo.optString("name")) {
             "activity" -> {
                 if (BuildConfig.DEBUG) Log.d(
@@ -61,7 +57,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
 
-            fw -> {
+            "file_view" -> {
                 MainActivity.playerFileView = eo.optJSONObject("value")
             }
 
@@ -110,13 +106,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
-                }
-            }
-
-            "account_user" -> {
-                eo.optJSONObject("value")?.let {
-                    if (it.has("profile"))
-                        App.context.accProfile = it.optString("profile", "")
                 }
             }
 
@@ -243,8 +232,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun httpReq(str: String, returnI: Int) {
-        if (BuildConfig.DEBUG) Log.d("JS", str)
+    fun httpReq(str: String?, returnI: Int) {
+        if (BuildConfig.DEBUG) Log.d("JS", str!!)
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
