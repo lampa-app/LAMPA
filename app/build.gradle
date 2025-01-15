@@ -125,11 +125,12 @@ dependencies {
     // androidx
     def actKtxVer = '1.9.3'
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    def appcompatVersion = '1.7.0'
-    implementation "androidx.appcompat:appcompat:$appcompatVersion"
+    def appCompatVer = '1.7.0'
+    implementation "androidx.appcompat:appcompat:$appCompatVer"
+    def constraintVersion = '2.2.0'
+    implementation "androidx.constraintlayout:constraintlayout:${constraintVersion}"
     def coreKtxVer = '1.15.0'
     implementation "androidx.core:core-ktx:$coreKtxVer"
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
     def lifecycleVersion = '2.8.7'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
@@ -158,10 +159,6 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.11.0'
     // lottie loaders
     implementation 'com.airbnb.android:lottie:6.6.0'
-    // tests
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     // webkit
     def webkitVersion = '1.12.1'
     implementation "androidx.webkit:webkit:$webkitVersion"

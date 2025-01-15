@@ -142,7 +142,6 @@ class MainActivity : AppCompatActivity(),
         var SELECTED_BROWSER: String? =
             if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
         var playerTimeCode: String = "continue"
-        var playerFileView: JSONObject? = null
         var playerAutoNext: Boolean = true
         var internalTorrserve: Boolean = false
         var torrserverPreload: Boolean = false
@@ -1332,19 +1331,10 @@ class MainActivity : AppCompatActivity(),
 
             if (playerTimeCode == "continue" && jsonObject.has("timeline")) {
                 val timeline = jsonObject.optJSONObject("timeline")
-                if (timeline?.has("time") == true) {
-                    val hash = timeline.optString("hash", "0")
-                    val latestTimeline =
-                        if (playerFileView?.has(hash) == true) playerFileView?.optJSONObject(hash) else null
-                    videoPosition = if (latestTimeline?.has("time") == true)
-                        (latestTimeline.optDouble("time", 0.0) * 1000).toLong()
-                    else
-                        (timeline.optDouble("time", 0.0) * 1000).toLong()
-                    videoDuration = if (latestTimeline?.has("duration") == true)
-                        (latestTimeline.optDouble("duration", 0.0) * 1000).toLong()
-                    else
-                        (timeline.optDouble("duration", 0.0) * 1000).toLong()
-                }
+                if (timeline?.has("time") == true)
+                    videoPosition = (timeline.optDouble("time", 0.0) * 1000).toLong()
+                if (timeline?.has("duration") == true)
+                    videoDuration = (timeline.optDouble("duration", 0.0) * 1000).toLong()
             }
             // Headers
             var ua = HttpHelper.userAgent

@@ -57,10 +57,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
             }
 
-            "file_view" -> {
-                MainActivity.playerFileView = eo.optJSONObject("value")
-            }
-
             "playlist_next" -> {
                 MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
             }
@@ -232,8 +228,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun httpReq(str: String?, returnI: Int) {
-        if (BuildConfig.DEBUG) Log.d("JS", str!!)
+    fun httpReq(str: String, returnI: Int) {
+        if (BuildConfig.DEBUG) Log.d("JS", str)
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
@@ -241,6 +237,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             val url = jSONObject.optString("url")
             val data = jSONObject.opt("post_data")
             var headers = jSONObject.optJSONObject("headers")
+            val returnHeaders = jSONObject.optBoolean("returnHeaders", false)
             var contentType = jSONObject.optString("contentType")
             val timeout = jSONObject.optInt("timeout", 15000)
             var requestContent = ""
@@ -290,12 +287,17 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     val json: JSONObject?
                     val http = Http()
                     try {
-                        s = if (TextUtils.isEmpty(finalRequestContent)) {
+                        val responseJSON = if (TextUtils.isEmpty(finalRequestContent)) {
                             // GET
                             http.Get(url, finalHeaders, timeout)
                         } else {
                             // POST
                             http.Post(url, finalRequestContent, finalHeaders, timeout)
+                        }
+                        s = if (returnHeaders) {
+                            responseJSON.toString()
+                        } else {
+                            responseJSON.optString("body", "")
                         }
                     } catch (e: Exception) {
                         json = JSONObject()
