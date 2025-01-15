@@ -85,7 +85,7 @@ class App : MultiDexApplication() {
         // enable Conscrypt to support TLS v1.3 on older Androids
         Security.insertProviderAt(Conscrypt.newProvider(), 1)
         // self-update check
-        val checkUpdates = true
+        val checkUpdates = false
         if (checkUpdates) {
             CoroutineScope(Dispatchers.IO).launch {
                 var count = 60
