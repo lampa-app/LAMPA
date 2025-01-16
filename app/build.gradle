@@ -95,11 +95,11 @@ android {
     productFlavors {
         lite {
             buildConfigField "boolean", "enableUpdate", "true"
-            buildConfigField "String", "defaultAppUrl", ""
+            buildConfigField "String", "defaultAppUrl", "\"\""
         }
         full {
             buildConfigField "boolean", "enableUpdate", "false"
-            buildConfigField "String", "defaultAppUrl", ""
+            buildConfigField "String", "defaultAppUrl", "\"\""
         }
         ruStore {
             versionNameSuffix "-RuStore"
