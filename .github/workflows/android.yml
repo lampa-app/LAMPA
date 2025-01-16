@@ -47,13 +47,13 @@ jobs:
         KEY_ID="${{ secrets.RUSTORE_KEY_ID }}"
         # Извлекаем приватный ключ из секрета и декодируем
         PRIVATE_KEY_BASE64="${{ secrets.RUSTORE_KEY }}"
-        PRIVATE_KEY=$(echo $PRIVATE_KEY_BASE64 | base64 --decode)
+        echo $PRIVATE_KEY_BASE64 | base64 --decode > private_key.pem
         # Генерация timestamp
         TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S%z")
         # Создаем сообщение для подписи
         MESSAGE="${KEY_ID}${TIMESTAMP}"
         # Генерация подписи с помощью OpenSSL
-        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign <(echo "$PRIVATE_KEY") | base64)
+        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64)
         echo "Signature: $SIGNATURE"  
         # Получение JWT токена
         RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
