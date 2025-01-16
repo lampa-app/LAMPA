@@ -83,7 +83,7 @@ class App : MultiDexApplication() {
         // app crash handler
         handleUncaughtException(showLogs = true)
         // self-update check
-        val checkUpdates = true
+        val checkUpdates = BuildConfig.enableUpdate
         if (checkUpdates) {
             CoroutineScope(Dispatchers.IO).launch {
                 var count = 60

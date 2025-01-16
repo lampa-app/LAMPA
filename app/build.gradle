@@ -93,9 +93,22 @@ android {
     flavorDimensions "default"
 
     productFlavors {
-        lite {}
-        full {}
+        lite {
+            buildConfigField "boolean", "enableUpdate", "true"
+            buildConfigField "String", "defaultAppUrl", ""
+        }
+        full {
+            buildConfigField "boolean", "enableUpdate", "false"
+            buildConfigField "String", "defaultAppUrl", ""
+        }
+        ruStore {
+            versionNameSuffix "-RuStore"
+            minSdk 24 // minSdk RuStore.apk
+            buildConfigField "boolean", "enableUpdate", "false"
+            buildConfigField "String", "defaultAppUrl", "\"http://lampa.mx\""
+        }
     }
+
     packagingOptions {
         resources.excludes += "DebugProbesKt.bin"
     }
@@ -178,5 +191,6 @@ dependencies {
     implementation 'org.conscrypt:conscrypt-android:2.5.3'
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
+    ruStoreApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
     fullApi fileTree(dir: 'libs', include: ['xwalk_core_library-23.53.589.4.aar'])
 }

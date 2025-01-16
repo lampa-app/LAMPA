@@ -433,16 +433,22 @@ class MainActivity : AppCompatActivity(),
 
         SELECTED_BROWSER = this.appBrowser
         if (!Helpers.isWebViewAvailable(this)
-            || (SELECTED_BROWSER.isNullOrEmpty() && playVideoUrl.isNotEmpty())
+            || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
         ) {
             // If SELECTED_BROWSER not set, but there is information about the latest video,
             // then the user used Crosswalk in previous versions of the application
             SELECTED_BROWSER = "XWalk"
         }
-        // Hide XWalk chooser on RuStore bulds and modern Android
+        val wvv = Helpers.getWebViewVersion(this)
+        val wvvMajorVersion: Double = try {
+            wvv.substringBefore(".").toDouble()
+        } catch (npe: NumberFormatException) {
+            0.0
+        }
+        // Hide XWalk chooser on RuStore bulds and modern Android WebView
         if (Helpers.isWebViewAvailable(this)
-            && (Helpers.getAppInstaller(this).contains("rustore", true)
-                    || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT > Build.VERSION_CODES.KITKAT))
+            && SELECTED_BROWSER.isNullOrEmpty()
+            && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
         ) {
             SELECTED_BROWSER = "SysView"
         }
@@ -574,11 +580,6 @@ class MainActivity : AppCompatActivity(),
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
         if (LAMPA_URL.isEmpty()) {
-            if (Helpers.getAppInstaller(this).contains("rustore", true)) {
-                LAMPA_URL = "http://lampa.mx"
-                this.appUrl = LAMPA_URL
-                browser?.loadUrl(LAMPA_URL)
-            } else
                 showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
@@ -989,14 +990,21 @@ class MainActivity : AppCompatActivity(),
             menuItemsTitle = arrayOfNulls(2)
             menuItemsAction = arrayOfNulls(2)
             val wvv = Helpers.getWebViewVersion(mainActivity)
+            val wvvMajorVersion: Double = try {
+                wvv.substringBefore(".").toDouble()
+            } catch (npe: NumberFormatException) {
+                0.0
+            }
             menuItemsAction[0] = "XWalk"
             menuItemsAction[1] = "SysView"
             if (menuItemsAction[0] == SELECTED_BROWSER) {
                 menuItemsTitle[0] =
-                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
+                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
                 menuItemsTitle[1] = "${getString(R.string.engine_webkit)} $wvv"
             } else {
-                menuItemsTitle[0] = getString(R.string.engine_crosswalk_obsolete)
+                menuItemsTitle[0] =
+                    if (wvvMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
+                    else "${getString(R.string.engine_crosswalk)} 53.589.4"
                 menuItemsTitle[1] =
                     "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
                 current = 1
