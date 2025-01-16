@@ -44,7 +44,34 @@ jobs:
          ./gradlew bundleRelease
     - name: Release to RuStore
       run: |
-        curl --location --request POST https://public-api.rustore.ru/public/v1/application/top.rootu.lampa/version/`git rev-list --count origin/main`/apk?servicesType=Unknown\&isMainApk=true --header 'Public-Token: ${{ secrets.RUSTORE_TOKEN }}' --form 'file=@"./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk"'
+        KEY_ID="${{ secrets.RUSTORE_KEY_ID }}"
+        # Извлекаем приватный ключ из секрета и декодируем
+        PRIVATE_KEY_BASE64="${{ secrets.RUSTORE_KEY }}"
+        PRIVATE_KEY=$(echo $PRIVATE_KEY_BASE64 | base64 --decode)
+        # Генерация timestamp
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S%z")
+        # Создаем сообщение для подписи
+        MESSAGE="${KEY_ID}${TIMESTAMP}"
+        # Генерация подписи с помощью OpenSSL
+        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign <(echo "$PRIVATE_KEY") | base64)
+        echo "Signature: $SIGNATURE"  
+        # Получение JWT токена
+        RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
+          --header 'Content-Type: application/json' \
+          --data '{
+            "keyId": "'"${KEY_ID}"'",
+            "timestamp": "'"${TIMESTAMP}"'",
+            "signature": "'"${SIGNATURE}"'"
+          }')
+        # Извлекаем jwe из ответа
+        JWT_TOKEN=$(echo $RESPONSE | jq -r '.body.jwe')
+        # Публикуем apk
+        APP_PACKAGE_NAME="top.rootu.lampa" # пакет приложения
+        APK_PATH="./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk" # Путь к APK
+        VERSION_CODE=$(git rev-list --count origin/main) # versionCode
+        curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
+          --header "Public-Token: ${JWT_TOKEN}" \
+          --form "file=@\"${APK_PATH}\""
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
