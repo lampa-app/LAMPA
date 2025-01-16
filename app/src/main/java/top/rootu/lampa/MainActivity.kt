@@ -438,6 +438,13 @@ class MainActivity : AppCompatActivity(),
             // then the user used Crosswalk in previous versions of the application
             SELECTED_BROWSER = "XWalk"
         }
+        // Hide XWalk chooser on RuStore bulds and modern Android
+        if (Helpers.isWebViewAvailable(this)
+            && (Helpers.getAppInstaller(this).contains("rustore", true)
+                    || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP))
+        ) {
+            SELECTED_BROWSER = "SysView"
+        }
         if (BuildConfig.DEBUG) Log.d(TAG, "onCreate() SELECTED_BROWSER: $SELECTED_BROWSER")
         when (SELECTED_BROWSER) {
             "XWalk" -> {
@@ -566,7 +573,12 @@ class MainActivity : AppCompatActivity(),
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
         if (LAMPA_URL.isEmpty()) {
-            showUrlInputDialog()
+            if (Helpers.getAppInstaller(this).contains("rustore", true)) {
+                LAMPA_URL = "http://lampa.mx"
+                this.appUrl = LAMPA_URL
+                browser?.loadUrl(LAMPA_URL)
+            } else
+                showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
         }
@@ -1446,7 +1458,8 @@ class MainActivity : AppCompatActivity(),
                             val qualityMap = LinkedHashMap<String, ArrayList<String>>()
                             for (i in 0 until playJSONArray.length()) {
                                 // val itemQualityMap = (playJSONArray[i] as JSONObject)["quality"] as JSONObject
-                                val itemQualityMap = (playJSONArray[i] as JSONObject).optJSONObject("quality")
+                                val itemQualityMap =
+                                    (playJSONArray[i] as JSONObject).optJSONObject("quality")
                                 itemQualityMap?.let {
                                     val keys = itemQualityMap.keys()
                                     while (keys.hasNext()) {
