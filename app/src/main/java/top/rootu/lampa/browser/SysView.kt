@@ -74,65 +74,58 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     TAG,
                     "shouldOverrideUrlLoading(url) wv $view loadUrl($url)"
                 )
-                //view?.loadUrl(url)
                 return false
             }
 
-            override fun onReceivedError(
+            @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+            override fun onReceivedError( // Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
                 view: WebView,
                 request: WebResourceRequest,
                 error: WebResourceErrorCompat
             ) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if (WebViewFeature.isFeatureSupported(
-                            WebViewFeature.WEB_RESOURCE_ERROR_GET_CODE
-                        ) &&
-                        WebViewFeature.isFeatureSupported(
-                            WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION
-                        )
+                if (WebViewFeature.isFeatureSupported(
+                        WebViewFeature.WEB_RESOURCE_ERROR_GET_CODE
+                    ) &&
+                    WebViewFeature.isFeatureSupported(
+                        WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION
+                    )
+                ) {
+                    if (BuildConfig.DEBUG) Log.d(
+                        TAG,
+                        "ERROR ${error.errorCode} ${error.description} on load ${request.url}"
+                    )
+                    if (request.url.toString().trimEnd('/')
+                            .equals(MainActivity.LAMPA_URL, true)
                     ) {
-                        if (BuildConfig.DEBUG) Log.d(
-                            TAG,
-                            "ERROR ${error.errorCode} ${error.description} on load ${request.url}"
-                        )
-                        if (request.url.toString().trimEnd('/')
-                                .equals(MainActivity.LAMPA_URL, true)
-                        ) {
-                            val htmlData =
-                                "<html><body><div align=\"center\" style=\"color:#ff7373\"><br/><br/><br/>ERROR ${error.errorCode}<br/>${
-                                    view.context.getString(R.string.download_failed_message)
-                                } ${request.url}<br/>${error.description}</div></body>"
-                            view.loadUrl("about:blank")
-                            view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
-                            view.invalidate()
-                            mainActivity.showUrlInputDialog()
-                        }
+                        val htmlData = "<html><body><div align=\"center\" style=\"height:100%\"><!--svg /--></div></body>"
+                        view.loadUrl("about:blank")
+                        view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                        view.invalidate()
+                        val msg = "${view.context.getString(R.string.download_failed_message)
+                        } ${MainActivity.LAMPA_URL} ${error.description} [${error.errorCode}]"
+                        mainActivity.showUrlInputDialog(msg)
                     }
                 }
             }
 
             @Deprecated("Deprecated in Java")
-            override fun onReceivedError(
+            override fun onReceivedError( // Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
                 view: WebView?,
                 errorCode: Int,
                 description: String?,
                 failingUrl: String?
             ) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                    if (BuildConfig.DEBUG) Log.d(
-                        TAG,
-                        "ERROR $errorCode $description on load $failingUrl"
-                    )
-                    if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
-                        val htmlData =
-                            "<html><body><div align=\"center\" style=\"color:#ff7373\"><br/><br/><br/>ERROR $errorCode<br/>${
-                                App.context.getString(R.string.download_failed_message)
-                            } $failingUrl<br/>$description</div></body>"
-                        view?.loadUrl("about:blank")
-                        view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
-                        view?.invalidate()
-                        mainActivity.showUrlInputDialog()
-                    }
+                if (BuildConfig.DEBUG) Log.d(
+                    TAG,
+                    "ERROR $errorCode $description on load $failingUrl"
+                )
+                if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
+                    val htmlData = "<html><body><div align=\"center\" style=\"height:100%\"><!--svg /--></div></body>"
+                    view?.loadUrl("about:blank")
+                    view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                    view?.invalidate()
+                    val msg = "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} $description [$errorCode]"
+                    mainActivity.showUrlInputDialog(msg)
                 }
             }
 
@@ -145,45 +138,6 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 if (BuildConfig.DEBUG) Log.d(TAG, "Ignore SSL error: $error")
                 handler?.proceed() // Ignore SSL certificate errors
             }
-
-//            fun urlShouldBeHandledByWebView(url: String): Boolean {
-//                // file: Resolve requests to local files such as files from cache folder via WebView itself
-//                // todo: add more cases
-//                return url.startsWith("file:") || url.startsWith("http://")
-//            }
-//
-//            override fun shouldInterceptRequest(
-//                view: WebView?,
-//                url: String?
-//            ): WebResourceResponse? {
-//                if (!url.isNullOrEmpty())
-//                    return if (urlShouldBeHandledByWebView(url) || Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                        super.shouldInterceptRequest(view, url)
-//                    } else handleRequestViaOkHttp(url)
-//                return null
-//            }
-//
-//            private fun handleRequestViaOkHttp(url: String): WebResourceResponse {
-//                Log.d(TAG, "handleRequestViaOkHttp($url)")
-//                return try {
-//                    val timeout = 30000
-//                    val okHttpClient = HttpHelper.getOkHttpClient(timeout)
-//                    val okHttpRequest = Request.Builder().url(url).build()
-//                    if (BuildConfig.DEBUG) Log.d(TAG, "okHttpRequest: $okHttpRequest")
-//                    val response = okHttpClient.newCall(okHttpRequest).execute()
-//                    val responseHeaders: Headers = response.headers()
-//                    for (i in 0 until responseHeaders.size()) {
-//                        Log.d("$TAG HEADER", responseHeaders.name(i) + ": " + responseHeaders.value(i))
-//                    }
-//                    WebResourceResponse(
-//                        response.header("content-type", "text/html"),
-//                        response.header("content-encoding", "utf-8"),
-//                        response.body()?.byteStream()
-//                    )
-//                } catch (e: Exception) {
-//                    WebResourceResponse(null, null, null)
-//                }
-//            }
         }
 
         if (BuildConfig.DEBUG)
@@ -217,7 +171,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         return browser?.settings?.userAgentString
     }
 
-    @SuppressLint("AddJavascriptInterface")
+    @SuppressLint("AddJavascriptInterface", "JavascriptInterface")
     override fun addJavascriptInterface(jsObject: Any, name: String) {
         browser?.addJavascriptInterface(jsObject, name)
     }
@@ -252,7 +206,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     }
 
     override fun canGoBack(): Boolean {
-        return browser?.canGoBack() ?: false
+        return browser?.canGoBack() == true
     }
 
     override fun goBack() {

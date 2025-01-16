@@ -47,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -1037,7 +1038,7 @@ class MainActivity : AppCompatActivity(),
             context.urlHistory.toMutableList()
         )
 
-    fun showUrlInputDialog() {
+    fun showUrlInputDialog(msg: String = "") {
         val mainActivity = this
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -1045,10 +1046,15 @@ class MainActivity : AppCompatActivity(),
         val builder = AlertDialog.Builder(mainActivity)
         builder.setTitle(R.string.input_url_title)
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
+        val tilt = view.findViewById<TextInputLayout>(R.id.tiltLampaUrl)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
         // Set up the input
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
+            if (msg.isNotEmpty()) {
+                tilt.isErrorEnabled = true
+                tilt.error = msg
+            }
             setAdapter(urlAdapter)
             if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
                 setOnFocusChangeListener { _, hasFocus ->
