@@ -62,11 +62,7 @@ jobs:
         # Получение JWT токена
         RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
           --header 'Content-Type: application/json' \
-          --data '{
-            "keyId": "'"${KEY_ID}"'",
-            "timestamp": "'"${TIMESTAMP}"'",
-            "signature": "'"${SIGNATURE}"'"
-          }')
+          --data "{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}")
         # Проверка кода ответа
         CODE=$(echo $RESPONSE | jq -r '.code')
         if [ "$CODE" != "OK" ]; then
