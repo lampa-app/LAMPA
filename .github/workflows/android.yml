@@ -40,8 +40,8 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: |
-         ./gradlew assembleRelease  --stacktrace
-         ./gradlew bundleRelease
+         #./gradlew assembleRelease  --stacktrace
+         #./gradlew bundleRelease
     - name: Release to RuStore
       env:
         KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
@@ -60,12 +60,14 @@ jobs:
         SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64)
         echo Get TOKEN  
         # Получение JWT токена
+        JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
         RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
           --header 'Content-Type: application/json' \
-          --data "{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}")
+          --data "$JSON_DATA")
         # Проверка кода ответа
         CODE=$(echo $RESPONSE | jq -r '.code')
         if [ "$CODE" != "OK" ]; then
+          echo $JSON_DATA
           echo $RESPONSE
           echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
           exit 1  # Завершение сборки с ошибкой
@@ -86,6 +88,7 @@ jobs:
           exit 1  # Завершение сборки с ошибкой
         fi
         echo OK
+        exit 1
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
