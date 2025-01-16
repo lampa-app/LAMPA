@@ -57,18 +57,10 @@ jobs:
         # Создаем сообщение для подписи
         MESSAGE="${KEY_ID}${TIMESTAMP}"
         # Генерация подписи с помощью OpenSSL
-        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64)
+        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64 -w 0)
         echo Get TOKEN  
         # Получение JWT токена
-        # JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
-        JSON_DATA=$(cat <<EOF
-        {
-          "keyId": "${KEY_ID}",
-          "timestamp": "${TIMESTAMP}",
-          "signature": "${SIGNATURE}"
-        }
-        EOF
-        )
+        JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
         RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
           --header 'Content-Type: application/json' \
           --data "$JSON_DATA")
