@@ -42,6 +42,9 @@ jobs:
       run: |
          ./gradlew assembleRelease  --stacktrace
          ./gradlew bundleRelease
+    - name: Release to RuStore
+      run: |
+        curl --location --request POST 'https://public-api.rustore.ru/public/v1/application/top.rootu.lampa/version/`git rev-list --count origin/main`/apk?servicesType=Unknown&isMainApk=true' --header 'Public-Token: ${{ secrets.RUSTORE_TOKEN }}' --form 'file=@"./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk"'
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
