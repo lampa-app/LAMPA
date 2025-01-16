@@ -441,7 +441,7 @@ class MainActivity : AppCompatActivity(),
         // Hide XWalk chooser on RuStore bulds and modern Android
         if (Helpers.isWebViewAvailable(this)
             && (Helpers.getAppInstaller(this).contains("rustore", true)
-                    || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP))
+                    || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT > Build.VERSION_CODES.KITKAT))
         ) {
             SELECTED_BROWSER = "SysView"
         }
