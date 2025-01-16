@@ -448,4 +448,36 @@ object Helpers {
                             or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         }
     }
+
+    /**
+     * Retrieves the name of the app responsible for the installation of this app.
+     * This can help in identifying which market this app was installed from or whether the user
+     * sideloaded it using an APK (Package Installer).
+     */
+    fun getAppInstaller(context: Context): String {
+        val appContext = context.applicationContext
+
+        val installerPackageName = try {
+            val appPackageManager = appContext.packageManager
+            val appPackageName = appContext.packageName
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                appPackageManager.getInstallSourceInfo(appPackageName).installingPackageName
+            else
+                appPackageManager.getInstallerPackageName(appPackageName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "--"
+        }
+
+        return when (installerPackageName) {
+            "com.android.vending" -> "Google Play Store"
+            "com.amazon.venezia" -> "Amazon AppStore"
+            "com.huawei.appmarket" -> "Huawei AppGallery"
+            "ru.vk.store" -> "RuStore"
+            "ru.vk.store.tv" -> "RuStoreTV"
+            "com.google.android.packageinstaller" -> "Package Installer"
+            else -> installerPackageName ?: "Unknown"
+        }
+    }
 }
