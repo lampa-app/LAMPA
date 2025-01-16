@@ -4,6 +4,7 @@ import android.view.View
 import org.xwalk.core.XWalkResourceClient
 import org.xwalk.core.XWalkView
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.R
 
 class XWalk(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: XWalkView? = null
@@ -15,6 +16,19 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
                 override fun onLoadFinished(view: XWalkView, url: String) {
                     super.onLoadFinished(view, url)
                     mainActivity.onBrowserPageFinished(view, url)
+                }
+
+                override fun onReceivedLoadError(
+                    view: XWalkView?,
+                    errorCode: Int,
+                    description: String?,
+                    failingUrl: String?
+                ) {
+                    super.onReceivedLoadError(view, errorCode, description, failingUrl)
+                    if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
+                        val msg = "${view?.context?.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} $description [${errorCode}]"
+                        mainActivity.showUrlInputDialog(msg)
+                    }
                 }
             })
             mainActivity.onBrowserInitCompleted()
