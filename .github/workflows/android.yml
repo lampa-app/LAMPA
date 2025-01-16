@@ -60,7 +60,15 @@ jobs:
         SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64)
         echo Get TOKEN  
         # Получение JWT токена
-        JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
+        # JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
+        JSON_DATA=$(cat <<EOF
+        {
+          "keyId": "${KEY_ID}",
+          "timestamp": "${TIMESTAMP}",
+          "signature": "${SIGNATURE}"
+        }
+        EOF
+        )
         RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
           --header 'Content-Type: application/json' \
           --data "$JSON_DATA")
