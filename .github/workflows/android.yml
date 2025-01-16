@@ -2,12 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches-ignore:
-      - 'RuStore'
-    tags-ignore:
-      - '*-RuStore'
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+      - '!*-RuStore'
 
 permissions:
   contents: write
