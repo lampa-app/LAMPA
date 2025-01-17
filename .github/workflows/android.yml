@@ -49,6 +49,7 @@ jobs:
       run: |
         APP_PACKAGE_NAME="top.rootu.lampa" # пакет приложения
         APK_PATH="./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk" # Путь к APK
+        API_VERSION="https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version"
         # Извлекаем приватный ключ из секрета и декодируем
         echo $PRIVATE_KEY_BASE64 | base64 --decode > private_key.pem
         # Генерация timestamp
@@ -75,7 +76,7 @@ jobs:
         JWT_TOKEN=$(echo $RESPONSE | jq -r '.body.jwe')
         # Создаём черновик
         echo Create release
-        RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version" \
+        RESPONSE=$(curl --location --request POST "${API_VERSION}" \
           --header "Public-Token: ${JWT_TOKEN}" \
           --header 'Content-Type: application/json' \
           --data "{}")
@@ -90,7 +91,7 @@ jobs:
         echo OK
         # Публикуем apk
         echo "Public APK $VERSION_CODE"
-        RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
+        RESPONSE=$(curl --location --request POST "${API_VERSION}/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
           --header "Public-Token: ${JWT_TOKEN}" \
           --form "file=@\"${APK_PATH}\"")
         echo $RESPONSE
@@ -98,12 +99,18 @@ jobs:
         CODE=$(echo $RESPONSE | jq -r '.code')
         if [ "$CODE" != "OK" ]; then
           echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          echo Delete bad release
+          RESPONSE=$(curl --location --request DELETE "${API_VERSION}/${VERSION_CODE}" \
+            --header "Public-Token: ${JWT_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data "{}")
+          echo $RESPONSE
           exit 1  # Завершение сборки с ошибкой
         fi
         echo OK
         # Коммитим
         echo Commit release
-        RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version/${VERSION_CODE}/commit" \
+        RESPONSE=$(curl --location --request POST "${API_VERSION}/${VERSION_CODE}/commit" \
           --header "Public-Token: ${JWT_TOKEN}")
         echo $RESPONSE
         # Проверка кода ответа
