@@ -49,7 +49,6 @@ jobs:
       run: |
         APP_PACKAGE_NAME="top.rootu.lampa" # пакет приложения
         APK_PATH="./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk" # Путь к APK
-        VERSION_CODE=$(git rev-list --count origin/main) # versionCode
         # Извлекаем приватный ключ из секрета и декодируем
         echo $PRIVATE_KEY_BASE64 | base64 --decode > private_key.pem
         # Генерация timestamp
@@ -74,11 +73,38 @@ jobs:
         echo OK
         # Извлекаем jwe из ответа
         JWT_TOKEN=$(echo $RESPONSE | jq -r '.body.jwe')
+        # Создаём черновик
+        echo Create release
+        RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version" \
+          --header "Public-Token: ${JWT_TOKEN}" \
+          --header 'Content-Type: application/json' \
+          --data "{}")
+        echo $RESPONSE
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        VERSION_CODE=$(echo $RESPONSE | jq -r '.body')
+        echo OK
         # Публикуем apk
-        echo Public APK
+        echo "Public APK $VERSION_CODE"
         RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
           --header "Public-Token: ${JWT_TOKEN}" \
           --form "file=@\"${APK_PATH}\"")
+        echo $RESPONSE
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        echo OK
+        # Коммитим
+        echo Commit release
+        RESPONSE=$(curl --location --request POST "https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version/${VERSION_CODE}/commit" \
+          --header "Public-Token: ${JWT_TOKEN}")
         echo $RESPONSE
         # Проверка кода ответа
         CODE=$(echo $RESPONSE | jq -r '.code')
