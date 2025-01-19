@@ -445,7 +445,7 @@ class MainActivity : AppCompatActivity(),
         } catch (npe: NumberFormatException) {
             0.0
         }
-        // Hide XWalk chooser on RuStore bulds and modern Android WebView
+        // Hide XWalk chooser on RuStore builds and modern Android WebView
         if (Helpers.isWebViewAvailable(this)
             && SELECTED_BROWSER.isNullOrEmpty()
             && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
