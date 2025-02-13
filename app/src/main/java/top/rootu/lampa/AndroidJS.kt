@@ -102,6 +102,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
+                } else {
+                    Log.e("*****", "Not valid JSON in favorite")
                 }
             }
 
@@ -111,19 +113,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 App.context.syncEnabled = use
             }
 
-            "account_bookmarks" -> {
-                if (BuildConfig.DEBUG) Log.d("*****", "account_bookmarks json changed")
-                val json = eo.optString("value", "")
-                if (isValidJson(json)) {
-                    App.context.saveAccountBookmarks(json)
-                }
-            }
-
             "recomends_list" -> {
                 if (BuildConfig.DEBUG) Log.d("*****", "recomends json changed")
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveRecs(json)
+                } else {
+                    Log.e("*****", "Not valid JSON in recomends_list")
                 }
             }
         }
@@ -395,6 +391,17 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 // Очищаем поле ввода
                 mainActivity.runVoidJsFunc("window.voiceResult", "''")
             }
+        }
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun saveBookmarks(json: String?) {
+        if (BuildConfig.DEBUG) Log.d("*****", "saveBookmarks fired! json: $json")
+        if (isValidJson(json)) {
+            App.context.saveAccountBookmarks(json.toString())
+        } else {
+            Log.e("*****", "Not valid JSON in saveBookmarks")
         }
     }
 

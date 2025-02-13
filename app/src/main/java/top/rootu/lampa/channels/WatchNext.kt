@@ -86,13 +86,13 @@ object WatchNext {
 //        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() cubWatchNext: ${App.context.cubWatchNext}")
 //        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() favWatchNext: ${App.context.FAV?.wath}")
         val deleted = removeStale()
-        if (BuildConfig.DEBUG) Log.d("****", "WatchNext cards removed: $deleted")
+        if (BuildConfig.DEBUG) Log.d("*****", "WatchNext cards removed: $deleted")
         val lst = mutableListOf<LampaCard>()
         // CUB
         if (App.context.syncEnabled) {
             App.context.CUB?.filter { it.type == LampaProvider.LATE }?.forEach { bm ->
-                val card = getJson(bm.data, LampaCard::class.java)
-                card?.let {
+                //val card = getJson(bm.data, LampaCard::class.java)
+                bm.data?.let {
                     it.fixCard()
                     lst.add(it)
                 }

@@ -23,8 +23,8 @@ class History : LampaProviderI() {
                     ?.toMutableList()
                     ?.sortedBy { it.time }
                     ?.forEach { bm ->
-                        val card = getJson(bm.data, LampaCard::class.java)
-                        card?.let {
+                        //val card = getJson(bm.data, LampaCard::class.java)
+                        bm.data?.let {
                             it.fixCard()
                             lst.add(it)
                         }

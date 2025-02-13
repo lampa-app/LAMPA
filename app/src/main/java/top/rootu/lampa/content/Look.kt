@@ -20,8 +20,8 @@ class Look : LampaProviderI() {
             // CUB
             if (App.context.syncEnabled)
                 App.context.CUB?.filter { it.type == LampaProvider.LOOK }?.forEach { bm ->
-                    val card = getJson(bm.data, LampaCard::class.java)
-                    card?.let {
+                    //val card = getJson(bm.data, LampaCard::class.java)
+                    bm.data?.let {
                         it.fixCard()
                         lst.add(it)
                     }

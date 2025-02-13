@@ -21,7 +21,8 @@ data class CubBookmark(
     val cid: Int?,
     val card_id: String?, // "92830", "0a88d69f-6f33-49aa-91db-ee6e0c3fdff1"
     val type: String?, // "history", "book", "wath"
-    val data: String?, // "{\"id\":212344,\"source\":\"ivi\",\"title\"..."
+//    val data: String?, // "{\"id\":212344,\"source\":\"ivi\",\"title\"..."
+    val data: LampaCard?, // Object
     val profile: Int?,
     val time: Long? // 0, 1650748577390
 )
