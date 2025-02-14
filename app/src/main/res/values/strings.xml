@@ -102,4 +102,5 @@
     <string name="error_unknown">Unknown Error</string>
     <string name="error_no_internet">No Internet</string>
     <string name="error_dns">DNS Error</string>
+    <string name="error_timeout">Request Timed Out</string>
 </resources>

@@ -99,4 +99,5 @@
     <string name="error_unknown">Невідома помилка</string>
     <string name="error_no_internet">Немає Інтернету</string>
     <string name="error_dns">Помилка DNS</string>
+    <string name="error_timeout">Сайт не відповідає чи не доступний</string>
 </resources>

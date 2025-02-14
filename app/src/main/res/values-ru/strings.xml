@@ -99,4 +99,5 @@
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="error_no_internet">Нет Интернета</string>
     <string name="error_dns">Не удалось определить IP-адрес</string>
+    <string name="error_timeout">Сайт не отвечает или не доступен</string>
 </resources>

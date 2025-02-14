@@ -100,11 +100,13 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         view.loadUrl("about:blank")
                         // net::ERR_INTERNET_DISCONNECTED [-2]
                         // net::ERR_NAME_NOT_RESOLVED [-2]
-                        val reason = if (error.description == "net::ERR_INTERNET_DISCONNECTED")
-                            view.context.getString(R.string.error_no_internet)
-                        else if (error.description == "net::ERR_NAME_NOT_RESOLVED")
-                            view.context.getString(R.string.error_dns)
-                        else view.context.getString(R.string.error_unknown)
+                        // net::ERR_TIMED_OUT [-8]
+                        val reason = when {
+                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(R.string.error_no_internet)
+                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(R.string.error_dns)
+                            error.description == "net::ERR_TIMED_OUT" -> view.context.getString(R.string.error_timeout)
+                            else -> view.context.getString(R.string.error_unknown)
+                        }
                         val msg = "${
                             view.context.getString(R.string.download_failed_message)
                         } ${MainActivity.LAMPA_URL} – $reason"
@@ -137,11 +139,12 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
                     view?.loadUrl("about:blank")
                     // TODO: check errors
-                    val reason = if (description == "net::ERR_INTERNET_DISCONNECTED")
-                        App.context.getString(R.string.error_no_internet)
-                    else if (description == "net::ERR_NAME_NOT_RESOLVED")
-                        App.context.getString(R.string.error_dns)
-                    else App.context.getString(R.string.error_unknown)
+                    val reason = when (description) {
+                        "net::ERR_INTERNET_DISCONNECTED" -> App.context.getString(R.string.error_no_internet)
+                        "net::ERR_NAME_NOT_RESOLVED" -> App.context.getString(R.string.error_dns)
+                        "net::ERR_TIMED_OUT" -> App.context.getString(R.string.error_timeout)
+                        else -> App.context.getString(R.string.error_unknown)
+                    }
                     val msg =
                         "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
                     if (description == "net::ERR_INTERNET_DISCONNECTED") {
