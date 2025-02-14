@@ -100,4 +100,5 @@
     <string name="error_no_internet">Немає Інтернету</string>
     <string name="error_dns">Помилка DNS</string>
     <string name="error_timeout">Сайт не відповідає чи не доступний</string>
+    <string name="app_requires_manage_storage_perm">Для використання цієї функції додатку потрібен дозвіл на керування зовнішньою пам’яттю!</string>
 </resources>

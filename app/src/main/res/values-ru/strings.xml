@@ -100,4 +100,5 @@
     <string name="error_no_internet">Нет Интернета</string>
     <string name="error_dns">Не удалось определить IP-адрес</string>
     <string name="error_timeout">Время ожидания ответа истекло</string>
+    <string name="app_requires_manage_storage_perm">Для использования этой функции приложению требуется разрешение на управление внешним хранилищем!</string>
 </resources>
