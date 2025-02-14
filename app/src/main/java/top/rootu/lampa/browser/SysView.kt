@@ -110,11 +110,11 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         } ${MainActivity.LAMPA_URL} – $reason"
                         if (error.description == "net::ERR_INTERNET_DISCONNECTED") {
                             val htmlData =
-                                "<html><body><div align=\"center\" style=\"height:100%\"><br/><br/><br/><svg width=\"160\" height=\"160\" style=\"overflow:visible;enable-background:new 0 0 160 160\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                                "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
                                     view.context.getString(
                                         R.string.error_no_internet
                                     )
-                                }</p></div></body>"
+                                }</p></div></div></body>"
                             view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
                             view.invalidate()
                         } else
@@ -146,11 +146,11 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
                     if (description == "net::ERR_INTERNET_DISCONNECTED") {
                         val htmlData =
-                            "<html><body><div align=\"center\" style=\"height:100%\"><br/><br/><br/><svg width=\"160\" height=\"160\" style=\"overflow:visible;enable-background:new 0 0 160 160\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                            "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
                                 App.context.getString(
                                     R.string.error_no_internet
                                 )
-                            }</p></div></body>"
+                            }</p></div></div></body>"
                         view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
                         view?.invalidate()
                     } else

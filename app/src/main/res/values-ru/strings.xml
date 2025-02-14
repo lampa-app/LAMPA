@@ -97,6 +97,6 @@
     <string name="app_crash_showlog">Показать журнал</string>
     <string name="app_crash_errlogs">Журнал ошибок</string>
     <string name="error_unknown">Неизвестная ошибка</string>
-    <string name="error_no_internet">Нет интернета</string>
-    <string name="error_dns">Ошибка DNS</string>
+    <string name="error_no_internet">Нет Интернета</string>
+    <string name="error_dns">Не удалось определить IP-адрес</string>
 </resources>
