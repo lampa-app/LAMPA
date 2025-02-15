@@ -138,7 +138,6 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 )
                 if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
                     view?.loadUrl("about:blank")
-                    // TODO: check errors
                     val reason = when (description) {
                         "net::ERR_INTERNET_DISCONNECTED" -> App.context.getString(R.string.error_no_internet)
                         "net::ERR_NAME_NOT_RESOLVED" -> App.context.getString(R.string.error_dns)
