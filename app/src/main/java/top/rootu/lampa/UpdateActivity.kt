@@ -27,14 +27,14 @@ import top.rootu.lampa.helpers.Updater
 
 class UpdateActivity : AppCompatActivity() {
 
-    private val requestPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                recreate()
-            }
-        }
+//    private val requestPermissionLauncher =
+//        registerForActivityResult(
+//            ActivityResultContracts.RequestPermission()
+//        ) { isGranted: Boolean ->
+//            if (isGranted) {
+//                recreate()
+//            }
+//        }
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,27 +42,27 @@ class UpdateActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_update)
         hideSystemUI()
-        val perms = arrayOf(
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
-        perms.forEach { perm ->
-            when {
-                ContextCompat.checkSelfPermission(
-                    this,
-                    perm
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    // granted
-                }
-                ActivityCompat.shouldShowRequestPermissionRationale(this, perm) -> {
-                    requestPermissionLauncher.launch(perm)
-                }
-                // not granted
-                else -> {
-                    requestPermissionLauncher.launch(perm)
-                }
-            }
-        }
+//        val perms = arrayOf(
+//            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//            Manifest.permission.READ_EXTERNAL_STORAGE
+//        )
+//        perms.forEach { perm ->
+//            when {
+//                ContextCompat.checkSelfPermission(
+//                    this,
+//                    perm
+//                ) == PackageManager.PERMISSION_GRANTED -> {
+//                    // granted
+//                }
+//                ActivityCompat.shouldShowRequestPermissionRationale(this, perm) -> {
+//                    requestPermissionLauncher.launch(perm)
+//                }
+//                // not granted
+//                else -> {
+//                    requestPermissionLauncher.launch(perm)
+//                }
+//            }
+//        }
 
         findViewById<ProgressBar>(R.id.pbUpdate).visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
