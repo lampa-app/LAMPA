@@ -1786,13 +1786,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun displaySpeechRecognizer() {
-        // Get SpeechRecognizer instance
-        if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
-            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
-        } else {
-            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
-        }
         if (VERSION.SDK_INT < 18) {
+            if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
+                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+            } else {
+                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+            }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(
@@ -1808,7 +1807,6 @@ class MainActivity : AppCompatActivity(),
                 App.toast(R.string.not_found_speech, false)
             }
         } else {
-            // Verify permissions
             verifyMicPermissions(this)
 
             var dialog: AlertDialog? = null
