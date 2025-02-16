@@ -249,7 +249,10 @@ public class BaseSpeechRecognitionEngine implements SpeechRecognitionEngine {
     @Nullable
     private String getIETFLangTag() {
         String lang = mLocale.getLanguage();
-        if (lang.split("-").length < 2) if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (lang.isEmpty()) {
+            return "en-US"; // Handle null or empty language
+        }
+        if (!lang.contains("-")) if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             lang = mLocale.toLanguageTag();
         } else {
             Map<String, String> languageToLocaleMap = new HashMap<>();
