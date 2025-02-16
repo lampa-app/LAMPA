@@ -1936,16 +1936,19 @@ class MainActivity : AppCompatActivity(),
                         "pt" to "pt-PT",
                         "cs" to "cs-CZ"
                     )
-                    val langParts = App.context.appLang.split("-")
+                    val langParts = appLang.split("-")
                     val langTag = if (langParts.size >= 2) {
                         "${langParts[0]}-${langParts[1]}"
                     } else {
-                        languageToLocaleMap[langParts[0]] ?: "en-US"
+                        languageToLocaleMap[langParts[0]] ?: appLang
                     }
                     // Optional IETF language tag (as defined by BCP 47), for example "en-US" required for
                     // https://developer.android.com/reference/android/speech/RecognizerIntent#EXTRA_LANGUAGE
                     // so Locale with Country must be provided (en_US ru_RU etc)
-                    val locale = Locale(langTag.split("-")[0], langTag.split("-")[1])
+                    val locale = if (langTag.split("-").size >= 2) Locale(
+                        langTag.split("-")[0],
+                        langTag.split("-")[1]
+                    ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
                     if (BuildConfig.DEBUG) Log.d("*****", "appLang = $appLang")
                     if (BuildConfig.DEBUG) Log.d("*****", "langTag = $langTag")
                     if (BuildConfig.DEBUG) Log.d("*****", "locale = $locale")

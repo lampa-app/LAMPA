@@ -212,8 +212,6 @@ public class BaseSpeechRecognitionEngine implements SpeechRecognitionEngine {
 
         if (progressView != null && !(progressView.getParent() instanceof LinearLayout))
             throw new IllegalArgumentException("progressView must be put inside a LinearLayout!");
-
-        String lang = getIETFLangTag();
 //        Log.d("*****", "mLocale.getLanguage(): " + mLocale.getLanguage());
 //        Log.d("*****", "getIETFLangTag: " + getIETFLangTag());
         final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
