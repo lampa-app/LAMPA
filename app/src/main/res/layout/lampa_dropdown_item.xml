@@ -3,7 +3,8 @@
     android:id="@android:id/text1"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="16dp"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp"
     android:textSize="18sp"
     android:background="@drawable/dropdown_item_background"
     android:textColor="@color/tv_white" />
