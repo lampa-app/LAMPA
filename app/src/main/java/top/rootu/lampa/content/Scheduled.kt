@@ -1,7 +1,6 @@
 package top.rootu.lampa.content
 
 import top.rootu.lampa.App
-import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.schdToRemove
@@ -18,21 +17,20 @@ class Scheduled : LampaProviderI() {
         fun get(): List<LampaCard> {
             val lst = mutableListOf<LampaCard>()
             // CUB
-            if (App.context.syncEnabled)
+            if (App.context.syncEnabled) {
                 App.context.CUB
                     ?.filter { it.type == LampaProvider.SCHD }
-                    ?.reversed() // Reverse the order of the filtered list
-                    ?.forEach { bm ->
-                    bm.data?.let {
-                        it.fixCard()
-                        lst.add(it)
-                    }
-                }
-            // FAV (use ID to match KP_573840 etc)
-            App.context.FAV?.card?.filter { App.context.FAV?.scheduled?.contains(it.id.toString()) == true }
-                ?.forEach { lst.add(it) }
-            // exclude pending
-            return lst.filter { !App.context.schdToRemove.contains(it.id.toString()) }
+                    ?.reversed()
+                    ?.mapNotNull { it.data?.apply { fixCard() } }
+                    ?.let { lst.addAll(it) }
+            }
+            // FAV
+            App.context.FAV?.card
+                ?.filter { App.context.FAV?.scheduled?.contains(it.id.toString()) == true }
+                ?.let { lst.addAll(it) }
+            // Exclude pending and reverse the final list
+            return lst
+                .filterNot { App.context.schdToRemove.contains(it.id.toString()) }
                 .reversed() // Reverse the final list if needed
         }
     }
