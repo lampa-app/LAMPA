@@ -173,7 +173,7 @@ dependencies {
     //noinspection GradleDependency
     implementation "com.google.android.material:material:${muiVersion}"
     // speech
-    implementation 'net.gotev:speech:1.6.2'
+    //implementation 'net.gotev:speech:1.6.2'
     // coroutines
     def coroutinesVersion = '1.7.3' // 1.7.3 - latest version for API 16
     //noinspection GradleDependency
