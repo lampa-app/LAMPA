@@ -23,8 +23,10 @@ class Bookmarks : LampaProviderI() {
             val lst = mutableListOf<LampaCard>()
             // CUB
             if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.BOOK }?.forEach { bm ->
-                    //val card = getJson(bm.data, LampaCard::class.java)
+                App.context.CUB
+                    ?.filter { it.type == LampaProvider.BOOK }
+                    ?.reversed() // Reverse the order of the filtered list
+                    ?.forEach { bm ->
                     bm.data?.let {
                         it.fixCard()
                         lst.add(it)
@@ -35,7 +37,7 @@ class Bookmarks : LampaProviderI() {
                 ?.forEach { lst.add(it) }
             // exclude pending
             return lst.filter { !App.context.bookToRemove.contains(it.id.toString()) }
-                .reversed()
+                .reversed() // Reverse the final list if needed
         }
     }
 }
