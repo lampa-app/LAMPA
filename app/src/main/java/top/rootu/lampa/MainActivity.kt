@@ -1042,7 +1042,8 @@ class MainActivity : AppCompatActivity(),
     private class UrlAdapter(context: Context) :
         ArrayAdapter<String>(
             context,
-            android.R.layout.simple_list_item_1,
+            R.layout.lampa_dropdown_item, // custom dropdown layout
+            android.R.id.text1, // ID of the TextView in the custom layout
             context.urlHistory.toMutableList()
         )
 
