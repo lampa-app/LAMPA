@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
 import android.view.ViewGroup
-import android.view.ViewGroup.MarginLayoutParams
 import android.view.inputmethod.InputMethodManager
 import android.widget.AutoCompleteTextView
 import android.widget.ListPopupWindow
@@ -34,6 +33,7 @@ class AutoCompleteTV @JvmOverloads constructor(
     }
 
     private val popupWindow = popupWindowField.get(this) as? ListPopupWindow?
+    private val fadingEdgeH = dp2px(this.context, 64.0F)
 
     // this function actually hides the keyboard
     private fun hideKeyboard() {
@@ -43,10 +43,6 @@ class AutoCompleteTV @JvmOverloads constructor(
 
 
     private fun setListViewBasedOnChildren(listView: ListView) {
-        val vMargin = dp2px(listView.context, 10F)
-        val marginLayoutParams = listView.layoutParams as MarginLayoutParams
-        marginLayoutParams.setMargins(0, vMargin, 0, 0)
-
         listView.updateLayoutParams {
             width = ViewGroup.LayoutParams.WRAP_CONTENT
         }
@@ -56,11 +52,13 @@ class AutoCompleteTV @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     override fun showDropDown() {
         super.showDropDown()
+        // ajust vertical dropdown offset
+        this.dropDownVerticalOffset = resources.getDimensionPixelSize(R.dimen.dropdown_margin_top)
         // hide scrollbar and add fading edge
         popupWindow?.listView?.apply {
             isVerticalScrollBarEnabled = false
             isVerticalFadingEdgeEnabled = true
-            setFadingEdgeLength(dp2px(this.context, 72.0F))
+            setFadingEdgeLength(fadingEdgeH)
             background = ColorDrawable(Color.TRANSPARENT)
             overScrollMode = OVER_SCROLL_NEVER
             // update listview layout
