@@ -79,13 +79,13 @@ class App : MultiDexApplication() {
             .get().lifecycle
             .addObserver(lifecycleEventObserver)
 
-        context.setLanguage()
+        App.context.setLanguage()
         // app crash handler
         handleUncaughtException(showLogs = true)
         // enable Conscrypt to support TLS v1.3 on older Androids
         Security.insertProviderAt(Conscrypt.newProvider(), 1)
         // self-update check
-        val checkUpdates = false
+        val checkUpdates = BuildConfig.enableUpdate
         if (checkUpdates) {
             CoroutineScope(Dispatchers.IO).launch {
                 var count = 60

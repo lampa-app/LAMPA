@@ -47,7 +47,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         when (eo.optString("name")) {
             "activity" -> {
                 if (BuildConfig.DEBUG) Log.d(
-                    "*****",
+                    TAG,
                     "activity changed: ${eo.optString("value", "")}"
                 )
                 MainActivity.lampaActivity = eo.optString("value", "{}")
@@ -84,7 +84,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "baseUrlApiTMDB" -> {
                 mainActivity.tmdbApiUrl = eo.optString("value", mainActivity.tmdbApiUrl)
                 if (BuildConfig.DEBUG) Log.d(
-                    "*****",
+                    TAG,
                     "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}"
                 )
             }
@@ -92,38 +92,34 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "baseUrlImageTMDB" -> {
                 mainActivity.tmdbImgUrl = eo.optString("value", mainActivity.tmdbImgUrl)
                 if (BuildConfig.DEBUG) Log.d(
-                    "*****",
+                    TAG,
                     "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}"
                 )
             }
 
             "favorite" -> {
-                if (BuildConfig.DEBUG) Log.d("*****", "favorite json changed")
+                if (BuildConfig.DEBUG) Log.d(TAG, "favorite JSON changed")
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
+                } else {
+                    Log.e(TAG, "Not valid JSON in favorite")
                 }
             }
 
             "account_use" -> {
                 val use = eo.optBoolean("value", false)
-                if (BuildConfig.DEBUG) Log.d("*****", "account_use $use")
+                if (BuildConfig.DEBUG) Log.d(TAG, "account_use $use")
                 App.context.syncEnabled = use
             }
 
-            "account_bookmarks" -> {
-                if (BuildConfig.DEBUG) Log.d("*****", "account_bookmarks json changed")
-                val json = eo.optString("value", "")
-                if (isValidJson(json)) {
-                    App.context.saveAccountBookmarks(json)
-                }
-            }
-
             "recomends_list" -> {
-                if (BuildConfig.DEBUG) Log.d("*****", "recomends json changed")
+                if (BuildConfig.DEBUG) Log.d(TAG, "recomends_list JSON changed")
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveRecs(json)
+                } else {
+                    Log.e(TAG, "Not valid JSON in recomends_list")
                 }
             }
         }
@@ -398,13 +394,24 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
     }
 
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun saveBookmarks(json: String?) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired! json: $json")
+        if (isValidJson(json)) {
+            App.context.saveAccountBookmarks(json.toString())
+        } else {
+            Log.e(TAG, "Not valid JSON in saveBookmarks")
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null && isAndroidTV) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "***** updateChannel [$where]")
+            if (BuildConfig.DEBUG) Log.d(TAG, "updateChannel [$where]")
             when (where) {
                 LampaProvider.HIST,
                 LampaProvider.BOOK,

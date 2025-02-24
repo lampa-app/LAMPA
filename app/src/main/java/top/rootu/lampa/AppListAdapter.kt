@@ -16,13 +16,8 @@ class AppListAdapter internal constructor(
     context: Context,
     private val appsInfo: List<ResolveInfo>
 ) : BaseAdapter() {
-    private val mLayoutInflater: LayoutInflater
-    private val pm: PackageManager
-
-    init {
-        mLayoutInflater = LayoutInflater.from(context)
-        pm = context.packageManager
-    }
+    private val mLayoutInflater: LayoutInflater = LayoutInflater.from(context)
+    private val pm: PackageManager = context.packageManager
 
 
     override fun getCount(): Int {

@@ -97,13 +97,30 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     if (request.url.toString().trimEnd('/')
                             .equals(MainActivity.LAMPA_URL, true)
                     ) {
-                        val htmlData = "<html><body><div align=\"center\" style=\"height:100%\"><!--svg /--></div></body>"
                         view.loadUrl("about:blank")
-                        view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
-                        view.invalidate()
-                        val msg = "${view.context.getString(R.string.download_failed_message)
-                        } ${MainActivity.LAMPA_URL} ${error.description} [${error.errorCode}]"
-                        mainActivity.showUrlInputDialog(msg)
+                        // net::ERR_INTERNET_DISCONNECTED [-2]
+                        // net::ERR_NAME_NOT_RESOLVED [-2]
+                        // net::ERR_TIMED_OUT [-8]
+                        val reason = when {
+                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(R.string.error_no_internet)
+                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(R.string.error_dns)
+                            error.description == "net::ERR_TIMED_OUT" -> view.context.getString(R.string.error_timeout)
+                            else -> view.context.getString(R.string.error_unknown)
+                        }
+                        val msg = "${
+                            view.context.getString(R.string.download_failed_message)
+                        } ${MainActivity.LAMPA_URL} – $reason"
+                        if (error.description == "net::ERR_INTERNET_DISCONNECTED") {
+                            val htmlData =
+                                "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                                    view.context.getString(
+                                        R.string.error_no_internet
+                                    )
+                                }</p></div></div></body>"
+                            view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                            view.invalidate()
+                        } else
+                            mainActivity.showUrlInputDialog(msg)
                     }
                 }
             }
@@ -120,12 +137,26 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     "ERROR $errorCode $description on load $failingUrl"
                 )
                 if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
-                    val htmlData = "<html><body><div align=\"center\" style=\"height:100%\"><!--svg /--></div></body>"
                     view?.loadUrl("about:blank")
-                    view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
-                    view?.invalidate()
-                    val msg = "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} $description [$errorCode]"
-                    mainActivity.showUrlInputDialog(msg)
+                    val reason = when (description) {
+                        "net::ERR_INTERNET_DISCONNECTED" -> App.context.getString(R.string.error_no_internet)
+                        "net::ERR_NAME_NOT_RESOLVED" -> App.context.getString(R.string.error_dns)
+                        "net::ERR_TIMED_OUT" -> App.context.getString(R.string.error_timeout)
+                        else -> App.context.getString(R.string.error_unknown)
+                    }
+                    val msg =
+                        "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
+                    if (description == "net::ERR_INTERNET_DISCONNECTED") {
+                        val htmlData =
+                            "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                                App.context.getString(
+                                    R.string.error_no_internet
+                                )
+                            }</p></div></div></body>"
+                        view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                        view?.invalidate()
+                    } else
+                        mainActivity.showUrlInputDialog(msg)
                 }
             }
 

@@ -95,4 +95,8 @@
     <string name="app_crash_restart">重新启动应用程序</string>
     <string name="app_crash_showlog">显示日志</string>
     <string name="app_crash_errlogs">错误日志</string>
+    <string name="error_unknown">Unknown Error</string>
+    <string name="error_no_internet">No Internet</string>
+    <string name="error_dns">DNS Error</string>
+    <string name="error_timeout">Request Timed Out</string>
 </resources>

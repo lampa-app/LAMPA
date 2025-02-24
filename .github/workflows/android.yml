@@ -42,6 +42,84 @@ jobs:
       run: |
          ./gradlew assembleRelease  --stacktrace
          ./gradlew bundleRelease
+    - name: Release to RuStore
+      env:
+        KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
+        PRIVATE_KEY_BASE64: ${{ secrets.RUSTORE_KEY }}
+      run: |
+        APP_PACKAGE_NAME="top.rootu.lampa" # пакет приложения
+        APK_PATH="./app/build/outputs/apk/ruStore/release/app-ruStore-release.apk" # Путь к APK
+        API_VERSION="https://public-api.rustore.ru/public/v1/application/${APP_PACKAGE_NAME}/version"
+        # Извлекаем приватный ключ из секрета и декодируем
+        echo $PRIVATE_KEY_BASE64 | base64 --decode > private_key.pem
+        # Генерация timestamp
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+        # Создаем сообщение для подписи
+        MESSAGE="${KEY_ID}${TIMESTAMP}"
+        # Генерация подписи с помощью OpenSSL
+        SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha512 -sign private_key.pem | base64 -w 0)
+        echo Get TOKEN  
+        # Получение JWT токена
+        JSON_DATA="{\"keyId\":\"$KEY_ID\",\"timestamp\":\"$TIMESTAMP\",\"signature\":\"$SIGNATURE\"}"
+        RESPONSE=$(curl --location --request POST 'https://public-api.rustore.ru/public/auth' \
+          --header 'Content-Type: application/json' \
+          --data "$JSON_DATA")
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo $RESPONSE
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        echo OK
+        # Извлекаем jwe из ответа
+        JWT_TOKEN=$(echo $RESPONSE | jq -r '.body.jwe')
+        # Создаём черновик
+        echo Create release
+        RESPONSE=$(curl --location --request POST "${API_VERSION}" \
+          --header "Public-Token: ${JWT_TOKEN}" \
+          --header 'Content-Type: application/json' \
+          --data "{}")
+        echo $RESPONSE
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        VERSION_CODE=$(echo $RESPONSE | jq -r '.body')
+        echo OK
+        # Публикуем apk
+        echo "Public APK $VERSION_CODE"
+        RESPONSE=$(curl --location --request POST "${API_VERSION}/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
+          --header "Public-Token: ${JWT_TOKEN}" \
+          --form "file=@\"${APK_PATH}\"")
+        echo $RESPONSE
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          echo Delete bad release
+          RESPONSE=$(curl --location --request DELETE "${API_VERSION}/${VERSION_CODE}" \
+            --header "Public-Token: ${JWT_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data "{}")
+          echo $RESPONSE
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        echo OK
+        # Коммитим
+        echo Commit release
+        RESPONSE=$(curl --location --request POST "${API_VERSION}/${VERSION_CODE}/commit" \
+          --header "Public-Token: ${JWT_TOKEN}")
+        echo $RESPONSE
+        # Проверка кода ответа
+        CODE=$(echo $RESPONSE | jq -r '.code')
+        if [ "$CODE" != "OK" ]; then
+          echo "Error occurred: $(echo $RESPONSE | jq -r '.message')"
+          exit 1  # Завершение сборки с ошибкой
+        fi
+        echo OK
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')

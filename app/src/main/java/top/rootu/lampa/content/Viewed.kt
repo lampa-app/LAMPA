@@ -18,19 +18,20 @@ class Viewed : LampaProviderI() {
         fun get(): List<LampaCard> {
             val lst = mutableListOf<LampaCard>()
             // CUB
-            if (App.context.syncEnabled)
-                App.context.CUB?.filter { it.type == LampaProvider.VIEW }?.forEach { bm ->
-                    val card = getJson(bm.data, LampaCard::class.java)
-                    card?.let {
-                        it.fixCard()
-                        lst.add(it)
-                    }
-                }
-            // FAV (use ID to match KP_573840 etc)
-            App.context.FAV?.card?.filter { App.context.FAV?.viewed?.contains(it.id.toString()) == true }
-                ?.forEach { lst.add(it) }
-            // exclude pending
-            return lst.filter { !App.context.viewToRemove.contains(it.id.toString()) }
+            if (App.context.syncEnabled) {
+                App.context.CUB
+                    ?.filter { it.type == LampaProvider.VIEW }
+                    ?.reversed()
+                    ?.mapNotNull { it.data?.apply { fixCard() } }
+                    ?.let { lst.addAll(it) }
+            }
+            // FAV
+            App.context.FAV?.card
+                ?.filter { App.context.FAV?.viewed?.contains(it.id.toString()) == true }
+                ?.let { lst.addAll(it) }
+            // Exclude pending and reverse the final list
+            return lst
+                .filterNot { App.context.viewToRemove.contains(it.id.toString()) }
                 .reversed()
         }
     }

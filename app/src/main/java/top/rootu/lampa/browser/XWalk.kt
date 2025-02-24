@@ -3,6 +3,7 @@ package top.rootu.lampa.browser
 import android.view.View
 import org.xwalk.core.XWalkResourceClient
 import org.xwalk.core.XWalkView
+import top.rootu.lampa.App
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
 
@@ -26,7 +27,13 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
                 ) {
                     super.onReceivedLoadError(view, errorCode, description, failingUrl)
                     if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
-                        val msg = "${view?.context?.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} $description [${errorCode}]"
+                        val reason = when (description) {
+                            "net::ERR_INTERNET_DISCONNECTED" -> App.context.getString(R.string.error_no_internet)
+                            "net::ERR_NAME_NOT_RESOLVED" -> App.context.getString(R.string.error_dns)
+                            "net::ERR_TIMED_OUT" -> App.context.getString(R.string.error_timeout)
+                            else -> App.context.getString(R.string.error_unknown)
+                        }
+                        val msg = "${view?.context?.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
                         mainActivity.showUrlInputDialog(msg)
                     }
                 }
