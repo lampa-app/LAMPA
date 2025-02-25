@@ -38,7 +38,7 @@ android {
         applicationId "top.rootu.lampa"
         minSdkVersion 16
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 30
+        targetSdkVersion 34
         versionCode getVersionCode()
         versionName getVersionName()
         multiDexEnabled = true // required when setting minSdkVersion to 20 or lower

@@ -9,16 +9,20 @@
         android:name="android.permission.ACCESS_WIFI_STATE"
         tools:ignore="LeanbackUsesWifi" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.QUICKBOOT_POWERON" />
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- Android 8.0 updater fix -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" /> <!-- Android TV Channels -->
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
@@ -77,7 +81,6 @@
         android:preserveLegacyExternalStorage="true"
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@drawable/lampa_icon"
-        android:screenOrientation="userLandscape"
         android:supportsRtl="true"
         android:theme="@style/Theme.LAMPA"
         tools:ignore="RtlEnabled"
@@ -100,7 +103,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.SEND" />
 
