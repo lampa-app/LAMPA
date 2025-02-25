@@ -580,7 +580,7 @@ class MainActivity : AppCompatActivity(),
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
         if (LAMPA_URL.isEmpty()) {
-                showUrlInputDialog()
+            showUrlInputDialog()
         } else {
             browser?.loadUrl(LAMPA_URL)
         }
@@ -1042,7 +1042,8 @@ class MainActivity : AppCompatActivity(),
     private class UrlAdapter(context: Context) :
         ArrayAdapter<String>(
             context,
-            android.R.layout.simple_list_item_1,
+            R.layout.lampa_dropdown_item, // custom dropdown layout
+            android.R.id.text1, // ID of the TextView in the custom layout
             context.urlHistory.toMutableList()
         )
 
@@ -1786,13 +1787,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun displaySpeechRecognizer() {
-        // Get SpeechRecognizer instance
-        if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
-            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
-        } else {
-            if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
-        }
         if (VERSION.SDK_INT < 18) {
+            if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
+                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+            } else {
+                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+            }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(
@@ -1808,7 +1808,6 @@ class MainActivity : AppCompatActivity(),
                 App.toast(R.string.not_found_speech, false)
             }
         } else {
-            // Verify permissions
             verifyMicPermissions(this)
 
             var dialog: AlertDialog? = null
@@ -1927,8 +1926,35 @@ class MainActivity : AppCompatActivity(),
         if (hasMicPermissions(context)) {
             try {
                 // you must have android.permission.RECORD_AUDIO granted at this point
-                Speech.init(context, packageName)
-                    ?.startListening(progress, object : SpeechDelegate {
+                Speech.init(context, packageName)?.apply {
+                    val languageToLocaleMap = mapOf(
+                        "ru" to "ru-RU",
+                        "en" to "en-US",
+                        "be" to "be-BY",
+                        "uk" to "uk-UA",
+                        "zh" to "zh-CN",
+                        "bg" to "bg-BG",
+                        "pt" to "pt-PT",
+                        "cs" to "cs-CZ"
+                    )
+                    val langParts = appLang.split("-")
+                    val langTag = if (langParts.size >= 2) {
+                        "${langParts[0]}-${langParts[1]}"
+                    } else {
+                        languageToLocaleMap[langParts[0]] ?: appLang
+                    }
+                    // Optional IETF language tag (as defined by BCP 47), for example "en-US" required for
+                    // https://developer.android.com/reference/android/speech/RecognizerIntent#EXTRA_LANGUAGE
+                    // so Locale with Country must be provided (en_US ru_RU etc)
+                    val locale = if (langTag.split("-").size >= 2) Locale(
+                        langTag.split("-")[0],
+                        langTag.split("-")[1]
+                    ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
+                    if (BuildConfig.DEBUG) Log.d("*****", "appLang = $appLang")
+                    if (BuildConfig.DEBUG) Log.d("*****", "langTag = $langTag")
+                    if (BuildConfig.DEBUG) Log.d("*****", "locale = $locale")
+                    setLocale(locale)
+                    startListening(progress, object : SpeechDelegate {
                         private var success = true
                         override fun onStartOfSpeech() {
                             Log.i("speech", "speech recognition is now active. $msg")
@@ -1954,6 +1980,7 @@ class MainActivity : AppCompatActivity(),
                             onSpeech(res, true, success)
                         }
                     })
+                }
                 if (BuildConfig.DEBUG)
                     Logger.setLogLevel(Logger.LogLevel.DEBUG)
                 return true

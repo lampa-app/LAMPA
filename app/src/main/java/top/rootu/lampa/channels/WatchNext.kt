@@ -81,38 +81,37 @@ object WatchNext {
     }
 
     suspend fun updateWatchNext() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV)
-            return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
 //        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() cubWatchNext: ${App.context.cubWatchNext}")
 //        if (BuildConfig.DEBUG) Log.d("*****", "updateWatchNext() favWatchNext: ${App.context.FAV?.wath}")
+        val context = App.context
         val deleted = removeStale()
         if (BuildConfig.DEBUG) Log.d("*****", "WatchNext cards removed: $deleted")
-        val lst = mutableListOf<LampaCard>()
-        // CUB
-        if (App.context.syncEnabled) {
-            App.context.CUB?.filter { it.type == LampaProvider.LATE }?.forEach { bm ->
-                //val card = getJson(bm.data, LampaCard::class.java)
-                bm.data?.let {
-                    it.fixCard()
-                    lst.add(it)
-                }
-            }
-        } else {
+
+        val lst = when {
+            // CUB
+            context.syncEnabled -> context.CUB
+                ?.filter { it.type == LampaProvider.LATE }
+                ?.mapNotNull { it.data?.also { data -> data.fixCard() } }
+                .orEmpty()
             // FAV
-            App.context.FAV?.card?.filter {
-                App.context.FAV?.wath?.contains(it.id) == true
-            }?.forEach {
-                it.fixCard()
-                lst.add(it)
-            }
+            else -> context.FAV?.card
+                ?.filter { context.FAV?.wath?.contains(it.id) == true }
+                ?.onEach { it.fixCard() }
+                .orEmpty()
         }
+
         val (excludePending, pending) = lst.partition {
-            !App.context.wathToRemove.contains(it.id.toString())
-        } // skip pending to remove
-        if (BuildConfig.DEBUG) Log.d(
-            "*****",
-            "updateWatchNext() WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
-        )
+            !context.wathToRemove.contains(it.id.toString())
+        }
+
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                "*****",
+                "updateWatchNext() WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
+            )
+        }
+
         excludePending.forEach {
             withContext(Dispatchers.Default) {
                 try {
@@ -120,7 +119,7 @@ object WatchNext {
                 } catch (e: Exception) {
                     if (BuildConfig.DEBUG) Log.d(
                         "*****", // FIXME: WTF? Not allowed to change ID
-                        "updateWatchNext() Error add $it to WatchNext: $e"
+                        "updateWatchNext() Error adding $it to WatchNext: $e"
                     )
                 }
             }
