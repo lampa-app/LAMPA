@@ -195,8 +195,7 @@ object RecsService {
             val scale = this.resources.displayMetrics.density
             val fontSize = 18f * scale
             val fontPading = 12f * scale
-            val bitmapConfig = bitmap.config
-            //if (bitmapConfig == null) bitmapConfig = Bitmap.Config.ARGB_8888
+            val bitmapConfig = bitmap.config ?: Bitmap.Config.ARGB_8888
 
             val draw = bitmap.copy(bitmapConfig, true)
             val canvas = Canvas(draw)

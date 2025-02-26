@@ -33,12 +33,12 @@ def getVersionName = { ->
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
     defaultConfig {
         applicationId "top.rootu.lampa"
         minSdkVersion 19
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode getVersionCode()
         versionName getVersionName()
         multiDexEnabled = true // required when setting minSdkVersion to 20 or lower
@@ -136,14 +136,17 @@ dependencies {
     // netcipher
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
     // androidx
-    def actKtxVer = '1.10.0'
+    def actKtxVer = '1.9.3' // 1.9.3 - latest version for API < 21
+    //noinspection GradleDependency
     implementation "androidx.activity:activity-ktx:$actKtxVer"
     def appCompatVer = '1.6.1' // 1.6.1 - latest version for API < 21
     //noinspection GradleDependency
     implementation "androidx.appcompat:appcompat:$appCompatVer"
-    def constraintVersion = '2.2.0'
+    def constraintVersion = '2.1.0' // 2.1.0 - latest version for API < 21
+    //noinspection GradleDependency
     implementation "androidx.constraintlayout:constraintlayout:${constraintVersion}"
-    def coreKtxVer = '1.15.0'
+    def coreKtxVer = '1.13.1' // 1.13.1 - latest version for API < 21
+    //noinspection GradleDependency
     implementation "androidx.core:core-ktx:$coreKtxVer"
     def lifecycleVersion = '2.8.7'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
@@ -173,7 +176,8 @@ dependencies {
     // lottie loaders
     implementation 'com.airbnb.android:lottie:6.6.2'
     // webkit
-    def webkitVersion = '1.12.1'
+    def webkitVersion = '1.11.0' // 1.11.0 - latest version for API < 21
+    //noinspection GradleDependency
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
     implementation 'org.conscrypt:conscrypt-android:2.5.3'
