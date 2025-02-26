@@ -12,7 +12,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
-import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.channels.LampaChannels
@@ -22,7 +21,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 object Scheduler {
-    private const val cardsJobId = 0
+    private const val JOBID = 0
     private val lock = Any()
     private var isUpdate = false
 
@@ -44,7 +43,7 @@ object Scheduler {
         thread {
             updateCards(sync)
         }
-        val builder = JobInfo.Builder(cardsJobId, ComponentName(context, CardJobService::class.java))
+        val builder = JobInfo.Builder(JOBID, ComponentName(context, CardJobService::class.java))
         builder.setPeriodic(TimeUnit.MINUTES.toMillis(15))
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
             .setRequiresDeviceIdle(false)
@@ -57,7 +56,7 @@ object Scheduler {
         val context = App.context
         val pendingIntent = Intent(context, CardAlarmManager::class.java)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val alarmIntent = PendingIntent.getService(context, cardsJobId, pendingIntent, FLAG_IMMUTABLE)
+        val alarmIntent = PendingIntent.getService(context, JOBID, pendingIntent, FLAG_IMMUTABLE)
 
         alarmManager.cancel(alarmIntent)
         alarmManager.setInexactRepeating(
@@ -68,7 +67,6 @@ object Scheduler {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateCards(sync: Boolean) {
         synchronized(lock) {
             if (isUpdate)
