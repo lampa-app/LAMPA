@@ -35,7 +35,7 @@ def getVersionName = { ->
 android {
     compileSdk 35
     defaultConfig {
-        applicationId "top.netfix"
+        applicationId "netfix.app"
         minSdkVersion 19
         targetSdkVersion 35
         versionCode getVersionCode()
@@ -115,7 +115,7 @@ android {
         viewBinding true
         buildConfig true
     }
-    namespace 'top.netfix'
+    namespace 'netfix.app'
 }
 
 dependencies {

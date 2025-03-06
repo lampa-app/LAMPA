@@ -21,8 +21,8 @@ import org.xwalk.core.MyXWalkLibraryLoader.DownloadListener;
 import java.io.File;
 import java.util.List;
 
-import top.netfix.helpers.Helpers;
-import top.netfix.helpers.PermHelpers;
+import netfix.helpers.Helpers;
+import netfix.helpers.PermHelpers;
 
 /**
  * <p><code>MyXWalkUpdater</code> is a follow-up solution for {@link XWalkInitializer} in case the

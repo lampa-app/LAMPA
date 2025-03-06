@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 import android.util.Log;
 
-import top.netfix.net.HttpHelper;
+import netfix.net.HttpHelper;
 
 /*****************************************************************************
  * Script source that will load the content of a PAC file from an webserver. The
