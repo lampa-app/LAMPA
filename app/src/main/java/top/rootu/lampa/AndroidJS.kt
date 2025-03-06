@@ -399,6 +399,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun saveBookmarks(json: String?) {
         if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired! json: $json")
         if (isValidJson(json)) {
+            // TODO: check bookmarks data is valid LampaCard
             App.context.saveAccountBookmarks(json.toString())
         } else {
             Log.e(TAG, "Not valid JSON in saveBookmarks")
