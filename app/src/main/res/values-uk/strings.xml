@@ -4,7 +4,7 @@
     <string name="no_torrent_activity_found">Немає додатка для відкриття торрент-посилань. Встановіть TorrServe або будь-який інший додаток, що працює з торрентами.</string>
     <string name="no_youtube_activity_found">Немає додатка для відкриття посилань YouTube. Встановіть додаток YouTube.</string>
     <string name="no_launch_player">Обраний плеєр не підтримує відтворення цього відео</string>
-    <string name="invalid_url">Введіть правильну адресу сайту, наприклад:\nhttp://lampa.mx</string>
+    <string name="invalid_url">Введіть правильну адресу сайту, наприклад:\nhttps://netfix.cc</string>
     <string name="cancel">Скасувати</string>
     <string name="save">Зберегти</string>
     <string name="show_menu">Відкрити меню</string>
@@ -56,9 +56,9 @@
     <string name="xwalk_retry">Повторити</string>
     <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
     <!--Search-->
-    <string name="open_lampa">відкрити lampa</string>
-    <string name="open_settings">відкрити налаштування lampa</string>
-    <string name="lampa_suxx">lampa відстій</string>
+    <string name="open_netfix">відкрити нетф</string>
+    <string name="open_settings">відкрити налаштування нетф</string>
+    <string name="netfix_suxx">нетфiкс відстій</string>
     <string name="series">Серіал</string>
     <string name="shortyear">р.</string>
     <!--Channels-->
@@ -88,7 +88,7 @@
     <string name="settings_restored">Налаштування відновлено</string>
     <!--App Errors-->
     <string name="app_crash_title">Перепрошуємо за незручності</string>
-    <string name="app_crash_message">Іноді у NetFix трапляються помилки, але не хвилюйтеся. У наступному оновленні ми це виправимо. Ви можете повідомити про цю помилку в нашому Telegram-каналі - @lampa_group. Натисніть кнопку «Перезапустити», щоб продовжити.</string>
+    <string name="app_crash_message">Іноді у NetFix трапляються помилки, але не хвилюйтеся. У наступному оновленні ми це виправимо. Ви можете повідомити про цю помилку в нашому Telegram-каналі - @netfix_club. Натисніть кнопку «Перезапустити», щоб продовжити.</string>
     <string name="app_crash_copy">Копіювати журнал в буфер обміну</string>
     <string name="app_crash_copied">Журнал скопійовано в буфер обміну</string>
     <string name="app_crash_save_to">Журнал помилок збережено в папку</string>

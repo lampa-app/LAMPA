@@ -17,13 +17,13 @@ import netfix.app.R
 import org.json.JSONException
 import org.json.JSONObject
 import netfix.browser.Browser
-import netfix.channels.LampaChannels
-import netfix.channels.LampaChannels.updateChanByName
+import netfix.channels.NetfixChannels
+import netfix.channels.NetfixChannels.updateChanByName
 import netfix.channels.WatchNext.updateWatchNext
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Helpers.isAndroidTV
 import netfix.helpers.Helpers.isValidJson
-import netfix.helpers.Prefs.lampaSource
+import netfix.helpers.Prefs.netfixSource
 import netfix.helpers.Prefs.saveAccountBookmarks
 import netfix.helpers.Prefs.saveFavorite
 import netfix.helpers.Prefs.saveRecs
@@ -52,7 +52,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     TAG,
                     "activity changed: ${eo.optString("value", "")}"
                 )
-                MainActivity.lampaActivity = eo.optString("value", "{}")
+                MainActivity.netfixActivity = eo.optString("value", "{}")
             }
 
             "player_timecode" -> {
@@ -76,7 +76,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "source" -> {
-                mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
+                mainActivity.netfixSource = eo.optString("value", mainActivity.netfixSource)
             }
 
             "proxy_tmdb", "protocol" -> {
@@ -191,7 +191,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CoroutineScope(Dispatchers.IO).launch {
                 delay(5000)
-                LampaChannels.updateRecsChannel()
+                NetfixChannels.updateRecsChannel()
             }
         }
         return true
@@ -278,7 +278,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
-            class LampaAsyncTask : AsyncTask<Void?, String?, String>("LampaAsyncTask") {
+            class NetfixAsyncTask : AsyncTask<Void?, String?, String>("NetfixAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
                     var s: String
                     var action = "complite"
@@ -327,7 +327,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 }
             }
 
-            LampaAsyncTask().execute()
+            NetfixAsyncTask().execute()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -364,7 +364,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CoroutineScope(Dispatchers.IO).launch {
                 delay(5000)
-                LampaChannels.updateRecsChannel()
+                NetfixChannels.updateRecsChannel()
             }
         }
     }
@@ -415,22 +415,22 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (where != null && isAndroidTV) {
             if (BuildConfig.DEBUG) Log.d(TAG, "updateChannel [$where]")
             when (where) {
-                LampaProvider.HIST,
-                LampaProvider.BOOK,
-                LampaProvider.LIKE,
-                LampaProvider.LOOK,
-                LampaProvider.VIEW,
-                LampaProvider.SCHD,
-                LampaProvider.CONT,
-                LampaProvider.THRW -> {
+                NetfixProvider.HIST,
+                NetfixProvider.BOOK,
+                NetfixProvider.LIKE,
+                NetfixProvider.LOOK,
+                NetfixProvider.VIEW,
+                NetfixProvider.SCHD,
+                NetfixProvider.CONT,
+                NetfixProvider.THRW -> {
                     CoroutineScope(Dispatchers.IO).launch {
                         delay(5000)
                         updateChanByName(where)
                     }
                 }
 
-                LampaProvider.LATE -> {
-                    // Handle add to Watch Next from Lampa
+                NetfixProvider.LATE -> {
+                    // Handle add to Watch Next
                     CoroutineScope(Dispatchers.IO).launch {
                         delay(5000)
                         updateWatchNext()

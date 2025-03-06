@@ -4,7 +4,7 @@
     <string name="no_torrent_activity_found">​​没有应用程序可以打开 torrent 链接。请安装 TorrServe 或任何其他支持 torrent 的应用程序。</string>
     <string name="no_youtube_activity_found">​​没有应用程序可以打开 YouTube 链接。请安装 YouTube 应用。</string>
     <string name="no_launch_player">所选播放器不支持该视频</string>
-    <string name="invalid_url">请输入一个有效的网址，例如：\nhttp://lampa.mx</string>
+    <string name="invalid_url">请输入一个有效的网址，例如：\nhttps://netfix.cc</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
     <string name="show_menu">打开菜单</string>
@@ -56,9 +56,9 @@
     <string name="xwalk_retry">重试</string>
     <string name="xwalk_apk_link">https://ghproxy.com/https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
     <!--Search-->
-    <string name="open_lampa">open lampa</string>
-    <string name="open_settings">open lampa settings</string>
-    <string name="lampa_suxx">lampa suxx</string>
+    <string name="open_netfix">open netfix</string>
+    <string name="open_settings">open netfix settings</string>
+    <string name="netfix_suxx">netfix suxx</string>
     <string name="series">电视剧</string>
     <string name="shortyear">年</string>
     <!--Channels-->
@@ -88,7 +88,7 @@
     <string name="settings_restored">设置已恢复</string>
     <!--App Errors-->
     <string name="app_crash_title">抱歉给您带来不便</string>
-    <string name="app_crash_message">NetFix 有时会出现故障，但不必担心。我们将在下次更新中修复此问题。您可以在我们的 Telegram 频道 - @lampa_group 中报告此错误。请点击“重启应用”按钮继续。</string>    <string name="app_crash_copy">将日志复制到剪贴板</string>
+    <string name="app_crash_message">NetFix 有时会出现故障，但不必担心。我们将在下次更新中修复此问题。您可以在我们的 Telegram 频道 - @netfix_club 中报告此错误。请点击“重启应用”按钮继续。</string>    <string name="app_crash_copy">将日志复制到剪贴板</string>
     <string name="app_crash_copied">日志已复制到剪贴板</string>
     <string name="app_crash_save_to">崩溃日志保存到</string>
     <string name="app_crash_no_logs">未找到错误日志</string>

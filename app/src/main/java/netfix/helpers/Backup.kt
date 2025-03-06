@@ -18,10 +18,10 @@ object Backup {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-                    .toString() + "/LAMPA/"
+                    .toString() + "/NetFix/"
             )
         else
-            File(Environment.getExternalStorageDirectory().toString() + "/LAMPA/").absoluteFile
+            File(Environment.getExternalStorageDirectory().toString() + "/NetFix/").absoluteFile
 
     fun Context.saveSettings(which: String? = ""): Boolean {
         if (!PermHelpers.hasStoragePermissions(this)) {

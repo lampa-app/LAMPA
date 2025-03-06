@@ -8,11 +8,11 @@ import com.google.gson.Gson
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.MainActivity
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Helpers.getJson
-import netfix.models.CubBookmark
+import netfix.models.NetfixBookmark
 import netfix.models.Favorite
-import netfix.models.LampaRec
+import netfix.models.NetfixRec
 import netfix.models.WatchNextToAdd
 import netfix.tmdb.TMDB
 import java.util.Locale
@@ -23,10 +23,10 @@ object Prefs {
     const val STORAGE_PREFERENCES = "storage"
     private const val APP_LAST_PLAYED = "last_played"
     private const val APP_URL = "url"
-    private const val APP_URL_HISTORY = "lampa_history"
+    private const val APP_URL_HISTORY = "url_history"
     private const val APP_PLAYER = "player"
     private const val IPTV_PLAYER = "iptv_player"
-    private const val LAMPA_SOURCE = "source"
+    private const val NETFIX_SOURCE = "source"
     private const val APP_BROWSER = "browser"
     private const val APP_LANG = "lang"
     private const val TMDB_API = "tmdb_api_url"
@@ -94,12 +94,12 @@ object Prefs {
             this.appPrefs.edit().putString(IPTV_PLAYER, player).apply()
         }
 
-    var Context.lampaSource: String
+    var Context.netfixSource: String
         get() {
-            return this.appPrefs.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
+            return this.appPrefs.getString(NETFIX_SOURCE, "tmdb") ?: "tmdb"
         }
         set(source) {
-            this.appPrefs.edit().putString(LAMPA_SOURCE, source).apply()
+            this.appPrefs.edit().putString(NETFIX_SOURCE, source).apply()
         }
 
     var Context.appBrowser: String?
@@ -177,10 +177,10 @@ object Prefs {
         defPrefs.edit().putString(FAV_KEY, json).apply()
     }
 
-    val Context.REC: List<LampaRec>?
+    val Context.REC: List<NetfixRec>?
         get() {
             val buf = defPrefs.getString(REC_KEY, "[]") ?: "[]"
-            return getJson(buf, Array<LampaRec>::class.java)?.toList()
+            return getJson(buf, Array<NetfixRec>::class.java)?.toList()
         }
 
 
@@ -189,10 +189,10 @@ object Prefs {
     }
 
 
-    val Context.CUB: List<CubBookmark>?
+    val Context.CUB: List<NetfixBookmark>?
         get() {
             val buf = defPrefs.getString(CUB_KEY, "[]") ?: "[]"
-            return getJson(buf, Array<CubBookmark>::class.java)?.toList()
+            return getJson(buf, Array<NetfixBookmark>::class.java)?.toList()
         }
 
     fun Context.saveAccountBookmarks(json: String) {
@@ -216,54 +216,54 @@ object Prefs {
 
     private val Context.cubWatchNext: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.LATE).reversed()
+            return this.getCubBookmarkCardIds(NetfixProvider.LATE).reversed()
         }
 
     private val Context.cubBook: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.BOOK)
+            return this.getCubBookmarkCardIds(NetfixProvider.BOOK)
         }
 
     private val Context.cubLike: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.LIKE)
+            return this.getCubBookmarkCardIds(NetfixProvider.LIKE)
         }
 
     private val Context.cubHistory: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.HIST)
+            return this.getCubBookmarkCardIds(NetfixProvider.HIST)
         }
 
     private val Context.cubLook: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.LOOK)
+            return this.getCubBookmarkCardIds(NetfixProvider.LOOK)
         }
 
     private val Context.cubViewed: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.VIEW)
+            return this.getCubBookmarkCardIds(NetfixProvider.VIEW)
         }
 
     private val Context.cubSheduled: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.SCHD)
+            return this.getCubBookmarkCardIds(NetfixProvider.SCHD)
         }
 
     private val Context.cubContinued: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.CONT)
+            return this.getCubBookmarkCardIds(NetfixProvider.CONT)
         }
 
     private val Context.cubThrown: List<String?>
         get() {
-            return this.getCubBookmarkCardIds(LampaProvider.THRW)
+            return this.getCubBookmarkCardIds(NetfixProvider.THRW)
         }
 
-    fun Context.isInLampaWatchNext(id: String): Boolean {
-        return if (this.syncEnabled) isInCubWatchNext(id) else isInFavWatchNext(id)
+    fun Context.isInWatchNext(id: String): Boolean {
+        return if (this.syncEnabled) isInNetfixWatchNext(id) else isInFavWatchNext(id)
     }
 
-    private fun Context.isInCubWatchNext(id: String): Boolean {
+    private fun Context.isInNetfixWatchNext(id: String): Boolean {
         return this.cubWatchNext.contains(id)
     }
 
@@ -276,9 +276,9 @@ object Prefs {
             val buf = defPrefs.getString(WNA_KEY, "[]")
             val arr = getJson(buf, Array<WatchNextToAdd>::class.java)
             return if (this.syncEnabled)
-                arr?.filter { !this.isInCubWatchNext(it.id) } ?: emptyList()
+                arr?.filter { !this.isInNetfixWatchNext(it.id) } ?: emptyList()
             else
-                arr?.filter { !this.isInLampaWatchNext(it.id) } ?: emptyList()
+                arr?.filter { !this.isInWatchNext(it.id) } ?: emptyList()
         }
 
     val Context.wathToRemove: List<String>

@@ -17,17 +17,17 @@ import kotlinx.coroutines.withContext
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.app.R
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Helpers
 import netfix.helpers.Helpers.getJson
 import netfix.helpers.Helpers.isAndroidTV
 import netfix.helpers.Prefs.CUB
 import netfix.helpers.Prefs.FAV
-import netfix.helpers.Prefs.isInLampaWatchNext
+import netfix.helpers.Prefs.isInWatchNext
 import netfix.helpers.Prefs.lastPlayedPrefs
 import netfix.helpers.Prefs.syncEnabled
 import netfix.helpers.Prefs.wathToRemove
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 import java.util.Locale
 
 
@@ -45,7 +45,7 @@ object WatchNext {
         )
 
     @SuppressLint("RestrictedApi")
-    fun add(card: LampaCard) {
+    fun add(card: NetfixCard) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
             card.id?.let {
                 val existingProgram = findProgramByMovieId(card.id)
@@ -91,7 +91,7 @@ object WatchNext {
         val lst = when {
             // CUB
             context.syncEnabled -> context.CUB
-                ?.filter { it.type == LampaProvider.LATE }
+                ?.filter { it.type == NetfixProvider.LATE }
                 ?.mapNotNull { it.data?.also { data -> data.fixCard() } }
                 .orEmpty()
             // FAV
@@ -127,7 +127,7 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    fun addLastPlayed(card: LampaCard) {
+    fun addLastPlayed(card: NetfixCard) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV) {
             card.id?.let {
                 if (it.isNotEmpty()) {
@@ -165,7 +165,7 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    fun getCardFromWatchNextProgramId(watchNextId: Long): LampaCard? {
+    fun getCardFromWatchNextProgramId(watchNextId: Long): NetfixCard? {
         val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
         var watchNextProgram: WatchNextProgram? = null
         App.context.contentResolver.query(
@@ -176,9 +176,9 @@ object WatchNext {
                 watchNextProgram = WatchNextProgram.fromCursor(cursor)
             }
         }
-        val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+        val json = watchNextProgram?.intent?.getStringExtra("NetfixCardJS")
         // if (isValidJson(json))
-        return getJson(json, LampaCard::class.java)
+        return getJson(json, NetfixCard::class.java)
     }
 
     @SuppressLint("RestrictedApi")
@@ -217,7 +217,7 @@ object WatchNext {
         return null
     }
 
-    // Remove items not in Lampa Watch Later
+    // Remove items not in Watch Later
     @SuppressLint("RestrictedApi")
     private fun removeStale(): Int {
         var count = 0
@@ -232,7 +232,7 @@ object WatchNext {
             if (it.moveToFirst())
                 do {
                     val program = WatchNextProgram.fromCursor(it)
-                    if (!App.context.isInLampaWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
+                    if (!App.context.isInWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
                         count++
                         removeProgram(program.id)
                     }
@@ -266,7 +266,7 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    private fun getProgram(card: LampaCard, resume: Boolean = false): WatchNextProgram {
+    private fun getProgram(card: NetfixCard, resume: Boolean = false): WatchNextProgram {
         val info = mutableListOf<String>()
 
         val programId = if (resume) RESUME_ID else card.id

@@ -29,7 +29,7 @@ import netfix.App
 import netfix.app.BuildConfig
 import netfix.MainActivity
 import netfix.app.R
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Prefs.addBookToRemove
 import netfix.helpers.Prefs.addContToRemove
 import netfix.helpers.Prefs.addHistToRemove
@@ -51,7 +51,7 @@ import netfix.helpers.Prefs.thrwToRemove
 import netfix.helpers.Prefs.viewToRemove
 import netfix.helpers.Prefs.wathToAdd
 import netfix.helpers.Prefs.wathToRemove
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 import netfix.models.WatchNextToAdd
 import java.util.Locale
 
@@ -89,7 +89,7 @@ object Helpers {
         App.context.startActivity(intent)
     }
 
-    fun openLampa(): Boolean {
+    fun openApp(): Boolean {
         val intent = Intent(App.context, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         App.context.startActivity(intent)
@@ -191,7 +191,7 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
+    fun buildPendingIntent(card: NetfixCard, continueWatch: Boolean?): Intent {
         val intent = Intent(App.context, MainActivity::class.java)
         // TODO: fix this id and media type mess
         val intID = card.id?.toIntOrNull() // required for processIntent()
@@ -200,7 +200,7 @@ object Helpers {
         intent.putExtra("media", card.type)
 
         val idStr = try { Gson().toJson(card) } catch (e: Exception) { null } // used to get card from HomeWatch
-        idStr?.let { intent.putExtra("LampaCardJS", idStr) }
+        idStr?.let { intent.putExtra("NetfixCardJS", idStr) }
 
         continueWatch?.let { intent.putExtra("continueWatch", it) }
 
@@ -347,22 +347,22 @@ object Helpers {
         }
     }
 
-    fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
+    fun manageFavorite(action: String?, where: String, id: String, card: NetfixCard? = null) {
         // actions: add | rem
         if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")
         if (action != null) {
             when (action) {
                 "rem" -> {
                     when (where) {
-                        LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
-                        LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
-                        LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
-                        LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
-                        LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
-                        LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
-                        LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
-                        LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
-                        LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
+                        NetfixProvider.BOOK -> App.context.addBookToRemove(listOf(id))
+                        NetfixProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
+                        NetfixProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
+                        NetfixProvider.HIST -> App.context.addHistToRemove(listOf(id))
+                        NetfixProvider.LOOK -> App.context.addLookToRemove(listOf(id))
+                        NetfixProvider.VIEW -> App.context.addViewToRemove(listOf(id))
+                        NetfixProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
+                        NetfixProvider.CONT -> App.context.addContToRemove(listOf(id))
+                        NetfixProvider.THRW -> App.context.addThrwToRemove(listOf(id))
                     }
                     if (BuildConfig.DEBUG) {
                         Log.d("*****", "book items to remove: ${App.context.bookToRemove}")
@@ -379,7 +379,7 @@ object Helpers {
 
                 "add" -> {
                     when (where) {
-                        LampaProvider.LATE -> App.context.addWatchNextToAdd(
+                        NetfixProvider.LATE -> App.context.addWatchNextToAdd(
                             WatchNextToAdd(
                                 id,
                                 card

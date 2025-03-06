@@ -2,17 +2,17 @@ package netfix.content
 
 import netfix.App
 import netfix.helpers.Prefs.FAV
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 
-abstract class LampaProviderI : Any() {
+abstract class NetfixProviderI : Any() {
     abstract fun get(): ReleaseID?
 }
 
 data class ReleaseID(
-    val items: List<LampaCard>?
+    val items: List<NetfixCard>?
 )
 
-object LampaProvider {
+object NetfixProvider {
     // this is channel internal id
     const val RECS = "recs"
     const val BOOK = "book"
@@ -56,7 +56,7 @@ object LampaProvider {
         }
     }
 
-    private fun filterViewed(lst: List<LampaCard>): List<LampaCard> {
+    private fun filterViewed(lst: List<NetfixCard>): List<NetfixCard> {
         return lst.filter { card ->
             App.context.FAV?.viewed?.contains(card.id) != true &&
                     App.context.FAV?.history?.contains(card.id) != true

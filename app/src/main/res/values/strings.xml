@@ -6,7 +6,7 @@
     <string name="no_torrent_activity_found">There is no application to open torrent links. Please, install TorrServe or any other App working with torrents.</string>
     <string name="no_youtube_activity_found">There is no application to open YouTube links. Please, install YouTube App.</string>
     <string name="no_launch_player">The selected player does not support playing this video</string>
-    <string name="invalid_url">Enter the correct website address, for example:\nhttp://lampa.mx</string>
+    <string name="invalid_url">Enter the correct website address, for example:\nhttps://netfix.cc</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="show_menu">Open menu</string>
@@ -59,9 +59,9 @@
     <string name="xwalk_market_crosswalk" translatable="false">Google Play</string>
     <string name="xwalk_apk_link">https://github.com/lampa-app/LAMPA/releases/download/1.1.0/XWalkRuntimeLib_%s.apk</string>
     <!--Search-->
-    <string name="open_lampa">open lampa</string>
-    <string name="open_settings">open lampa settings</string>
-    <string name="lampa_suxx">lampa suxx</string>
+    <string name="open_netfix">open netfix</string>
+    <string name="open_settings">open netfix settings</string>
+    <string name="netfix_suxx">netfix suxx</string>
     <string name="series">TV Series</string>
     <string name="shortyear" />
     <!--Channels-->
@@ -91,7 +91,7 @@
     <string name="settings_restored">Settings restored</string>
     <!--App Errors-->
     <string name="app_crash_title">Sorry for the Inconvenience</string>
-    <string name="app_crash_message">Sometimes NetFix has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>
+    <string name="app_crash_message">Sometimes NetFix has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @netfix_club. Please click on Restart App button to continue.</string>
     <string name="app_crash_copy">Copy Logs to Clipboard</string>
     <string name="app_crash_copied">Logs copied to clipboard</string>
     <string name="app_crash_save_to">Crash Logs saved to</string>

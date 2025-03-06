@@ -9,5 +9,5 @@ dependencyResolutionManagement {
         }
     }
 }
-rootProject.name = "LAMPA"
+rootProject.name = "NETFIX"
 include ':app'

@@ -73,7 +73,7 @@ import netfix.browser.SysView
 import netfix.browser.XWalk
 import netfix.channels.ChannelManager.getChannelDisplayName
 import netfix.channels.WatchNext
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Backup
 import netfix.helpers.Backup.loadFromBackup
 import netfix.helpers.Backup.saveSettings
@@ -100,7 +100,7 @@ import netfix.helpers.Prefs.clearPending
 import netfix.helpers.Prefs.contToRemove
 import netfix.helpers.Prefs.firstRun
 import netfix.helpers.Prefs.histToRemove
-import netfix.helpers.Prefs.lampaSource
+import netfix.helpers.Prefs.netfixSource
 import netfix.helpers.Prefs.lastPlayedPrefs
 import netfix.helpers.Prefs.likeToRemove
 import netfix.helpers.Prefs.lookToRemove
@@ -114,7 +114,7 @@ import netfix.helpers.Prefs.viewToRemove
 import netfix.helpers.Prefs.wathToAdd
 import netfix.helpers.Prefs.wathToRemove
 import netfix.helpers.getAppVersion
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 import netfix.net.HttpHelper
 import netfix.sched.Scheduler
 import java.util.Locale
@@ -142,8 +142,7 @@ class MainActivity : AppCompatActivity(),
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var NEFIX_URL: String = ""
         var SELECTED_PLAYER: String? = ""
-        var SELECTED_BROWSER: String? =
-            if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
+        var SELECTED_BROWSER: String? = ""
         var playerTimeCode: String = "continue"
         var playerAutoNext: Boolean = true
         var internalTorrserve: Boolean = false
@@ -151,7 +150,7 @@ class MainActivity : AppCompatActivity(),
         var playJSONArray: JSONArray = JSONArray()
         var playIndex = 0
         var playVideoUrl: String = ""
-        var lampaActivity: String = "{}" // JSON
+        var netfixActivity: String = "{}" // JSON
 
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -543,7 +542,7 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar?.visibility = View.GONE
-            Log.d("*****", "LAMPA onLoadFinished $url")
+            Log.d("*****", "onLoadFinished $url")
             if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
             processIntent(intent, 1000)
             lifecycleScope.launch {
@@ -553,7 +552,7 @@ class MainActivity : AppCompatActivity(),
                     "'change'," +
                             "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
                 )
-                runJsStorageChangeField("activity", "{}") // get current lampaActivity
+                runJsStorageChangeField("activity", "{}") // get current netfixActivity
                 runJsStorageChangeField("player_timecode")
                 runJsStorageChangeField("playlist_next")
                 runJsStorageChangeField("torrserver_preload")
@@ -615,9 +614,9 @@ class MainActivity : AppCompatActivity(),
 
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToAdd: ${this.wathToAdd}")
         this.wathToAdd.forEach { // we need full card data here to add
-            val lampaCard = App.context.FAV?.card?.find { card -> card.id == it.id }
+            val netfixCard = App.context.FAV?.card?.find { card -> card.id == it.id }
                 ?: it.card // js from intent
-            lampaCard?.let { card ->
+            netfixCard?.let { card ->
                 card.fixCard()
                 if (BuildConfig.DEBUG) Log.d(
                     "*****",
@@ -629,46 +628,46 @@ class MainActivity : AppCompatActivity(),
                         if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
                     runVoidJsFunc(
                         "Lampa.Favorite.add",
-                        "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                        "'${NetfixProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
                     )
                 }
             }
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToRemove: ${this.wathToRemove}")
         this.wathToRemove.forEach {// delete items from later
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LATE}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.LATE}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() bookToRemove: ${this.bookToRemove}")
         this.bookToRemove.forEach {// delete items from bookmarks
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.BOOK}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.BOOK}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() likeToRemove: ${this.likeToRemove}")
         this.likeToRemove.forEach {// delete items from likes
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LIKE}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.LIKE}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() histToRemove: ${this.histToRemove}")
         this.histToRemove.forEach {// delete items from history
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.HIST}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.HIST}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() lookToRemove: ${this.lookToRemove}")
         this.lookToRemove.forEach {// delete items from look
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LOOK}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.LOOK}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() viewToRemove: ${this.viewToRemove}")
         this.viewToRemove.forEach {// delete items from viewed
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.VIEW}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.VIEW}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() schdToRemove: ${this.schdToRemove}")
         this.schdToRemove.forEach {// delete items from scheduled
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.SCHD}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.SCHD}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() contToRemove: ${this.contToRemove}")
         this.contToRemove.forEach {// delete items from continued
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.CONT}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.CONT}', {id: $it}")
         }
         if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() thrwToRemove: ${this.thrwToRemove}")
         this.thrwToRemove.forEach {// delete items from thrown
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.THRW}', {id: $it}")
+            runVoidJsFunc("Lampa.Favorite.remove", "'${NetfixProvider.THRW}', {id: $it}")
         }
         // don't do it again
         App.context.clearPending()
@@ -751,19 +750,19 @@ class MainActivity : AppCompatActivity(),
                     if (it.encodedPath?.contains("update_channel") == true) {
                         intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
-                            LampaProvider.RECS -> {
+                            NetfixProvider.RECS -> {
                                 // Open Main
                                 "{" +
-                                        "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
+                                        "title: '" + getString(R.string.title_main) + "' + ' - " + netfixSource.uppercase(
                                     Locale.getDefault()
                                 ) + "'," +
                                         "component: 'main'," +
-                                        "source: '" + lampaSource + "'," +
+                                        "source: '" + netfixSource + "'," +
                                         "url: ''" +
                                         "}"
                             }
 
-                            LampaProvider.LIKE, LampaProvider.BOOK, LampaProvider.HIST -> {
+                            NetfixProvider.LIKE, NetfixProvider.BOOK, NetfixProvider.HIST -> {
                                 "{" +
                                         "title: '" + getChannelDisplayName(channel) + "'," +
                                         "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
@@ -1265,7 +1264,7 @@ class MainActivity : AppCompatActivity(),
         }
         Log.d("*****", "saveLastPlayed $playJSONArray")
         // store to prefs for resume from WatchNext
-        this.playActivityJS = lampaActivity
+        this.playActivityJS = netfixActivity
     }
 
     @SuppressLint("InflateParams")
@@ -1350,7 +1349,7 @@ class MainActivity : AppCompatActivity(),
             val videoTitle =
                 if (jsonObject.has("title"))
                     jsonObject.optString("title")
-                else if (isIPTV) "LAMPA TV" else "LAMPA video"
+                else if (isIPTV) "NetFix TV" else "NetFix video"
             val listTitles = ArrayList<String>()
             val listUrls = ArrayList<String>()
             val subsTitles = ArrayList<String>()
@@ -1702,11 +1701,11 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             // Add | Remove Continue to Play
             withContext(Dispatchers.Default) {
-                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
-                if (lampaActivity?.has("movie") == true) {
+                val netfixActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
+                if (netfixActivity?.has("movie") == true) {
                     val card = getJson(
-                        lampaActivity.getJSONObject("movie").toString(),
-                        LampaCard::class.java
+                        netfixActivity.getJSONObject("movie").toString(),
+                        NetfixCard::class.java
                     )
                     card?.let {
                         it.fixCard()

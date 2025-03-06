@@ -4,7 +4,7 @@ import netfix.tmdb.TMDB
 import java.util.Locale
 
 data class Favorite(
-    val card: List<LampaCard>?,
+    val card: List<NetfixCard>?,
     val like: List<String>?,
     val wath: List<String>?,
     val book: List<String>?,
@@ -16,13 +16,13 @@ data class Favorite(
     val thrown: List<String>?
 )
 
-data class CubBookmark(
+data class NetfixBookmark(
     val id: Int?,
     val cid: Int?,
     val card_id: String?, // "92830", "0a88d69f-6f33-49aa-91db-ee6e0c3fdff1"
     val type: String?, // "history", "book", "wath"
 //    val data: String?, // "{\"id\":212344,\"source\":\"ivi\",\"title\"..."
-    val data: LampaCard?, // Object
+    val data: NetfixCard?, // Object
     val profile: Int?,
     val time: Long? // 0, 1650748577390
 )
@@ -75,7 +75,7 @@ data class CubBookmark(
 // TODO: implement type adapters for fields like id
 // https://stackoverflow.com/questions/27626355/gson-deserializing-with-changing-field-types
 // https://proandroiddev.com/safe-parsing-kotlin-data-classes-with-gson-4d560fe3cdd2
-data class LampaCard(
+data class NetfixCard(
     var source: String?, // "KP","tmdb","cub","ivi","okko" etc
     var type: String?, // "movie","tv","Scripted" etc
     val id: String?, // "KP_1227897","84958","0a88d69f-6f33-49aa-91db-ee6e0c3fdff1"
@@ -149,11 +149,11 @@ data class LampaCard(
 
     override fun toString(): String {
         val tt = if (!name.isNullOrEmpty()) name else title
-        return "LampaCard(source:$source id:$id type:$type $tt $img)"
+        return "NetfixCard(source:$source id:$id type:$type $tt $img)"
     }
 }
 
-data class LampaRec(
+data class NetfixRec(
     val id: String, // "84958"
     val name: String?,
     val original_name: String?,
@@ -174,7 +174,7 @@ data class LampaRec(
     val video: Boolean?, // false
     val adult: Boolean?, // false
 ) {
-    fun toLampaCard(): LampaCard {
+    fun toNetfixCard(): NetfixCard {
         // fix media_type
         val mt = media_type ?: "movie"
         // fix genres
@@ -190,7 +190,7 @@ data class LampaRec(
                 backdrop_path
             )
                 .replace("original", "w1280") else "" // TODO fetch TMDB.Images.get
-        return LampaCard(
+        return NetfixCard(
             "tmdb",
             mt,
             id,
@@ -267,5 +267,5 @@ data class Persons(
 
 data class WatchNextToAdd(
     val id: String,
-    var card: LampaCard?
+    var card: NetfixCard?
 )

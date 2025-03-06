@@ -12,22 +12,22 @@ import androidx.tvprovider.media.tv.TvContractCompat
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.app.R
-import netfix.content.LampaProvider.BOOK
-import netfix.content.LampaProvider.CONT
-import netfix.content.LampaProvider.HIST
-import netfix.content.LampaProvider.LIKE
-import netfix.content.LampaProvider.LOOK
-import netfix.content.LampaProvider.RECS
-import netfix.content.LampaProvider.SCHD
-import netfix.content.LampaProvider.THRW
-import netfix.content.LampaProvider.VIEW
+import netfix.content.NetfixProvider.BOOK
+import netfix.content.NetfixProvider.CONT
+import netfix.content.NetfixProvider.HIST
+import netfix.content.NetfixProvider.LIKE
+import netfix.content.NetfixProvider.LOOK
+import netfix.content.NetfixProvider.RECS
+import netfix.content.NetfixProvider.SCHD
+import netfix.content.NetfixProvider.THRW
+import netfix.content.NetfixProvider.VIEW
 import netfix.helpers.ChannelHelper
 import netfix.helpers.Coroutines
 import netfix.helpers.Helpers.buildPendingIntent
 import netfix.helpers.Helpers.setLanguage
 import netfix.helpers.Prefs.appLang
 import netfix.helpers.data
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 import java.util.Locale
 
 object ChannelManager {
@@ -60,7 +60,7 @@ object ChannelManager {
 
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.O)
-    fun update(name: String, list: List<LampaCard>) {
+    fun update(name: String, list: List<NetfixCard>) {
         if (BuildConfig.DEBUG) Log.d(TAG, "update($name, size:${list.size})")
         removeLostChannels()
         synchronized(lock) {
@@ -235,7 +235,7 @@ object ChannelManager {
     private fun getProgram(
         channelId: Long,
         provName: String,
-        card: LampaCard,
+        card: NetfixCard,
         weight: Int
     ): PreviewProgram? {
         val info = mutableListOf<String>()

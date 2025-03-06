@@ -18,12 +18,12 @@ import com.bumptech.glide.Glide
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.app.R
-import netfix.content.LampaProvider
+import netfix.content.NetfixProvider
 import netfix.helpers.Helpers.buildPendingIntent
 import netfix.helpers.Helpers.dp2px
 import netfix.helpers.Helpers.isAmazonDev
 import netfix.helpers.Helpers.isAndroidTV
-import netfix.models.LampaCard
+import netfix.models.NetfixCard
 import java.util.Locale
 import kotlin.math.min
 
@@ -184,8 +184,8 @@ object RecsService {
         }
     }
 
-    private fun getRecs(): List<LampaCard> {
-        return LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
+    private fun getRecs(): List<NetfixCard> {
+        return NetfixProvider.get(NetfixProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     private fun Context.drawTextToBitmap(bitmap: Bitmap?, mText: String): Bitmap? {

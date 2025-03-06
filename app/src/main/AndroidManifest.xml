@@ -126,7 +126,7 @@
                 <data
                     android:host="@string/provider_auth"
                     android:pathPattern=".*"
-                    android:scheme="lampa" />
+                    android:scheme="netfix" />
             </intent-filter>
 
             <meta-data

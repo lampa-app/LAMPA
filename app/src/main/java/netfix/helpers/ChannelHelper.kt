@@ -18,9 +18,9 @@ import androidx.tvprovider.media.tv.TvContractCompat
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.app.R
-import netfix.content.LampaProvider.BOOK
-import netfix.content.LampaProvider.HIST
-import netfix.content.LampaProvider.LIKE
+import netfix.content.NetfixProvider.BOOK
+import netfix.content.NetfixProvider.HIST
+import netfix.content.NetfixProvider.LIKE
 import java.nio.charset.Charset
 
 
@@ -58,7 +58,7 @@ object ChannelHelper {
             LIKE -> R.drawable.ch_like_shape
             else -> R.drawable.netfix_logo_round
         }
-//        val themedContext = ContextThemeWrapper(App.context, R.style.Theme_LAMPA)
+//        val themedContext = ContextThemeWrapper(App.context, R.style.Theme_NETFIX)
         val bitmap = convertToBitmap(context = App.context, icon)
         if (channelId != null) {
             ChannelLogoUtils.storeChannelLogo(App.context, channelId, bitmap)
@@ -146,8 +146,8 @@ object ChannelHelper {
         val drawable: Drawable? = AppCompatResources.getDrawable(context, resourceId)
         if (drawable is VectorDrawable) {
             val bitmap = Bitmap.createBitmap(
-                drawable.getIntrinsicWidth(),
-                drawable.getIntrinsicHeight(),
+                drawable.intrinsicWidth,
+                drawable.intrinsicHeight,
                 Bitmap.Config.ARGB_8888
             )
             val canvas = Canvas(bitmap)
