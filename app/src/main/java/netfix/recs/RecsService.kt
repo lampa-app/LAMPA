@@ -47,7 +47,7 @@ object RecsService {
 
             val builder = ContentRecommendation.Builder()
 
-            val tallId = R.drawable.empty_poster // in-app poster
+            val tallId = R.drawable.netfix_empty_poster // in-app poster
             val wideId = R.drawable.netfix_banner // in-app poster
             val emptyPoster = Uri.Builder()
                 .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
@@ -142,7 +142,7 @@ object RecsService {
                             0,
                             null
                         )
-                        .setColor(ContextCompat.getColor(this, R.color.teal_500))
+                        .setColor(ContextCompat.getColor(this, R.color.netfix_500))
                         .setRunningTime(card.runtime?.toLong()?.times(60L) ?: 0L)
                         .setGroup("netfix")
                         .setSortKey(priority.toString())

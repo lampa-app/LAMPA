@@ -85,7 +85,7 @@
                     android:enabled="false"
                     android:text="@string/app_crash_errlogs"
                     android:textColor="#EEE"
-                    android:textColorLink="@color/teal_500"
+                    android:textColorLink="@color/netfix_500"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -120,7 +120,7 @@
             android:paddingVertical="10dp"
             android:textAlignment="textStart"
             android:textColor="#EEE"
-            android:textColorLink="@color/teal_500"
+            android:textColorLink="@color/netfix_500"
             tools:text="Sometimes our system has faults but no worry. In next update we will fix this. Please click on Restart App button to continue." />
 
     </androidx.core.widget.NestedScrollView>
