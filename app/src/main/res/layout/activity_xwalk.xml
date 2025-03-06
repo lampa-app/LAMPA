@@ -26,7 +26,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1"
         app:maxImageSize="30dp"
-        app:srcCompat="@drawable/lampa_logo_round"
+        app:srcCompat="@drawable/netfix_logo_round"
         app:tint="@null"
         tools:visibility="visible" />
 

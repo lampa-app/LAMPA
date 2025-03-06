@@ -9,14 +9,14 @@
     </item>
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/lampa_label_bgcolor" /> <!-- Background color when focused -->
+            <solid android:color="@color/netfix_label_bgcolor" /> <!-- Background color when focused -->
             <corners android:radius="4dp" />
             <stroke android:width="4dp" android:color="@color/teal_200"/>
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/lampa_label_bgcolor" /> <!-- Default background color -->
+            <solid android:color="@color/netfix_label_bgcolor" /> <!-- Default background color -->
             <corners android:radius="4dp" />
             <stroke android:width="4dp" android:color="@android:color/transparent"/>
         </shape>

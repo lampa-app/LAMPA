@@ -35,9 +35,8 @@ def getVersionName = { ->
 android {
     compileSdk 35
     defaultConfig {
-        applicationId "top.rootu.lampa"
+        applicationId "top.netfix"
         minSdkVersion 19
-        //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 35
         versionCode getVersionCode()
         versionName getVersionName()
@@ -94,7 +93,7 @@ android {
 
     productFlavors {
         lite {
-            buildConfigField "boolean", "enableUpdate", "true"
+            buildConfigField "boolean", "enableUpdate", "false"
             buildConfigField "String", "defaultAppUrl", "\"\""
         }
         full {
@@ -105,7 +104,7 @@ android {
             versionNameSuffix "-RuStore"
             minSdk 24 // minSdk RuStore.apk
             buildConfigField "boolean", "enableUpdate", "false"
-            buildConfigField "String", "defaultAppUrl", "\"http://lampa.mx\""
+            buildConfigField "String", "defaultAppUrl", "\"\""
         }
     }
 
@@ -114,8 +113,9 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
-    namespace 'top.rootu.lampa'
+    namespace 'top.netfix'
 }
 
 dependencies {

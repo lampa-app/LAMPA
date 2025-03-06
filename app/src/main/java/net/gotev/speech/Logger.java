@@ -1,6 +1,6 @@
 package net.gotev.speech;
 
-import top.rootu.lampa.BuildConfig;
+import top.netfix.BuildConfig;
 
 /**
  * Android Speech library logger.

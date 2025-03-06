@@ -17,7 +17,7 @@ import android.widget.Button;
 
 import java.util.ArrayList;
 
-import top.rootu.lampa.R;
+import top.netfix.R;
 
 /**
  * <p>By <code>MyXWalkDialogManager</code>, you can customize what the dialog looks like when
@@ -463,9 +463,9 @@ public class MyXWalkDialogManager {
         ) {
             if (downloadCommand != null && appStoreCommand != null) {
                 actions.add(new ButtonAction(DialogInterface.BUTTON_POSITIVE, downloadCommand, true));
-                setPositiveButton(dialog, top.rootu.lampa.R.string.xwalk_download_crosswalk);
+                setPositiveButton(dialog, top.netfix.R.string.xwalk_download_crosswalk);
                 actions.add(new ButtonAction(DialogInterface.BUTTON_NEGATIVE, appStoreCommand, false));
-                setNegativeButton(dialog, top.rootu.lampa.R.string.xwalk_market_crosswalk);
+                setNegativeButton(dialog, top.netfix.R.string.xwalk_market_crosswalk);
                 actions.add(new ButtonAction(DialogInterface.BUTTON_NEUTRAL, cancelCommand, false));
                 setNeutralButton(dialog, R.string.xwalk_close);
             } else {

@@ -32,8 +32,8 @@ import java.util.Arrays;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
-import top.rootu.lampa.helpers.FileHelpers;
-import top.rootu.lampa.net.TlsSocketFactory;
+import top.netfix.helpers.FileHelpers;
+import top.netfix.net.TlsSocketFactory;
 
 /**
  * MyXWalkLibraryLoader is a low level inteface to schedule decompressing, downloading, activating
