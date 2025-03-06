@@ -15,8 +15,8 @@ import androidx.tvprovider.media.tv.WatchNextProgram
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import netfix.App
-import netfix.BuildConfig
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.content.LampaProvider
 import netfix.helpers.Helpers
 import netfix.helpers.Helpers.getJson

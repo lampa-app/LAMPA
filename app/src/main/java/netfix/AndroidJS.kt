@@ -12,6 +12,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import netfix.app.BuildConfig
+import netfix.app.R
 import org.json.JSONException
 import org.json.JSONObject
 import netfix.browser.Browser

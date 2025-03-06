@@ -1,6 +1,6 @@
 package net.gotev.speech;
 
-import netfix.BuildConfig;
+import netfix.app.BuildConfig;
 
 /**
  * Android Speech library logger.

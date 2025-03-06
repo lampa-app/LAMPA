@@ -10,8 +10,8 @@ import androidx.tvprovider.media.tv.Channel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
 import netfix.App
-import netfix.BuildConfig
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.content.LampaProvider.BOOK
 import netfix.content.LampaProvider.CONT
 import netfix.content.LampaProvider.HIST

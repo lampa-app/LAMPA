@@ -26,9 +26,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
 import netfix.App
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.MainActivity
-import netfix.R
+import netfix.app.R
 import netfix.content.LampaProvider
 import netfix.helpers.Prefs.addBookToRemove
 import netfix.helpers.Prefs.addContToRemove

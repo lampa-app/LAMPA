@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.helpers.Helpers.hideSystemUI
 import netfix.helpers.Updater
 

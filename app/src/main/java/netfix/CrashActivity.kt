@@ -11,8 +11,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import netfix.databinding.ActivityCrashBinding
-import netfix.databinding.ErrorLogSheetBinding
+import netfix.app.R
+import netfix.app.databinding.ActivityCrashBinding
+import netfix.app.databinding.ErrorLogSheetBinding
 import netfix.helpers.Backup
 import netfix.helpers.PermHelpers
 import netfix.helpers.copyToClipBoard

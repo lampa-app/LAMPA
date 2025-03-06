@@ -10,6 +10,7 @@ import android.widget.ListView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.google.android.material.textview.MaterialTextView
+import netfix.app.R
 
 
 class ImgArrayAdapter : ArrayAdapter<String?> {

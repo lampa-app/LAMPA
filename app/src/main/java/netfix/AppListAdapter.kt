@@ -11,6 +11,7 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import java.util.Locale
+import netfix.app.R
 
 class AppListAdapter internal constructor(
     context: Context,

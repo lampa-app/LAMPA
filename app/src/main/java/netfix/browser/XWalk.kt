@@ -5,7 +5,7 @@ import org.xwalk.core.XWalkResourceClient
 import org.xwalk.core.XWalkView
 import netfix.App
 import netfix.MainActivity
-import netfix.R
+import netfix.app.R
 
 class XWalk(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: XWalkView? = null

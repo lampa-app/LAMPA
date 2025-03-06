@@ -18,9 +18,9 @@ import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewFeature
 import netfix.App
-import netfix.BuildConfig
 import netfix.MainActivity
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 
 
 // https://developer.android.com/develop/ui/views/layout/webapps/webview#kotlin
@@ -102,8 +102,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         // net::ERR_NAME_NOT_RESOLVED [-2]
                         // net::ERR_TIMED_OUT [-8]
                         val reason = when {
-                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(R.string.error_no_internet)
-                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(R.string.error_dns)
+                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(
+                                R.string.error_no_internet
+                            )
+
+                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(
+                                R.string.error_dns
+                            )
+
                             error.description == "net::ERR_TIMED_OUT" -> view.context.getString(R.string.error_timeout)
                             else -> view.context.getString(R.string.error_unknown)
                         }

@@ -2,7 +2,7 @@ package netfix.content
 
 import android.util.Log
 import netfix.App
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.helpers.Prefs.REC
 import netfix.models.LampaCard
 import netfix.models.LampaRec

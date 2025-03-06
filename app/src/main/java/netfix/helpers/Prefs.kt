@@ -6,7 +6,7 @@ import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import netfix.App
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.MainActivity
 import netfix.content.LampaProvider
 import netfix.helpers.Helpers.getJson

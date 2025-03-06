@@ -16,8 +16,8 @@ import androidx.core.content.ContextCompat
 import androidx.recommendation.app.ContentRecommendation
 import com.bumptech.glide.Glide
 import netfix.App
-import netfix.BuildConfig
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.content.LampaProvider
 import netfix.helpers.Helpers.buildPendingIntent
 import netfix.helpers.Helpers.dp2px

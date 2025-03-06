@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import netfix.app.BuildConfig
 import netfix.helpers.Helpers.isConnected
 import netfix.helpers.Helpers.setLanguage
 import netfix.helpers.Updater

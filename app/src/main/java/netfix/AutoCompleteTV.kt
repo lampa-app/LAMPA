@@ -12,6 +12,7 @@ import android.widget.ListPopupWindow
 import android.widget.ListView
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.core.view.updateLayoutParams
+import netfix.app.R
 import netfix.helpers.Helpers.dp2px
 import netfix.helpers.Prefs.remUrlHistory
 

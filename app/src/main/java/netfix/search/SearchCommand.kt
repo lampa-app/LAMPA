@@ -4,8 +4,8 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.util.Log
 import netfix.App
-import netfix.BuildConfig
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.helpers.Helpers.openLampa
 import netfix.helpers.Helpers.openSettings
 import netfix.helpers.Helpers.uninstallSelf

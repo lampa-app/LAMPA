@@ -9,7 +9,7 @@ import android.os.Build
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
 import netfix.App
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.channels.ChannelManager
 import netfix.channels.WatchNext
 import netfix.helpers.ChannelHelper

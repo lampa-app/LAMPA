@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
 import android.widget.LinearLayout
+import netfix.app.R
 
 class LottieLoader(context: Context): Dialog(context) {
     override fun onCreate(savedInstanceState: Bundle?) {

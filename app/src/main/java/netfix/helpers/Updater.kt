@@ -10,8 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import netfix.App
-import netfix.BuildConfig
-import netfix.R
+import netfix.app.BuildConfig
+import netfix.app.R
 import netfix.helpers.Helpers.getJson
 import netfix.models.Release
 import netfix.models.Releases

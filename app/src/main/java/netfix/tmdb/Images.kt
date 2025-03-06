@@ -7,6 +7,7 @@ import netfix.App
 import netfix.helpers.Helpers.getJson
 import netfix.helpers.Prefs.tmdbApiUrl
 import netfix.tmdb.models.entity.Entity
+import netfix.tmdb.models.entity.Images
 import java.io.IOException
 
 object Images {

@@ -9,7 +9,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import netfix.App
-import netfix.R
+import netfix.app.R
 import netfix.tmdb.TMDB
 import netfix.tmdb.models.entity.Entity
 import java.io.IOException

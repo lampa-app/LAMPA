@@ -6,7 +6,7 @@ import androidx.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.content.LampaProvider
 import netfix.helpers.Helpers
 import netfix.models.LampaCard

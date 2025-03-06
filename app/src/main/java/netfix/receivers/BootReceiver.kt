@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.sched.Scheduler
 
 // https://stackoverflow.com/questions/46445265/android-8-0-java-lang-illegalstateexception-not-allowed-to-start-service-inten/49846410#49846410

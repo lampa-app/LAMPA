@@ -13,7 +13,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import netfix.App
-import netfix.BuildConfig
+import netfix.app.BuildConfig
 import netfix.channels.LampaChannels
 import netfix.helpers.Helpers.isAndroidTV
 import netfix.recs.RecsService

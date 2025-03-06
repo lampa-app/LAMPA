@@ -2,6 +2,7 @@ package netfix
 
 import android.util.Log
 import kotlinx.coroutines.*
+import netfix.app.BuildConfig
 import java.util.concurrent.Executors
 
 
