@@ -17,8 +17,8 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
-import netfix.BuildConfig;
-import netfix.R;
+import netfix.app.BuildConfig;
+import netfix.app.R;
 
 public class PermHelpers {
     // Storage Permissions
