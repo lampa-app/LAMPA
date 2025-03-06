@@ -306,7 +306,7 @@ object ChannelManager {
         }
         if (usePoster) {
             if (card.img.isNullOrEmpty()) {
-                val resourceId = R.drawable.empty_poster // in-app poster
+                val resourceId = R.drawable.netfix_empty_poster // in-app poster
                 val emptyPoster = Uri.Builder()
                     .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
                     .authority(App.context.resources.getResourcePackageName(resourceId))

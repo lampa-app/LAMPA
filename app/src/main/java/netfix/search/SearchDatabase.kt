@@ -125,7 +125,7 @@ object SearchDatabase {
         // rating
         ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
         // poster
-        val resourceId = R.drawable.empty_poster // in-app poster
+        val resourceId = R.drawable.netfix_empty_poster // in-app poster
         val emptyPoster = Uri.Builder().scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
             .authority(App.context.resources.getResourcePackageName(resourceId))
             .appendPath(App.context.resources.getResourceTypeName(resourceId))

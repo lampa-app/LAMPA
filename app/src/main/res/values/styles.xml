@@ -13,8 +13,8 @@
         <item name="windowMinWidthMajor">50%</item><!--landscape -->
         <item name="windowMinWidthMinor">70%</item><!--portrait -->
         <!-- Used for the buttons -->
-        <item name="colorPrimary">@color/teal_200</item>
-        <item name="colorAccent">@color/teal_500</item>
+        <item name="colorPrimary">@color/netfix_200</item>
+        <item name="colorAccent">@color/netfix_500</item>
         <!-- Dialog Buttons -->
         <item name="buttonBarPositiveButtonStyle">@style/AlertButtonStyle</item>
         <item name="buttonBarNegativeButtonStyle">@style/AlertButtonStyle</item>
