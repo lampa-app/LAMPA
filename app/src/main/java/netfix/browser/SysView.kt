@@ -95,7 +95,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         "ERROR ${error.errorCode} ${error.description} on load ${request.url}"
                     )
                     if (request.url.toString().trimEnd('/')
-                            .equals(MainActivity.LAMPA_URL, true)
+                            .equals(MainActivity.NEFIX_URL, true)
                     ) {
                         view.loadUrl("about:blank")
                         // net::ERR_INTERNET_DISCONNECTED [-2]
@@ -115,7 +115,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         }
                         val msg = "${
                             view.context.getString(R.string.download_failed_message)
-                        } ${MainActivity.LAMPA_URL} – $reason"
+                        } ${MainActivity.NEFIX_URL} – $reason"
                         if (error.description == "net::ERR_INTERNET_DISCONNECTED") {
                             val htmlData =
                                 "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
@@ -142,7 +142,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     TAG,
                     "ERROR $errorCode $description on load $failingUrl"
                 )
-                if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
+                if (failingUrl.toString().trimEnd('/').equals(MainActivity.NEFIX_URL, true)) {
                     view?.loadUrl("about:blank")
                     val reason = when (description) {
                         "net::ERR_INTERNET_DISCONNECTED" -> App.context.getString(R.string.error_no_internet)
@@ -151,7 +151,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         else -> App.context.getString(R.string.error_unknown)
                     }
                     val msg =
-                        "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
+                        "${App.context.getString(R.string.download_failed_message)} ${MainActivity.NEFIX_URL} – $reason"
                     if (description == "net::ERR_INTERNET_DISCONNECTED") {
                         val htmlData =
                             "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${

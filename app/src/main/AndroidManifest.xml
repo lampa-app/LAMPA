@@ -70,7 +70,7 @@
         android:required="false" />
 
     <application
-        android:name=".App"
+        android:name="netfix.App"
         android:allowBackup="true"
         android:banner="@drawable/netfix_banner"
         android:hardwareAccelerated="true"
@@ -82,14 +82,14 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@drawable/netfix_icon"
         android:supportsRtl="true"
-        android:theme="@style/Theme.LAMPA"
+        android:theme="@style/Theme.NETFIX"
         tools:ignore="RtlEnabled"
         tools:targetApi="r">
         <activity
-            android:name=".CrashActivity"
+            android:name="netfix.CrashActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name="netfix.MainActivity"
             android:allowTaskReparenting="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:exported="true"
@@ -134,17 +134,17 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name=".UpdateActivity"
+            android:name="netfix.UpdateActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
-            android:theme="@style/Theme.LAMPA" />
+            android:theme="@style/Theme.NETFIX" />
 
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
 
         <receiver
-            android:name=".receivers.BootReceiver"
+            android:name="netfix.receivers.BootReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -156,7 +156,7 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".receivers.HomeWatch"
+            android:name="netfix.receivers.HomeWatch"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -179,18 +179,18 @@
                 android:resource="@xml/provider_paths" />
         </provider>
         <provider
-            android:name=".search.SearchProvider"
+            android:name="netfix.search.SearchProvider"
             android:authorities="${applicationId}.atvsearch"
             android:exported="true"
             tools:ignore="ExportedContentProvider" />
 
         <service
-            android:name=".sched.CardJobService"
+            android:name="netfix.sched.CardJobService"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
-            android:name=".sched.CardAlarmManager"
+            android:name="netfix.sched.CardAlarmManager"
             android:enabled="true" />
     </application>
 

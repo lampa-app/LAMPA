@@ -273,7 +273,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 if (headers == null) {
                     headers = JSONObject()
                 }
-                headers.put("Referer", MainActivity.LAMPA_URL)
+                headers.put("Referer", MainActivity.NEFIX_URL)
             }
             val finalRequestContent = requestContent
             val finalHeaders = headers

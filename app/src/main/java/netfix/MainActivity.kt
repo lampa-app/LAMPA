@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity(),
         const val RESULT_VIMU_START = 3
         const val RESULT_VIMU_ERROR = 4
         var delayedVoidJsFunc = mutableListOf<List<String>>()
-        var LAMPA_URL: String = ""
+        var NEFIX_URL: String = ""
         var SELECTED_PLAYER: String? = ""
         var SELECTED_BROWSER: String? =
             if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity(),
                 runVoidJsFunc("window.history.back", "")
             }
         }
-        LAMPA_URL = this.appUrl
+        NEFIX_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
         Helpers.setLocale(this, this.appLang)
 
@@ -581,10 +581,10 @@ class MainActivity : AppCompatActivity(),
             setBackgroundColor(ContextCompat.getColor(baseContext, R.color.netfix_background))
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
-        if (LAMPA_URL.isEmpty()) {
+        if (NEFIX_URL.isEmpty()) {
             showUrlInputDialog()
         } else {
-            browser?.loadUrl(LAMPA_URL)
+            browser?.loadUrl(NEFIX_URL)
         }
     }
 
@@ -847,8 +847,8 @@ class MainActivity : AppCompatActivity(),
     private fun showMenuDialog() {
         val mainActivity = this
         val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(5)
-        val menuItemsAction = arrayOfNulls<String?>(5)
+        val menuItemsTitle = arrayOfNulls<String?>(4)
+        val menuItemsAction = arrayOfNulls<String?>(4)
 
         menuItemsTitle[0] =
             if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) getString(R.string.update_chan_title)
@@ -856,12 +856,12 @@ class MainActivity : AppCompatActivity(),
         menuItemsAction[0] = "closeMenu"
         menuItemsTitle[1] = getString(R.string.change_url_title)
         menuItemsAction[1] = "showUrlInputDialog"
-        menuItemsTitle[2] = getString(R.string.change_engine)
-        menuItemsAction[2] = "showBrowserInputDialog"
-        menuItemsTitle[3] = getString(R.string.backup_restore_title)
-        menuItemsAction[3] = "showBackupDialog"
-        menuItemsTitle[4] = getString(R.string.exit)
-        menuItemsAction[4] = "appExit"
+//        menuItemsTitle[2] = getString(R.string.change_engine)
+//        menuItemsAction[2] = "showBrowserInputDialog"
+        menuItemsTitle[2] = getString(R.string.backup_restore_title)
+        menuItemsAction[2] = "showBackupDialog"
+        menuItemsTitle[3] = getString(R.string.exit)
+        menuItemsAction[3] = "appExit"
 
         val icons = arrayOf(
             if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
@@ -1061,7 +1061,7 @@ class MainActivity : AppCompatActivity(),
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
         // Set up the input
         input?.apply {
-            setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
+            setText(NEFIX_URL.ifEmpty { BuildConfig.defaultAppUrl })
             if (msg.isNotEmpty()) {
                 tilt.isErrorEnabled = true
                 tilt.error = msg
@@ -1103,19 +1103,19 @@ class MainActivity : AppCompatActivity(),
         builder.setView(view)
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
-            LAMPA_URL = input?.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
-                println("URL '$LAMPA_URL' is valid")
-                if (this.appUrl != LAMPA_URL) {
-                    this.appUrl = LAMPA_URL
-                    this.addUrlHistory(LAMPA_URL)
-                    browser?.loadUrl(LAMPA_URL)
+            NEFIX_URL = input?.text.toString()
+            if (URL_PATTERN.matcher(NEFIX_URL).matches()) {
+                println("URL '$NEFIX_URL' is valid")
+                if (this.appUrl != NEFIX_URL) {
+                    this.appUrl = NEFIX_URL
+                    this.addUrlHistory(NEFIX_URL)
+                    browser?.loadUrl(NEFIX_URL)
                     App.toast(R.string.change_url_press_back)
                 } else {
-                    browser?.loadUrl(LAMPA_URL) // reload current URL
+                    browser?.loadUrl(NEFIX_URL) // reload current URL
                 }
             } else {
-                println("URL '$LAMPA_URL' is invalid")
+                println("URL '$NEFIX_URL' is invalid")
                 App.toast(R.string.invalid_url)
                 showUrlInputDialog()
             }
@@ -1123,10 +1123,10 @@ class MainActivity : AppCompatActivity(),
         }
         builder.setNegativeButton(R.string.cancel) { di: DialogInterface, _: Int ->
             di.cancel()
-            if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
+            if (NEFIX_URL.isEmpty() && this.appUrl.isEmpty()) {
                 appExit()
             } else {
-                LAMPA_URL = this.appUrl
+                NEFIX_URL = this.appUrl
                 hideSystemUI()
             }
         }

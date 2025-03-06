@@ -3,7 +3,7 @@
     <string name="no_player_activity_found">Подходящего мультимедиа-плеера не найдено. Пожалуйста, установите плеер из Google Play Store или любого другого источника. Мы рекомендуем Just Player, Vimu Media Player, VLC.</string>
     <string name="no_torrent_activity_found">Нет приложения для открытия торрент-ссылок. Пожалуйста, установите TorrServe или любое другое приложение, работающее с торрентами.</string>
     <string name="no_youtube_activity_found">Нет приложения для открытия ссылок YouTube. Пожалуйста, установите приложение YouTube.</string>
-    <string name="no_launch_player">Lampa: Выбранный плеер не поддерживает воспроизведение этого видео</string>
+    <string name="no_launch_player">NetFix: Выбранный плеер не поддерживает воспроизведение этого видео</string>
     <string name="invalid_url">Введите корректный адрес сайта, например:\nhttp://lampa.mx</string>
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
@@ -11,7 +11,7 @@
     <string name="change_engine">Изменить веб-браузер</string>
     <string name="change_engine_title">Выбор браузера</string>
     <string name="close_menu_title">Закрыть это меню</string>
-    <string name="change_url_title">Изменить адрес Lampa</string>
+    <string name="change_url_title">Изменить адрес NetFix</string>
     <string name="engine_crosswalk_obsolete">Crosswalk (XWalkLib) - устаревший</string>
     <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
     <string name="engine_webkit">Android System WebView</string>
@@ -20,7 +20,7 @@
     <string name="change_url_press_back">Для смены адреса нажмите и удерживайте кнопку «Назад»\nили нажмите кнопку «Меню»</string>
     <string name="error_app_not_found">Не найдено подходящих приложений</string>
     <string name="exit">Завершить работу</string>
-    <string name="input_url_title">Укажите адрес Lampa</string>
+    <string name="input_url_title">Укажите адрес NetFix</string>
     <string name="select_player">Выбор плеера</string>
     <string name="select_player_reset">Выбранный плеер сброшен</string>
     <string name="not_found_speech">Не удалось запустить голосовой ввод</string>
@@ -79,9 +79,9 @@
     <string name="backup_all">Резервная копия</string>
     <string name="backup_all_title">Сделать резервную копию всех настроек</string>
     <string name="restore_app_title">Восстановить настройки приложения</string>
-    <string name="restore_storage_title">Восстановить настройки Lampa</string>
+    <string name="restore_storage_title">Восстановить настройки NetFix</string>
     <string name="default_setting_title">Загрузить настройки по умолчанию</string>
-    <string name="change_note">Это действие может вернуть настройки Lampa к значениям по умолчанию. Перед изменением рекомендуется сделать резервную копию настроек!</string>
+    <string name="change_note">Это действие может вернуть настройки NetFix к значениям по умолчанию. Перед изменением рекомендуется сделать резервную копию настроек!</string>
     <string name="settings_saved_toast">Все настройки сохранены в %s</string>
     <string name="settings_save_fail">Невозможно выполнить резервное копирование настроек</string>
     <string name="settings_rest_fail">Невозможно восстановить настройки</string>

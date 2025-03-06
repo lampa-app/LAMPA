@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/welcome"
-    tools:context=".CrashActivity">
+    tools:context="netfix.CrashActivity">
 
     <ScrollView
         android:layout_width="match_parent"

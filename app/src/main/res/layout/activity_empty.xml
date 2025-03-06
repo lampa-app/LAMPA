@@ -5,11 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/welcome"
-    tools:context=".MainActivity">
+    tools:context="netfix.MainActivity">
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/progressBar_cyclic"
-        android:layout_width="640dp"
+        android:layout_width="400dp"
         android:layout_height="640dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

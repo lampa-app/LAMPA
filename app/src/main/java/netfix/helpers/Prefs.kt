@@ -72,7 +72,7 @@ object Prefs {
 
     var Context.appUrl: String
         get() {
-            return this.appPrefs.getString(APP_URL, BuildConfig.defaultAppUrl) ?: ""
+            return this.appPrefs.getString(APP_URL, BuildConfig.defaultAppUrl) ?: BuildConfig.defaultAppUrl
         }
         set(url) {
             this.appPrefs.edit().putString(APP_URL, url).apply()

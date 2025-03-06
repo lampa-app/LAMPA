@@ -13,7 +13,7 @@
     <string name="change_engine">Change Browser</string>
     <string name="change_engine_title">Choose Browser</string>
     <string name="close_menu_title">Close This Menu</string>
-    <string name="change_url_title">Change Lampa URL</string>
+    <string name="change_url_title">Change NetFix URL</string>
     <string name="engine_crosswalk_obsolete">Crosswalk (XWalkLib) - obsolete</string>
     <string name="engine_crosswalk">Crosswalk (XWalkLib)</string>
     <string name="engine_webkit">Android System WebView</string>
@@ -22,7 +22,7 @@
     <string name="change_url_press_back">To change the address, press and hold the "Back" button\nor press the "Menu" button</string>
     <string name="error_app_not_found">No matching applications found</string>
     <string name="exit">Quit the Application</string>
-    <string name="input_url_title">Please enter Lampa URL</string>
+    <string name="input_url_title">Please enter NetFix URL</string>
     <string name="select_player">Player selection</string>
     <string name="select_player_reset">The selected player has been reset</string>
     <string name="not_found_speech">Failed to start voice input</string>
@@ -80,18 +80,18 @@
     <string name="update_home_title">Update TV Recommendations</string>
     <string name="backup_restore_title">Settings Backup &amp; Restore</string>
     <string name="backup_all">Backup All Settings</string>
-    <string name="backup_all_title">Lampa &amp; App Settings Backup</string>
+    <string name="backup_all_title">NetFix &amp; App Settings Backup</string>
     <string name="restore_app_title">Restore App Preferences</string>
-    <string name="restore_storage_title">Restore Lampa Settings</string>
+    <string name="restore_storage_title">Restore NetFix Settings</string>
     <string name="default_setting_title">Load Default Settings</string>
-    <string name="change_note">This action can reset the Lampa settings to their default values. Before this change, it is recommended to make a backup copy of your settings!</string>
+    <string name="change_note">This action can reset the NetFix settings to their default values. Before this change, it is recommended to make a backup copy of your settings!</string>
     <string name="settings_saved_toast">All settings saved to %s</string>
     <string name="settings_save_fail">Unable to backup settings</string>
     <string name="settings_rest_fail">Unable to restore settings</string>
     <string name="settings_restored">Settings restored</string>
     <!--App Errors-->
     <string name="app_crash_title">Sorry for the Inconvenience</string>
-    <string name="app_crash_message">Sometimes Lampa has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>
+    <string name="app_crash_message">Sometimes NetFix has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>
     <string name="app_crash_copy">Copy Logs to Clipboard</string>
     <string name="app_crash_copied">Logs copied to clipboard</string>
     <string name="app_crash_save_to">Crash Logs saved to</string>

@@ -77,18 +77,18 @@
     <string name="update_home_title">更新建议</string>
     <string name="backup_restore_title">设置备份和恢复 恢复</string>
     <string name="backup_all">备份所有设置</string>
-    <string name="backup_all_title">Lampa 设置备份</string>
+    <string name="backup_all_title">NetFix 设置备份</string>
     <string name="restore_app_title">恢复应用程序首选项</string>
-    <string name="restore_storage_title">恢复 Lampa 设置</string>
+    <string name="restore_storage_title">恢复 NetFix 设置</string>
     <string name="default_setting_title">加载默认设置</string>
-    <string name="change_note">此操作可以将 Lampa 设置重置为其默认值。 在此更改之前，建议对您的设置进行备份！</string>
+    <string name="change_note">此操作可以将 NetFix 设置重置为其默认值。 在此更改之前，建议对您的设置进行备份！</string>
     <string name="settings_saved_toast">所有设置已保存到 %s</string>
     <string name="settings_save_fail">无法备份设置</string>
     <string name="settings_rest_fail">无法恢复设置</string>
     <string name="settings_restored">设置已恢复</string>
     <!--App Errors-->
     <string name="app_crash_title">抱歉给您带来不便</string>
-    <string name="app_crash_message">Lampa 有时会出现故障，但不必担心。我们将在下次更新中修复此问题。您可以在我们的 Telegram 频道 - @lampa_group 中报告此错误。请点击“重启应用”按钮继续。</string>    <string name="app_crash_copy">将日志复制到剪贴板</string>
+    <string name="app_crash_message">NetFix 有时会出现故障，但不必担心。我们将在下次更新中修复此问题。您可以在我们的 Telegram 频道 - @lampa_group 中报告此错误。请点击“重启应用”按钮继续。</string>    <string name="app_crash_copy">将日志复制到剪贴板</string>
     <string name="app_crash_copied">日志已复制到剪贴板</string>
     <string name="app_crash_save_to">崩溃日志保存到</string>
     <string name="app_crash_no_logs">未找到错误日志</string>

@@ -5,6 +5,7 @@ plugins {
 }
 
 def getVersionCode = { ->
+    return 100
     try {
         def code = new ByteArrayOutputStream()
         exec {
@@ -19,6 +20,7 @@ def getVersionCode = { ->
 }
 
 def getVersionName = { ->
+    return '1.0.0'
     try {
         def stdout = new ByteArrayOutputStream()
         exec {
@@ -94,17 +96,17 @@ android {
     productFlavors {
         lite {
             buildConfigField "boolean", "enableUpdate", "false"
-            buildConfigField "String", "defaultAppUrl", "\"\""
+            buildConfigField "String", "defaultAppUrl", "\"https://netfix.cc\""
         }
         full {
             buildConfigField "boolean", "enableUpdate", "false"
-            buildConfigField "String", "defaultAppUrl", "\"\""
+            buildConfigField "String", "defaultAppUrl", "\"https://netfix.cc\""
         }
         ruStore {
             versionNameSuffix "-RuStore"
             minSdk 24 // minSdk RuStore.apk
             buildConfigField "boolean", "enableUpdate", "false"
-            buildConfigField "String", "defaultAppUrl", "\"\""
+            buildConfigField "String", "defaultAppUrl", "\"https://netfix.cc\""
         }
     }
 
