@@ -3,7 +3,7 @@
     <style name="Theme.NETFIX" parent="Theme.MaterialComponents">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/netfix_200</item>
-        <item name="colorPrimaryDark">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/netfix_700</item>
         <item name="colorAccent">@color/netfix_500</item>
         <!-- Customize your theme here. -->
         <item name="android:windowBackground">@drawable/welcome</item>

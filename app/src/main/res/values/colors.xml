@@ -2,10 +2,9 @@
 <resources>
     <color name="netfix_background">#1e1f21</color>
     <color name="netfix_label_bgcolor">#ee1e1f21</color>
-    <color name="purple_500">#6200ee</color>
-    <color name="purple_700">#3700b3</color>
     <color name="netfix_200">#e50914</color>
     <color name="netfix_500">#e50914</color>
+    <color name="netfix_700">#c00000</color>
     <color name="black">#000</color>
     <color name="black_80">#cc000000</color>
     <color name="tv_white">#eee</color>
