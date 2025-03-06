@@ -15,7 +15,7 @@ import netfix.channels.WatchNext
 import netfix.helpers.ChannelHelper
 import netfix.helpers.Helpers
 import netfix.helpers.Helpers.isAndroidTV
-import netfix.helpers.Prefs.isInLampaWatchNext
+import netfix.helpers.Prefs.isInWatchNext
 import netfix.sched.Scheduler
 
 @TargetApi(Build.VERSION_CODES.O)
@@ -49,8 +49,8 @@ class HomeWatch : BroadcastReceiver() {
                         "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
-                    if (!App.context.isInLampaWatchNext(it)) {
+                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (!App.context.isInWatchNext(it)) {
                         val card = WatchNext.getCardFromWatchNextProgramId(watchNextId)
                         Helpers.manageFavorite("add", "wath", it, card)
                     }
@@ -66,8 +66,8 @@ class HomeWatch : BroadcastReceiver() {
                         "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
-                    if (App.context.isInLampaWatchNext(movieId)) {
+                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (App.context.isInWatchNext(movieId)) {
                         Helpers.manageFavorite("rem", "wath", movieId)
                     }
                     try { // remove from contentPrivider

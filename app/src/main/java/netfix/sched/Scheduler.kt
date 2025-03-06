@@ -14,7 +14,7 @@ import android.os.SystemClock
 import android.util.Log
 import netfix.App
 import netfix.app.BuildConfig
-import netfix.channels.LampaChannels
+import netfix.channels.NetfixChannels
 import netfix.helpers.Helpers.isAndroidTV
 import netfix.recs.RecsService
 import java.util.concurrent.TimeUnit
@@ -77,7 +77,7 @@ object Scheduler {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             RecsService.updateRecs()
         else
-            LampaChannels.update(sync)
+            NetfixChannels.update(sync)
         isUpdate = false
     }
 

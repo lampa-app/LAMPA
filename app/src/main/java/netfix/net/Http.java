@@ -30,7 +30,7 @@ public class Http {
     }
 
     private Request.Builder getReqBuilder(String url, JSONObject headers) {
-        Log.d("LampaHttp.RB", url);
+        Log.d("NetfixHttp.RB", url);
         String ua = HttpHelper.userAgent;
         Request.Builder rb = new Request.Builder().url(url);
         if (headers != null) {

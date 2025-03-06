@@ -6,7 +6,7 @@ import android.util.Log
 import netfix.App
 import netfix.app.BuildConfig
 import netfix.app.R
-import netfix.helpers.Helpers.openLampa
+import netfix.helpers.Helpers.openApp
 import netfix.helpers.Helpers.openSettings
 import netfix.helpers.Helpers.uninstallSelf
 import netfix.search.SearchProvider.Companion.queryProjection
@@ -17,10 +17,10 @@ object SearchCommand {
         if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand exec($query)")
         // just fun
         if (query.lowercase(Locale.getDefault())
-                .contains(App.context.getString(R.string.open_lampa))
+                .contains(App.context.getString(R.string.open_netfix))
         ) {
-            if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand matched - openLampa()")
-            openLampa()
+            if (BuildConfig.DEBUG) Log.d("*****", "SearchCommand matched - openApp()")
+            openApp()
             return MatrixCursor(queryProjection, 0)
         }
         if (query.lowercase(Locale.getDefault())
@@ -31,7 +31,7 @@ object SearchCommand {
             return MatrixCursor(queryProjection, 0)
         }
         if (query.lowercase(Locale.getDefault())
-                .contains(App.context.getString(R.string.lampa_suxx))
+                .contains(App.context.getString(R.string.netfix_suxx))
         ) {
             uninstallSelf()
             return MatrixCursor(queryProjection, 0)
