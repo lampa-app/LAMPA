@@ -24,7 +24,7 @@ import top.rootu.lampa.content.LampaProvider.VIEW
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
-import top.rootu.lampa.helpers.Helpers.setLanguage
+import top.rootu.lampa.helpers.setLanguage
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.LampaCard

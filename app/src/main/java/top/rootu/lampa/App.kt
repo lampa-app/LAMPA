@@ -14,13 +14,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.conscrypt.Conscrypt
 import top.rootu.lampa.helpers.Helpers.isConnected
-import top.rootu.lampa.helpers.Helpers.setLanguage
 import top.rootu.lampa.helpers.Updater
 import top.rootu.lampa.helpers.handleUncaughtException
+import top.rootu.lampa.helpers.setLanguage
 import top.rootu.lampa.tmdb.TMDB
-import java.security.Security
 
 class App : MultiDexApplication() {
     init {
@@ -79,7 +77,7 @@ class App : MultiDexApplication() {
             .get().lifecycle
             .addObserver(lifecycleEventObserver)
 
-        App.context.setLanguage()
+        context.setLanguage()
         // app crash handler
         handleUncaughtException(showLogs = true)
         // self-update check

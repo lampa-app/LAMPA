@@ -21,7 +21,7 @@ import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.dp2px
-import top.rootu.lampa.helpers.Helpers.isAmazonDev
+import top.rootu.lampa.helpers.isAmazonDev
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.models.LampaCard
 import java.util.Locale
