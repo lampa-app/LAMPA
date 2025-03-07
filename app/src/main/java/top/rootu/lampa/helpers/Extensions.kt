@@ -20,7 +20,6 @@ import androidx.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import top.rootu.lampa.App
 import top.rootu.lampa.CrashActivity
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Prefs.appLang
@@ -238,7 +237,7 @@ val Context.isAmazonDev: Boolean
 
 val Context.isGoogleTV: Boolean // wide posters
     get() {
-        return App.context.packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        return packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     }
 
 @RequiresApi(Build.VERSION_CODES.KITKAT)
