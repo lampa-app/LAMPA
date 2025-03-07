@@ -121,7 +121,7 @@ android {
 dependencies {
 
     // https://developer.android.com/studio/write/java8-support#library-desugaring
-    // For AGP 7.4+
+    //noinspection GradleDependency 2.0.4 for AGP 7.4
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     // JavaScript to run PAC file to get correct proxies
@@ -172,8 +172,6 @@ dependencies {
     def muiVersion = '1.11.0' // 1.11.0 - latest version for API 16
     //noinspection GradleDependency
     implementation "com.google.android.material:material:${muiVersion}"
-    // speech
-    //implementation 'net.gotev:speech:1.6.2'
     // coroutines
     def coroutinesVersion = '1.7.3' // 1.7.3 - latest version for API 16
     //noinspection GradleDependency
@@ -182,6 +180,7 @@ dependencies {
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
+    //noinspection GradleDependency 6.6.2 throw NullPointerException on build
     implementation 'com.airbnb.android:lottie:6.4.1'
     // webkit
     def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
