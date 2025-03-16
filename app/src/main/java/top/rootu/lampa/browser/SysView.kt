@@ -1,7 +1,9 @@
 package top.rootu.lampa.browser
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.util.Log
@@ -14,6 +16,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat.startActivity
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewFeature
@@ -69,12 +72,41 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
             // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20java.lang.String)
             @Deprecated("Deprecated in Java")
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 if (BuildConfig.DEBUG) Log.d(
                     TAG,
-                    "shouldOverrideUrlLoading(url) wv $view loadUrl($url)"
+                    "shouldOverrideUrlLoading(view, url) view $view url $url"
                 )
-                return false
+                url?.let {
+                    if (it.startsWith("tg://")) {
+                        // Handle Telegram link
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        mainActivity.startActivity(intent)
+                        return true // Indicate that the URL has been handled
+                    }
+                }
+                return false // Load the URL in the WebView for other links
+                // this will fail for non-http(s) links like lampa:// intent:// etc
+                //return super.shouldOverrideUrlLoading(view, url)
+            }
+            // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20android.webkit.WebResourceRequest)
+            @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                if (BuildConfig.DEBUG) Log.d(
+                    TAG,
+                    "shouldOverrideUrlLoading(view, request) view $view request $request"
+                )
+                if (request.url.scheme.equals("tg", true)) {
+                    val intent = Intent(Intent.ACTION_VIEW, request.url)
+                    mainActivity.startActivity(intent)
+                    return true // Indicate that the URL has been handled
+                }
+                return false // Load the URL in the WebView for other links
+                // this will fail for non-http(s) links like lampa:// intent:// etc
+                //return super.shouldOverrideUrlLoading(view, request)
             }
 
             @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
