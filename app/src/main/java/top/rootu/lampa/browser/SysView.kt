@@ -2,6 +2,7 @@ package top.rootu.lampa.browser
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslError
@@ -16,7 +17,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat.startActivity
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewFeature
@@ -80,8 +80,13 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 url?.let {
                     if (it.startsWith("tg://")) {
                         // Handle Telegram link
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        mainActivity.startActivity(intent)
+                        if (isTelegramAppInstalled()) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            mainActivity.startActivity(intent)
+                        } else {
+                            App.toast("Telegram app is not installed. Get in on Google Play.")
+                            redirectToTelegramPlayStore()
+                        }
                         return true // Indicate that the URL has been handled
                     }
                 }
@@ -89,6 +94,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 // this will fail for non-http(s) links like lampa:// intent:// etc
                 //return super.shouldOverrideUrlLoading(view, url)
             }
+
             // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20android.webkit.WebResourceRequest)
             @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
             override fun shouldOverrideUrlLoading(
@@ -100,13 +106,41 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     "shouldOverrideUrlLoading(view, request) view $view request $request"
                 )
                 if (request.url.scheme.equals("tg", true)) {
-                    val intent = Intent(Intent.ACTION_VIEW, request.url)
-                    mainActivity.startActivity(intent)
+                    if (isTelegramAppInstalled()) {
+                        val intent = Intent(Intent.ACTION_VIEW, request.url)
+                        mainActivity.startActivity(intent)
+                    } else {
+                        App.toast("Telegram app is not installed. Get in on Google Play.")
+                        redirectToTelegramPlayStore()
+                    }
                     return true // Indicate that the URL has been handled
                 }
                 return false // Load the URL in the WebView for other links
                 // this will fail for non-http(s) links like lampa:// intent:// etc
                 //return super.shouldOverrideUrlLoading(view, request)
+            }
+
+            private fun isTelegramAppInstalled(): Boolean {
+                return try {
+                    // Check if the Telegram app is installed by querying its package name
+                    mainActivity.packageManager.getPackageInfo(
+                        "org.telegram.messenger",
+                        PackageManager.GET_ACTIVITIES
+                    )
+                    true
+                } catch (e: PackageManager.NameNotFoundException) {
+                    // Telegram app is not installed
+                    false
+                }
+            }
+
+            private fun redirectToTelegramPlayStore() {
+                // Open the Telegram app page on the Play Store
+                val playStoreIntent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
+                )
+                mainActivity.startActivity(playStoreIntent)
             }
 
             @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -134,8 +168,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         // net::ERR_NAME_NOT_RESOLVED [-2]
                         // net::ERR_TIMED_OUT [-8]
                         val reason = when {
-                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(R.string.error_no_internet)
-                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(R.string.error_dns)
+                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(
+                                R.string.error_no_internet
+                            )
+
+                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(
+                                R.string.error_dns
+                            )
+
                             error.description == "net::ERR_TIMED_OUT" -> view.context.getString(R.string.error_timeout)
                             else -> view.context.getString(R.string.error_unknown)
                         }

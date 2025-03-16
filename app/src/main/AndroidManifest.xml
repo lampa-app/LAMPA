@@ -25,6 +25,7 @@
         <package android:name="com.google.android.katniss" />
         <package android:name="net.gtvbox.videoplayer" />
         <package android:name="net.gtvbox.vimuhd" />
+        <package android:name="org.telegram.messenger" />
 
         <intent>
             <action android:name="android.speech.RecognitionService" />
