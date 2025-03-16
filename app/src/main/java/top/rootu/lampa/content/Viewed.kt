@@ -21,18 +21,17 @@ class Viewed : LampaProviderI() {
             if (App.context.syncEnabled) {
                 App.context.CUB
                     ?.filter { it.type == LampaProvider.VIEW }
-                    ?.reversed()
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
             }
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.viewed?.contains(it.id.toString()) == true }
+                ?.sortedBy { App.context.FAV?.viewed?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
             // Exclude pending and reverse the final list
             return lst
                 .filterNot { App.context.viewToRemove.contains(it.id.toString()) }
-                .reversed()
         }
     }
 }

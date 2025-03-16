@@ -15,26 +15,33 @@ class Recs : LampaProviderI() {
     companion object {
         fun get(): List<LampaCard> {
             val lst = mutableListOf<LampaCard>()
-            val filtered = App.context.REC?.filterAll(generateFilters())
-                ?.distinctBy { it.id } // make unique
-                ?.shuffled() // randomize order
-            if (BuildConfig.DEBUG)
-                Log.d("*****", "Recs cards total: ${App.context.REC?.size} | filtered: ${filtered?.size}")
-            if (!filtered.isNullOrEmpty()) {
-                filtered.forEach { r ->
-                    lst.add(r.toLampaCard())
-                }
+            val recommendations = App.context.REC ?: return lst // Handle null case
+            // Apply filters, ensure uniqueness, and shuffle
+            val filtered = recommendations
+                .filterAll(generateFilters())
+                .distinctBy { it.id }
+                .shuffled()
+            // Log results in debug mode
+            if (BuildConfig.DEBUG) {
+                Log.d(
+                    "Recs",
+                    "Total recommendations: ${recommendations.size} | Filtered: ${filtered.size}"
+                )
+            }
+            // Convert filtered recommendations to LampaCard and add to the list
+            filtered.forEach { recommendation ->
+                lst.add(recommendation.toLampaCard())
             }
             return lst
         }
-        private fun generateFilters() = listOf<(LampaRec) -> Boolean>(
-//            { it.id != "0" },
-            { it.genre_ids?.let { gid -> !gid.contains("16") } != false }, // exclude Animation
-            { it.vote_average?.let { r -> r > 6 } != false }, // rating > 6
-            { it.popularity?.let { p -> p > 10 } != false } // popularity > 10
+
+        private fun generateFilters(): List<(LampaRec) -> Boolean> = listOf(
+            { it.genre_ids?.contains("16") != true }, // Exclude Animation
+            { it.vote_average?.let { rating -> rating > 6 } == true }, // Rating > 6
+            { it.popularity?.let { pop -> pop > 10 } == true } // Popularity > 10
         )
 
-        private fun <T> List<T>.filterAll(filters: List<(T) -> Boolean>) =
+        private fun <T> List<T>.filterAll(filters: List<(T) -> Boolean>): List<T> =
             filter { item -> filters.all { filter -> filter(item) } }
     }
 }
