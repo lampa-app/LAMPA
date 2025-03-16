@@ -1,6 +1,7 @@
 package top.rootu.lampa.browser
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -24,6 +25,7 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.getAppVersion
 
 
 // https://developer.android.com/develop/ui/views/layout/webapps/webview#kotlin
@@ -128,7 +130,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         PackageManager.GET_ACTIVITIES
                     )
                     true
-                } catch (e: PackageManager.NameNotFoundException) {
+                } catch (_: PackageManager.NameNotFoundException) {
                     // Telegram app is not installed
                     false
                 }
@@ -140,7 +142,12 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     Intent.ACTION_VIEW,
                     Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
                 )
-                mainActivity.startActivity(playStoreIntent)
+                try {
+                    if ((getAppVersion(mainActivity, "com.android.vending")?.versionNumber
+                            ?: 0L) > 0L
+                    ) mainActivity.startActivity(playStoreIntent)
+                } catch (_: ActivityNotFoundException) {
+                }
             }
 
             @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
