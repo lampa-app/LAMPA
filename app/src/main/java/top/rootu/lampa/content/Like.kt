@@ -16,18 +16,17 @@ class Like : LampaProviderI() {
     companion object {
         fun get(): List<LampaCard> {
             val lst = mutableListOf<LampaCard>()
-            // CUB
-            if (App.context.syncEnabled) {
+            if (App.context.syncEnabled) { // CUB
                 App.context.CUB
                     ?.filter { it.type == LampaProvider.LIKE }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            } else
-            // FAV
-            App.context.FAV?.card
-                ?.filter { App.context.FAV?.like?.contains(it.id.toString()) == true }
-                ?.sortedBy { App.context.FAV?.like?.indexOf(it.id) }
-                ?.let { lst.addAll(it) }
+            } else { // FAV
+                App.context.FAV?.card
+                    ?.filter { App.context.FAV?.like?.contains(it.id.toString()) == true }
+                    ?.sortedBy { App.context.FAV?.like?.indexOf(it.id) }
+                    ?.let { lst.addAll(it) }
+            }
             // Exclude pending
             return lst
                 .filterNot { App.context.likeToRemove.contains(it.id.toString()) }
