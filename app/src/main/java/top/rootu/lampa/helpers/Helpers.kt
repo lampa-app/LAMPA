@@ -18,6 +18,7 @@ import android.util.TypedValue
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
@@ -282,22 +283,30 @@ object Helpers {
     fun filterValidCubBookmarks(json: String?): List<CubBookmark> {
         if (json.isNullOrEmpty()) return emptyList()
 
-        return try {
-            // Parse the JSON string into a list of CubBookmark objects
-            val bookmarkList: List<CubBookmark> =
-                Gson().fromJson(json, Array<CubBookmark>::class.java).toList()
+        val filteredList = mutableListOf<CubBookmark>()
 
-            // Filter out invalid CubBookmark objects (where data is not a valid LampaCard)
-            bookmarkList.filter { bookmark ->
-                isValidLampaCard(Gson().toJson(bookmark.data))
+        // Parse the JSON string into a JsonElement
+        val jsonElement: JsonElement = Gson().fromJson(json, JsonElement::class.java)
+
+        // Check if the JSON is an array
+        if (jsonElement.isJsonArray) {
+            // Convert the JsonElement to a List of Maps
+            (jsonElement as JsonArray).forEach { el ->
+                try {
+                    val bookmark = Gson().fromJson(el, CubBookmark::class.java)
+                    if (isValidLampaCard(Gson().toJson(bookmark.data)))
+                        filteredList.add(bookmark)
+                    else
+                        Log.e(
+                            "filterValidCubBookmarks",
+                            "CubBookmark ${bookmark.card_id} data is invalid"
+                        )
+                } catch (e: Exception) {
+                    Log.e("filterValidCubBookmarks", "CubBookmark $el error $e")
+                }
             }
-        } catch (_: JsonSyntaxException) {
-            // Invalid JSON syntax
-            emptyList()
-        } catch (_: Exception) {
-            // Other errors (e.g., type casting issues)
-            emptyList()
-        }
+            return filteredList
+        } else return emptyList()
     }
 
     /**
@@ -309,7 +318,7 @@ object Helpers {
     fun isValidLampaCard(json: String?): Boolean {
         if (json.isNullOrEmpty()) return false
         return try {
-            // Parse the JSON string into a JsonElement
+            // Parse the JSON string into a LampaCard
             Gson().fromJson(json, LampaCard::class.java)
             // If all checks pass, the JSON is a valid LampaCard
             true
@@ -323,46 +332,6 @@ object Helpers {
             false
         }
     }
-
-
-//    fun isValidLampaCard(json: String?): Boolean {
-//        if (json.isNullOrEmpty()) return false
-//
-//        return try {
-//            // Parse the JSON string into a JsonElement
-//            val jsonElement = Gson().fromJson(json, JsonElement::class.java)
-//
-//            // Convert the JsonElement to a Map for easier validation
-//            val jsonMap: Map<String, Any?> =
-//                Gson().fromJson(jsonElement, Map::class.java) as Map<String, Any?>
-//
-//            // Validate required fields for LampaCard
-//            val requiredFields = listOf("id", "source", "type")
-//            val hasRequiredFields = requiredFields.all { jsonMap.containsKey(it) }
-//            if (!hasRequiredFields) return false
-//
-//            // Validate field types for LampaCard
-//            val idIsString = jsonMap["id"] is String
-//            val sourceIsString = jsonMap["source"] is String
-//            val typeIsString = jsonMap["type"] is String
-//
-//            if (!idIsString || !sourceIsString || !typeIsString) return false
-//
-//            // Custom validation for the "type" field
-//            val type = jsonMap["type"] as String
-//            val isValidType = type.lowercase() in listOf("movie", "tv", "scripted")
-//            if (!isValidType) return false
-//
-//            // If all checks pass, the JSON is a valid LampaCard
-//            true
-//        } catch (_: JsonSyntaxException) {
-//            // Invalid JSON syntax
-//            false
-//        } catch (_: Exception) {
-//            // Other errors (e.g., type casting issues)
-//            false
-//        }
-//    }
 
     fun <T> getJson(json: String?, cls: Class<T>?): T? {
         return try {

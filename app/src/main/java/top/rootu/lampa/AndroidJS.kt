@@ -409,11 +409,17 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         // Filter out invalid CubBookmark objects
         val validBookmarks = filterValidCubBookmarks(json)
         if (validBookmarks.isNotEmpty()) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks - found ${validBookmarks.size} valid elements")
+            if (BuildConfig.DEBUG) Log.d(
+                TAG,
+                "saveBookmarks - found ${validBookmarks.size} valid elements"
+            )
             // Save the valid bookmarks
             App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
         } else {
-            Log.e(TAG, "saveBookmarks - no valid CUB bookmarks found in the JSON")
+            if (BuildConfig.DEBUG) Log.e(
+                TAG,
+                "saveBookmarks - no valid CUB bookmarks found in the JSON"
+            )
         }
     }
 
