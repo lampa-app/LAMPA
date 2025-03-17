@@ -29,7 +29,7 @@ class Viewed : LampaProviderI() {
                 ?.filter { App.context.FAV?.viewed?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.viewed?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.viewToRemove.contains(it.id.toString()) }
         }

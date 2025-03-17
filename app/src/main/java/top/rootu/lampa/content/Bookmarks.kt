@@ -28,7 +28,7 @@ class Bookmarks : LampaProviderI() {
                 ?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.book?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.bookToRemove.contains(it.id.toString()) }
         }

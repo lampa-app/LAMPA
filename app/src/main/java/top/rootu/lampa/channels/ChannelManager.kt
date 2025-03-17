@@ -65,51 +65,48 @@ object ChannelManager {
         removeLostChannels()
         synchronized(lock) {
             val displayName = getChannelDisplayName(name)
-            var ch = ChannelHelper.get(name)
-            if (ch == null)
+            var channel = ChannelHelper.get(name) ?: run {
                 ChannelHelper.add(name, displayName)
-            ch = ChannelHelper.get(name)
-            if (ch == null)
-                return@synchronized
+                ChannelHelper.get(name)
+            } ?: return@synchronized
 
-            val channel = Channel.Builder()
-            channel.setDisplayName(displayName)
+            // Update channel metadata
+            val channelValues = Channel.Builder()
+                .setDisplayName(displayName)
                 .setType(TvContractCompat.Channels.TYPE_PREVIEW)
                 .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
                 .build()
-
+                .toContentValues()
             App.context.contentResolver.update(
-                TvContractCompat.buildChannelUri(ch.id),
-                channel.build().toContentValues(), null, null
+                TvContractCompat.buildChannelUri(channel.id),
+                channelValues, null, null
             )
-
+            // Add programs to the channel
             if (!Coroutines.running("update_channel_$name")) { // fix duplicates
                 Coroutines.launch("update_channel_$name") {
+                    // Clear existing programs
                     App.context.contentResolver.delete(
-                        TvContractCompat.buildPreviewProgramsUriForChannel(ch.id),
-                        null,
-                        null
+                        TvContractCompat.buildPreviewProgramsUriForChannel(channel.id),
+                        null, null
                     )
-                    list.forEachIndexed { index, entity ->
-                        val prg =
-                            getProgram(ch.id, name, entity, list.size - index)
-                                ?: return@forEachIndexed
-                        if (exist(ch.id, prg)) {
-                            if (BuildConfig.DEBUG)
-                                Log.d(
-                                    "*****",
-                                    "channel ${ch.displayName} already have program for ${prg.internalProviderId}"
-                                )
-                            deleteFromChannel(ch.id, prg.internalProviderId)
+                    // Add new programs
+                    list.forEachIndexed { index, card ->
+                        val program = getProgram(channel.id, name, card, list.size - index)
+                        program?.let {
+                            if (exist(channel.id, it)) {
+                                if (BuildConfig.DEBUG)
+                                    Log.d(TAG, "channel ${channel.displayName} already have program for ${it.internalProviderId}, remove it")
+                                deleteFromChannel(channel.id, it.internalProviderId)
+                            }
+                            App.context.contentResolver.insert(
+                                TvContractCompat.buildPreviewProgramsUriForChannel(channel.id),
+                                it.toContentValues()
+                            )
                         }
-                        App.context.contentResolver.insert(
-                            Uri.parse("content://android.media.tv/preview_program"),
-                            prg.toContentValues()
-                        )
                     }
                 }
             } else {
-                if (BuildConfig.DEBUG) Log.d("*****", "scope update_channel_$name already active!")
+                if (BuildConfig.DEBUG) Log.d(TAG, "scope update_channel_$name already active!")
             }
         }
     }

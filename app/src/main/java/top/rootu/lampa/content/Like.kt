@@ -28,7 +28,7 @@ class Like : LampaProviderI() {
                 ?.filter { App.context.FAV?.like?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.like?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.likeToRemove.contains(it.id.toString()) }
         }

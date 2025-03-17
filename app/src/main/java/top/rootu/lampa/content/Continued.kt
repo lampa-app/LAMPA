@@ -28,7 +28,7 @@ class Continued : LampaProviderI() {
                 ?.filter { App.context.FAV?.continued?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.continued?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.contToRemove.contains(it.id.toString()) }
         }

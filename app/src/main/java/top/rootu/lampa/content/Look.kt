@@ -28,7 +28,7 @@ class Look : LampaProviderI() {
                 ?.filter { App.context.FAV?.look?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.look?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.lookToRemove.contains(it.id.toString()) }
         }

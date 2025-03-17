@@ -28,7 +28,7 @@ class Thrown : LampaProviderI() {
                 ?.filter { App.context.FAV?.thrown?.contains(it.id.toString()) == true }
                 ?.sortedBy { App.context.FAV?.thrown?.indexOf(it.id) }
                 ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.thrwToRemove.contains(it.id.toString()) }
         }
