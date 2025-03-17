@@ -27,35 +27,6 @@ data class CubBookmark(
     val time: Long? // 0, 1650748577390
 )
 
-//data class CubData( // data in cub bookmarks
-//    val source: String?, // "cub", "tmdb", ...
-//    val id: String, // "id": 385687, "19885", ...
-//    val name: String?, // "Шерлок",
-//    val original_name: String?, // "Sherlock",
-//    val title: String?, // "Форсаж 10",
-//    val original_title: String?, // "Fast X",
-//    val original_language: String?, // "en",
-//    val poster_path: String?, // "/MSc1kcaHXvvyGgoyjDa60jxdqq.jpg",
-//    val backdrop_path: String?, // "/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg",
-//    val overview: String?, // "Дом Торетто и его семья становятся мишенью для мстительного сына наркобарона Эрнана Рейеса.",
-//    val release_date: String?, // "2023-05-17",
-//    val first_air_date: String?, // "2010-07-25",
-//    val genre_ids: List<String?>?, // [28,80,53],
-//    val popularity: Double?, // 591.695,
-//    val origin_country: List<String?>?, // [ "GB" ]
-//    val vote_count: Int?, // 5224,
-//    val vote_average: Double?, // 7.122,
-//    val imdb_id: String?, // "tt5433140",
-//    val imdb_rating: String?, // "5.8",
-//    val kinopoisk_id: String?, // "959062",
-//    val kp_rating: String?, // "6.0",
-//    val status: String?, // "released", "Ended", "returning series", ...
-//    val release_quality: String?, // "4K",
-//    val number_of_seasons: String?, // "4",
-//    val number_of_episodes: String?, // "12",
-//    val next_episode_to_air: String? // ""
-//)
-
 //data class TimeTable(
 //    val id: Int?,
 //    val season: Int?,
@@ -116,41 +87,53 @@ data class LampaCard(
     val adult: Boolean?, // false
     // "seasons": [{...}],
 ) {
+    /**
+     * Normalizes and fixes data inconsistencies in the LampaCard.
+     */
     fun fixCard() {
-        // fix ID
-        // internalid = id?.toIntOrNull() ?: id.hashCode()
-        // fix source
+        // internalid = id?.toIntOrNull() ?: id.hashCode() // fix ID
+        fixSource() // fix source
+        fixType() // fix media_type
+        fixGenres() // fix genres
+        fixPosters() // fix posters
+    }
+
+    private fun fixSource() {
         source = source?.lowercase(Locale.ROOT) ?: "lampa"
-        // fix media_type
+    }
+
+    private fun fixType() {
         type = type?.lowercase(Locale.ROOT) ?: ""
-        if (type == "scripted")
-            type = if (release_date.isNullOrEmpty() || !name.isNullOrEmpty())
-                "tv"
-            else
-                "movie"
-        if (type?.contains("miniseries", true) == true)
-            type = "tv"
-        if (type.isNullOrEmpty())
-            type = if (release_date.isNullOrEmpty() || !name.isNullOrEmpty())
-                "tv"
-            else
-                "movie"
-        // fix genres
-        if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty())
+        when {
+            type == "scripted" -> type =
+                if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
+
+            type?.contains("miniseries", true) == true -> type = "tv"
+            type.isNullOrEmpty() -> type =
+                if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
+        }
+    }
+
+    private fun fixGenres() {
+        if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty()) {
             genres = genre_ids.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
-        // fix posters
-        if (!poster_path.isNullOrEmpty() && img.isNullOrEmpty())
-            img = TMDB.imageUrl(poster_path)
-                .replace("original", "w342")
-        if (!backdrop_path.isNullOrEmpty() && background_image.isNullOrEmpty())
-            background_image = TMDB.imageUrl(backdrop_path)
-                .replace("original", "w1280")
+        }
+    }
+
+    private fun fixPosters() {
+        if (!poster_path.isNullOrEmpty() && img.isNullOrEmpty()) {
+            img = TMDB.imageUrl(poster_path).replace("original", "w342")
+        }
+        if (!backdrop_path.isNullOrEmpty() && background_image.isNullOrEmpty()) {
+            background_image = TMDB.imageUrl(backdrop_path).replace("original", "w1280")
+        }
     }
 
     override fun toString(): String {
-        val tt = if (!name.isNullOrEmpty()) name else title
+        val tt = name ?: title ?: "–"
         return "LampaCard(source:$source id:$id type:$type $tt $img)"
     }
+
 }
 
 data class LampaRec(
