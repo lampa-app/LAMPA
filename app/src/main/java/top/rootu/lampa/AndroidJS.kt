@@ -8,6 +8,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -19,6 +20,7 @@ import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Prefs.lampaSource
@@ -394,15 +396,24 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
     }
 
+
+    /**
+     * Saves valid bookmarks after filtering out invalid ones.
+     *
+     * @param json The JSON string containing bookmarks.
+     */
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun saveBookmarks(json: String?) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired! json: $json")
-        if (isValidJson(json)) {
-            // TODO: check bookmarks data is valid LampaCard
-            App.context.saveAccountBookmarks(json.toString())
+        if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired!")
+        // Filter out invalid CubBookmark objects
+        val validBookmarks = filterValidCubBookmarks(json)
+        if (validBookmarks.isNotEmpty()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks - found ${validBookmarks.size} valid elements")
+            // Save the valid bookmarks
+            App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
         } else {
-            Log.e(TAG, "Not valid JSON in saveBookmarks")
+            Log.e(TAG, "saveBookmarks - no valid CUB bookmarks found in the JSON")
         }
     }
 

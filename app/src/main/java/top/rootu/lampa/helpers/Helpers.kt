@@ -44,6 +44,7 @@ import top.rootu.lampa.helpers.Prefs.thrwToRemove
 import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.models.CubBookmark
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
 import java.util.Locale
@@ -146,7 +147,7 @@ object Helpers {
             var version = WebViewCompat.getCurrentWebViewPackage(context)?.versionName
             if (version.isNullOrEmpty()) version = ""
             version
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -158,7 +159,7 @@ object Helpers {
                     context
                 )?.packageName!!, 0
             ).enabled
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT
         }
     }
@@ -171,7 +172,11 @@ object Helpers {
         intent.putExtra("source", card.source)
         intent.putExtra("media", card.type)
 
-        val idStr = try { Gson().toJson(card) } catch (e: Exception) { null } // used to get card from HomeWatch
+        val idStr = try {
+            Gson().toJson(card)
+        } catch (_: Exception) {
+            null
+        } // used to get card from HomeWatch
         idStr?.let { intent.putExtra("LampaCardJS", idStr) }
 
         continueWatch?.let { intent.putExtra("continueWatch", it) }
@@ -240,22 +245,124 @@ object Helpers {
             return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
         }
 
+    /**
+     * Checks if a JSON string is valid.
+     *
+     * @param json The JSON string to validate.
+     * @return True if the JSON is valid, false otherwise.
+     */
     fun isValidJson(json: String?): Boolean {
         return try {
             parseStrict(json) != null
-        } catch (ex: JsonSyntaxException) {
+        } catch (_: JsonSyntaxException) {
             false
         }
     }
 
+    /**
+     * Parses a JSON string strictly.
+     *
+     * @param json The JSON string to parse.
+     * @return A JsonElement if the JSON is valid, null otherwise.
+     */
     private fun parseStrict(json: String?): JsonElement? {
         return try {
-            // throws on almost any non-valid json
             Gson().getAdapter(JsonElement::class.java).fromJson(json)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
+
+    /**
+     * Filters out invalid CubBookmark objects and preserves valid ones.
+     *
+     * @param json The JSON string containing an array of CubBookmark objects.
+     * @return A list of valid CubBookmark objects.
+     */
+    fun filterValidCubBookmarks(json: String?): List<CubBookmark> {
+        if (json.isNullOrEmpty()) return emptyList()
+
+        return try {
+            // Parse the JSON string into a list of CubBookmark objects
+            val bookmarkList: List<CubBookmark> =
+                Gson().fromJson(json, Array<CubBookmark>::class.java).toList()
+
+            // Filter out invalid CubBookmark objects (where data is not a valid LampaCard)
+            bookmarkList.filter { bookmark ->
+                isValidLampaCard(Gson().toJson(bookmark.data))
+            }
+        } catch (_: JsonSyntaxException) {
+            // Invalid JSON syntax
+            emptyList()
+        } catch (_: Exception) {
+            // Other errors (e.g., type casting issues)
+            emptyList()
+        }
+    }
+
+    /**
+     * Checks if a JSON string is a valid LampaCard.
+     *
+     * @param json The JSON string to validate.
+     * @return True if the JSON is a valid LampaCard, false otherwise.
+     */
+    fun isValidLampaCard(json: String?): Boolean {
+        if (json.isNullOrEmpty()) return false
+        return try {
+            // Parse the JSON string into a JsonElement
+            Gson().fromJson(json, LampaCard::class.java)
+            // If all checks pass, the JSON is a valid LampaCard
+            true
+        } catch (e: JsonSyntaxException) {
+            // Invalid JSON syntax
+            Log.e("isValidLampaCard", "JsonSyntaxException: $e")
+            false
+        } catch (e: Exception) {
+            Log.e("isValidLampaCard", "Exception: $e")
+            // Other errors (e.g., type casting issues)
+            false
+        }
+    }
+
+
+//    fun isValidLampaCard(json: String?): Boolean {
+//        if (json.isNullOrEmpty()) return false
+//
+//        return try {
+//            // Parse the JSON string into a JsonElement
+//            val jsonElement = Gson().fromJson(json, JsonElement::class.java)
+//
+//            // Convert the JsonElement to a Map for easier validation
+//            val jsonMap: Map<String, Any?> =
+//                Gson().fromJson(jsonElement, Map::class.java) as Map<String, Any?>
+//
+//            // Validate required fields for LampaCard
+//            val requiredFields = listOf("id", "source", "type")
+//            val hasRequiredFields = requiredFields.all { jsonMap.containsKey(it) }
+//            if (!hasRequiredFields) return false
+//
+//            // Validate field types for LampaCard
+//            val idIsString = jsonMap["id"] is String
+//            val sourceIsString = jsonMap["source"] is String
+//            val typeIsString = jsonMap["type"] is String
+//
+//            if (!idIsString || !sourceIsString || !typeIsString) return false
+//
+//            // Custom validation for the "type" field
+//            val type = jsonMap["type"] as String
+//            val isValidType = type.lowercase() in listOf("movie", "tv", "scripted")
+//            if (!isValidType) return false
+//
+//            // If all checks pass, the JSON is a valid LampaCard
+//            true
+//        } catch (_: JsonSyntaxException) {
+//            // Invalid JSON syntax
+//            false
+//        } catch (_: Exception) {
+//            // Other errors (e.g., type casting issues)
+//            false
+//        }
+//    }
 
     fun <T> getJson(json: String?, cls: Class<T>?): T? {
         return try {
