@@ -22,7 +22,7 @@ class Scheduled : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.SCHD }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.scheduled?.contains(it.id.toString()) == true }

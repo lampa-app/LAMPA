@@ -23,7 +23,7 @@ class History : LampaProviderI() {
                     ?.sortedByDescending { it.time }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.history?.contains(it.id.toString()) == true }

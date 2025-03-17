@@ -22,7 +22,7 @@ class Continued : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.CONT }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.continued?.contains(it.id.toString()) == true }

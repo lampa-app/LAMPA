@@ -22,7 +22,7 @@ class Viewed : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.VIEW }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.viewed?.contains(it.id.toString()) == true }

@@ -22,7 +22,7 @@ class Thrown : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.THRW }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.thrown?.contains(it.id.toString()) == true }

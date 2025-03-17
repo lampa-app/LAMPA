@@ -22,7 +22,7 @@ class Like : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.LIKE }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.like?.contains(it.id.toString()) == true }

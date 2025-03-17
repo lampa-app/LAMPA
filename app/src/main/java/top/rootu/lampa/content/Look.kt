@@ -22,7 +22,7 @@ class Look : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.LOOK }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.look?.contains(it.id.toString()) == true }

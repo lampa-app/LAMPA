@@ -22,7 +22,7 @@ class Bookmarks : LampaProviderI() {
                     ?.filter { it.type == LampaProvider.BOOK }
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
-            }
+            } else
             // FAV
             App.context.FAV?.card
                 ?.filter { App.context.FAV?.book?.contains(it.id.toString()) == true }
