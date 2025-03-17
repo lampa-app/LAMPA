@@ -9,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class Like : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Like.get())
+    override fun get(): LampaContent {
+        return LampaContent(Like.get())
     }
 
     companion object {

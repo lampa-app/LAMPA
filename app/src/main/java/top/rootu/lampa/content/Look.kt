@@ -9,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class Look : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Look.get())
+    override fun get(): LampaContent {
+        return LampaContent(Look.get())
     }
 
     companion object {

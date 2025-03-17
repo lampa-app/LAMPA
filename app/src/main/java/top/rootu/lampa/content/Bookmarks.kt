@@ -9,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class Bookmarks : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Bookmarks.get())
+    override fun get(): LampaContent {
+        return LampaContent(Bookmarks.get())
     }
 
     companion object {

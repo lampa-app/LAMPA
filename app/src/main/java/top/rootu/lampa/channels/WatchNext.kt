@@ -79,7 +79,7 @@ object WatchNext {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         val context = App.context
         val deleted = removeStale()
-        if (BuildConfig.DEBUG) Log.d(TAG, "WatchNext cards removed: $deleted")
+        if (BuildConfig.DEBUG) Log.d(TAG, "updateWatchNext() WatchNext cards removed: $deleted")
 
         val lst = when {
             // CUB
@@ -109,8 +109,8 @@ object WatchNext {
             withContext(Dispatchers.Default) {
                 try {
                     add(card)
-                } catch (e: Exception) { // FIXME: WTF? Not allowed to change ID
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Error adding $card to WatchNext: $e")
+                } catch (_: Exception) {
+                    // if (BuildConfig.DEBUG) Log.d(TAG, "Error adding $card to WatchNext: $e")
                 }
             }
         }

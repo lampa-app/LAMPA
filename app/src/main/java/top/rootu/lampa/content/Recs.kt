@@ -8,8 +8,8 @@ import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.LampaRec
 
 class Recs : LampaProviderI() {
-    override fun get(): ReleaseID {
-        return ReleaseID(Recs.get())
+    override fun get(): LampaContent {
+        return LampaContent(Recs.get())
     }
 
     companion object {
@@ -36,9 +36,9 @@ class Recs : LampaProviderI() {
         }
 
         private fun generateFilters(): List<(LampaRec) -> Boolean> = listOf(
-            { it.genre_ids?.contains("16") != true }, // Exclude Animation
+            // { it.genre_ids?.contains("16") != true }, // Exclude Animation
             { it.vote_average?.let { rating -> rating > 6 } == true }, // Rating > 6
-            { it.popularity?.let { pop -> pop > 10 } == true } // Popularity > 10
+            { it.popularity?.let { pop -> pop > 6 } == true } // Popularity > 6
         )
 
         private fun <T> List<T>.filterAll(filters: List<(T) -> Boolean>): List<T> =

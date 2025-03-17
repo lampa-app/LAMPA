@@ -9,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class Scheduled : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Scheduled.get())
+    override fun get(): LampaContent {
+        return LampaContent(Scheduled.get())
     }
 
     companion object {

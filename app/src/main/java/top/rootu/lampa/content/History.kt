@@ -9,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class History : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(History.get())
+    override fun get(): LampaContent {
+        return LampaContent(History.get())
     }
 
     companion object {

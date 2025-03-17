@@ -1,7 +1,6 @@
 package top.rootu.lampa.content
 
 import top.rootu.lampa.App
-import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.syncEnabled
@@ -10,8 +9,8 @@ import top.rootu.lampa.models.LampaCard
 
 class Viewed : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Viewed.get())
+    override fun get(): LampaContent {
+        return LampaContent(Viewed.get())
     }
 
     companion object {
