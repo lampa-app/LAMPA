@@ -38,7 +38,7 @@ class Recs : LampaProviderI() {
         private fun generateFilters(): List<(LampaRec) -> Boolean> = listOf(
             // { it.genre_ids?.contains("16") != true }, // Exclude Animation
             { it.vote_average?.let { rating -> rating > 6 } == true }, // Rating > 6
-            { it.popularity?.let { pop -> pop > 6 } == true } // Popularity > 6
+            { it.popularity?.let { pop -> pop > 4 } == true } // Popularity > 4
         )
 
         private fun <T> List<T>.filterAll(filters: List<(T) -> Boolean>): List<T> =

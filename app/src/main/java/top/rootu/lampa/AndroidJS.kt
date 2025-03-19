@@ -104,6 +104,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
+                    if (BuildConfig.DEBUG) Log.d(TAG, "favorite JSON saved")
                 } else {
                     Log.e(TAG, "Not valid JSON in favorite")
                 }
@@ -120,6 +121,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveRecs(json)
+                    if (BuildConfig.DEBUG) Log.d(TAG, "recomends_list JSON saved")
                 } else {
                     Log.e(TAG, "Not valid JSON in recomends_list")
                 }
@@ -356,7 +358,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (!jsonObject.has("url")) {
             try {
                 jsonObject.put("url", link)
-            } catch (ignored: JSONException) {
+            } catch (_: JSONException) {
             }
         }
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
@@ -444,7 +446,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         updateChanByName(where)
                     }
                 }
-
                 LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
                     CoroutineScope(Dispatchers.IO).launch {

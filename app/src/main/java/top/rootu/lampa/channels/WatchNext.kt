@@ -1,7 +1,6 @@
 package top.rootu.lampa.channels
 
 import android.annotation.SuppressLint
-import android.content.ContentResolver
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -16,9 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
-import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.CUB
@@ -50,7 +49,8 @@ object WatchNext {
             val removed = removeIfNotBrowsable(existingProgram)
             val shouldUpdateProgram = existingProgram != null && !removed
             if (shouldUpdateProgram) {
-                val contentValues = WatchNextProgram.Builder(existingProgram).build().toContentValues()
+                val contentValues =
+                    WatchNextProgram.Builder(existingProgram).build().toContentValues()
                 val rowsUpdated = App.context.contentResolver.update(
                     TvContractCompat.WatchNextPrograms.CONTENT_URI,
                     contentValues, null, null
@@ -61,7 +61,7 @@ object WatchNext {
             } else {
                 val programUri = App.context.contentResolver.insert(
                     TvContractCompat.WatchNextPrograms.CONTENT_URI,
-                    getProgram(card).toContentValues()
+                    createWatchNextProgram(card).toContentValues()
                 )
                 if (programUri == null || programUri == Uri.EMPTY) {
                     Log.e(TAG, "Failed to insert movie $movieId into the Watch Next")
@@ -81,16 +81,17 @@ object WatchNext {
         val deleted = removeStale()
         if (BuildConfig.DEBUG) Log.d(TAG, "updateWatchNext() WatchNext cards removed: $deleted")
 
-        val lst = when {
+        val lst = when { // reversed order
             // CUB
             context.syncEnabled -> context.CUB
                 ?.filter { it.type == LampaProvider.LATE }
+                ?.sortedBy { it.time }
                 ?.mapNotNull { it.data?.also { data -> data.fixCard() } }
                 .orEmpty()
             // FAV
             else -> context.FAV?.card
                 ?.filter { context.FAV?.wath?.contains(it.id) == true }
-                ?.sortedBy { context.FAV?.wath?.indexOf(it.id) }
+                ?.sortedByDescending { context.FAV?.wath?.indexOf(it.id) }
                 ?.onEach { it.fixCard() }
                 .orEmpty()
         }
@@ -125,7 +126,7 @@ object WatchNext {
             }
             val programUri = App.context.contentResolver.insert(
                 TvContractCompat.WatchNextPrograms.CONTENT_URI,
-                getProgram(card, true).toContentValues()
+                createWatchNextProgram(card, true).toContentValues()
             )
             if (programUri == null || programUri == Uri.EMPTY) {
                 Log.e(TAG, "Failed to insert movie $movieId into the Watch Next")
@@ -140,92 +141,87 @@ object WatchNext {
 
     @SuppressLint("RestrictedApi")
     fun getInternalIdFromWatchNextProgramId(watchNextId: Long): String? {
-        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
-        var watchNextProgram: WatchNextProgram? = null
-        App.context.contentResolver.query(
-            curWatchNextUri, null, null, null, null
-        ).use { cursor ->
-            if (cursor != null && cursor.count != 0) {
-                cursor.moveToFirst()
-                watchNextProgram = WatchNextProgram.fromCursor(cursor)
-            }
+        return App.context.contentResolver.query(
+            buildWatchNextProgramUri(watchNextId), null, null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val watchNextProgram = WatchNextProgram.fromCursor(cursor)
+                watchNextProgram?.internalProviderId
+            } else null
         }
-        return watchNextProgram?.internalProviderId
     }
 
     @SuppressLint("RestrictedApi")
     fun getCardFromWatchNextProgramId(watchNextId: Long): LampaCard? {
-        val curWatchNextUri = buildWatchNextProgramUri(watchNextId)
-        var watchNextProgram: WatchNextProgram? = null
-        App.context.contentResolver.query(
-            curWatchNextUri, null, null, null, null
-        ).use { cursor ->
-            if (cursor != null && cursor.count != 0) {
-                cursor.moveToFirst()
-                watchNextProgram = WatchNextProgram.fromCursor(cursor)
-            }
+        return App.context.contentResolver.query(
+            buildWatchNextProgramUri(watchNextId), null, null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val watchNextProgram = WatchNextProgram.fromCursor(cursor)
+                val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+                getJson(json, LampaCard::class.java)
+            } else null
         }
-        val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
-        return getJson(json, LampaCard::class.java)
     }
 
     @SuppressLint("RestrictedApi")
     private fun deleteFromWatchNext(movieId: String) {
         val program = findProgramByMovieId(movieId)
         program?.let {
-            if (BuildConfig.DEBUG) Log.d(TAG, "deleteFromWatchNext($movieId) removeProgram(${it.id})")
+            if (BuildConfig.DEBUG) Log.d(
+                TAG,
+                "deleteFromWatchNext($movieId) removeProgram(${it.id})"
+            )
             removeProgram(it.id)
         }
     }
+
     // Find the movie by our app's internal id.
     @SuppressLint("RestrictedApi")
     private fun findProgramByMovieId(movieId: String): WatchNextProgram? {
-        val cursor = App.context.contentResolver.query(
+        App.context.contentResolver.query(
             TvContractCompat.WatchNextPrograms.CONTENT_URI,
             WATCH_NEXT_MAP_PROJECTION,
             null,
             null,
             null
-        )
-        cursor?.let {
-            if (it.moveToFirst()) {
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
                 do {
-                    val program = WatchNextProgram.fromCursor(it)
+                    val program = WatchNextProgram.fromCursor(cursor)
                     if (movieId == program.internalProviderId) {
-                        cursor.close()
                         return program
                     }
-                } while (it.moveToNext())
+                } while (cursor.moveToNext())
             }
-            cursor.close()
         }
         return null
     }
+
     // Remove items not in Lampa Watch Later
     @SuppressLint("RestrictedApi")
     private fun removeStale(): Int {
         var count = 0
-        val cursor = App.context.contentResolver.query(
+        App.context.contentResolver.query(
             TvContractCompat.WatchNextPrograms.CONTENT_URI,
             WATCH_NEXT_MAP_PROJECTION,
             null,
             null,
             null
-        )
-        cursor?.let {
-            if (it.moveToFirst()) {
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
                 do {
-                    val program = WatchNextProgram.fromCursor(it)
+                    val program = WatchNextProgram.fromCursor(cursor)
                     if (!App.context.isInLampaWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
                         count++
                         removeProgram(program.id)
                     }
-                } while (it.moveToNext())
+                } while (cursor.moveToNext())
             }
-            cursor.close()
         }
         return count
     }
+
     // Check is a program has been removed from the UI by the user. If so, then
     // remove the program from the content provider.
     @SuppressLint("RestrictedApi")
@@ -238,18 +234,16 @@ object WatchNext {
     }
 
     private fun removeProgram(watchNextProgramId: Long): Int {
-        val rowsDeleted = App.context.contentResolver.delete(
+        return App.context.contentResolver.delete(
             buildWatchNextProgramUri(watchNextProgramId),
             null, null
-        )
-        if (rowsDeleted < 1) {
-            Log.e(TAG, "Failed to delete program $watchNextProgramId from Watch Next")
+        ).also {
+            if (it < 1) Log.e(TAG, "Failed to delete program $watchNextProgramId from Watch Next")
         }
-        return rowsDeleted
     }
 
     @SuppressLint("RestrictedApi")
-    private fun getProgram(card: LampaCard, resume: Boolean = false): WatchNextProgram {
+    private fun createWatchNextProgram(card: LampaCard, resume: Boolean = false): WatchNextProgram {
         val info = mutableListOf<String>()
         val programId = if (resume) RESUME_ID else card.id
 
@@ -305,20 +299,9 @@ object WatchNext {
                 .setDurationMillis(duration)
         }
 
-        if (card.img.isNullOrEmpty()) {
-            val resourceId = R.drawable.empty_poster // in-app poster
-            val emptyPoster = Uri.Builder()
-                .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-                .authority(App.context.resources.getResourcePackageName(resourceId))
-                .appendPath(App.context.resources.getResourceTypeName(resourceId))
-                .appendPath(App.context.resources.getResourceEntryName(resourceId))
-                .build()
-            builder.setPosterArtUri(emptyPoster)
-                .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
-        } else {
-            builder.setPosterArtUri(Uri.parse(card.img))
-                .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
-        }
+        val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()
+        builder.setPosterArtUri(posterUri)
+            .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
 
         if (!card.background_image.isNullOrEmpty()) {
             builder.setThumbnailUri(Uri.parse(card.background_image))

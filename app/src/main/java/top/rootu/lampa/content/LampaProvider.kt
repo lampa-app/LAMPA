@@ -2,6 +2,7 @@ package top.rootu.lampa.content
 
 import android.util.Log
 import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.syncEnabled
@@ -76,17 +77,30 @@ object LampaProvider {
         val cub = App.context.CUB
         val syncEnabled = App.context.syncEnabled
 
-        return lst.filter { card ->
-            val isInFavHistory = !syncEnabled && fav?.history?.contains(card.id) == true
-            val isInFavViewed = !syncEnabled && fav?.viewed?.contains(card.id) == true
-            val isInCubHistory =
-                syncEnabled && cub?.filter { it.type == HIST }?.mapNotNull { it.card_id }
-                    ?.contains(card.id) == true
-            val isInCubViewed =
-                syncEnabled && cub?.filter { it.type == VIEW }?.mapNotNull { it.card_id }
-                    ?.contains(card.id) == true
+        // Precompute sets of IDs for faster lookup
+        val favHistoryIds = if (!syncEnabled) fav?.history?.toSet() ?: emptySet() else emptySet()
+        val favViewedIds = if (!syncEnabled) fav?.viewed?.toSet() ?: emptySet() else emptySet()
+        val cubHistoryIds =
+            if (syncEnabled) cub?.filter { it.type == HIST }?.mapNotNull { it.card_id }?.toSet()
+                ?: emptySet() else emptySet()
+        val cubViewedIds =
+            if (syncEnabled) cub?.filter { it.type == VIEW }?.mapNotNull { it.card_id }?.toSet()
+                ?: emptySet() else emptySet()
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "favHistoryIds: $favHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "favViewedIds: $favViewedIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubHistoryIds: $cubHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubViewedIds: $cubViewedIds")
 
-            !isInFavHistory && !isInFavViewed && !isInCubHistory && !isInCubViewed
+        return lst.filter { card ->
+            val isInHistory = card.id in favHistoryIds || card.id in cubHistoryIds
+            val isInViewed = card.id in favViewedIds || card.id in cubViewedIds
+            if (isInHistory || isInViewed) {
+                if (BuildConfig.DEBUG) Log.d(
+                    "filterViewed",
+                    "Excluded card: ${card.id} (in history: $isInHistory, in viewed: $isInViewed)"
+                )
+            }
+            !isInHistory && !isInViewed
         }
     }
 }

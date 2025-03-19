@@ -108,7 +108,7 @@ data class LampaCard(
             type == "scripted" -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
 
-            type?.contains("miniseries", true) == true -> type = "tv"
+            type?.contains("miniseries", true) == true || type?.contains("news", true) == true -> type = "tv"
             type.isNullOrEmpty() -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
         }

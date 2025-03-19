@@ -24,9 +24,10 @@ import top.rootu.lampa.content.LampaProvider.VIEW
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
-import top.rootu.lampa.helpers.setLanguage
+import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
+import top.rootu.lampa.helpers.setLanguage
 import top.rootu.lampa.models.LampaCard
 import java.util.Locale
 
@@ -34,76 +35,60 @@ object ChannelManager {
     private const val TAG = "ChannelManager"
     private val lock = Any()
 
+    @SuppressLint("RestrictedApi")
+    private val PREVIEW_PROGRAM_MAP_PROJECTION = arrayOf(
+        TvContractCompat.BaseTvColumns._ID,
+        TvContractCompat.PreviewPrograms.COLUMN_INTERNAL_PROVIDER_ID,
+        TvContractCompat.PreviewPrograms.COLUMN_BROWSABLE
+    )
+
+    // Cache for channel display names to avoid repeated string resource lookups
+    private val channelDisplayNameCache = mutableMapOf<String, String>()
+
+    /**
+     * Gets the localized display name for a channel.
+     */
     fun getChannelDisplayName(name: String): String {
-        App.context.setLanguage()
-        return when (name) {
-            RECS -> App.context.getString(R.string.ch_recs)
-            LIKE -> App.context.getString(R.string.ch_liked)
-            BOOK -> App.context.getString(R.string.ch_bookmarks)
-            HIST -> App.context.getString(R.string.ch_history)
-            LOOK -> App.context.getString(R.string.ch_look)
-            VIEW -> App.context.getString(R.string.ch_viewed)
-            SCHD -> App.context.getString(R.string.ch_scheduled)
-            CONT -> App.context.getString(R.string.ch_continued)
-            THRW -> App.context.getString(R.string.ch_thrown)
-            else -> name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString() }
+        return channelDisplayNameCache.getOrPut(name) {
+            App.context.setLanguage()
+            when (name) {
+                RECS -> App.context.getString(R.string.ch_recs)
+                LIKE -> App.context.getString(R.string.ch_liked)
+                BOOK -> App.context.getString(R.string.ch_bookmarks)
+                HIST -> App.context.getString(R.string.ch_history)
+                LOOK -> App.context.getString(R.string.ch_look)
+                VIEW -> App.context.getString(R.string.ch_viewed)
+                SCHD -> App.context.getString(R.string.ch_scheduled)
+                CONT -> App.context.getString(R.string.ch_continued)
+                THRW -> App.context.getString(R.string.ch_thrown)
+                else -> name.replaceFirstChar {
+                    if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString()
+                }
+            }
         }
     }
-
-    @SuppressLint("RestrictedApi")
-    private val PREVIEW_PROGRAM_MAP_PROJECTION =
-        arrayOf(
-            TvContractCompat.BaseTvColumns._ID,
-            TvContractCompat.PreviewPrograms.COLUMN_INTERNAL_PROVIDER_ID,
-            TvContractCompat.PreviewPrograms.COLUMN_BROWSABLE
-        )
 
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.O)
     fun update(name: String, list: List<LampaCard>) {
         if (BuildConfig.DEBUG) Log.d(TAG, "update($name, size:${list.size})")
         removeLostChannels()
+
         synchronized(lock) {
             val displayName = getChannelDisplayName(name)
-            var channel = ChannelHelper.get(name) ?: run {
+            val channel = ChannelHelper.get(name) ?: run {
                 ChannelHelper.add(name, displayName)
                 ChannelHelper.get(name)
             } ?: return@synchronized
 
             // Update channel metadata
-            val channelValues = Channel.Builder()
-                .setDisplayName(displayName)
-                .setType(TvContractCompat.Channels.TYPE_PREVIEW)
-                .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/$name"))
-                .build()
-                .toContentValues()
-            App.context.contentResolver.update(
-                TvContractCompat.buildChannelUri(channel.id),
-                channelValues, null, null
-            )
+            updateChannelMetadata(channel, displayName)
+
             // Add programs to the channel
             if (!Coroutines.running("update_channel_$name")) { // fix duplicates
                 Coroutines.launch("update_channel_$name") {
-                    // Clear existing programs
-                    App.context.contentResolver.delete(
-                        TvContractCompat.buildPreviewProgramsUriForChannel(channel.id),
-                        null, null
-                    )
-                    // Add new programs
-                    list.forEachIndexed { index, card ->
-                        val program = getProgram(channel.id, name, card, list.size - index)
-                        program?.let {
-                            if (exist(channel.id, it)) {
-                                if (BuildConfig.DEBUG)
-                                    Log.d(TAG, "channel ${channel.displayName} already have program for ${it.internalProviderId}, remove it")
-                                deleteFromChannel(channel.id, it.internalProviderId)
-                            }
-                            App.context.contentResolver.insert(
-                                TvContractCompat.buildPreviewProgramsUriForChannel(channel.id),
-                                it.toContentValues()
-                            )
-                        }
-                    }
+                    clearChannelPrograms(channel.id)
+                    addProgramsToChannel(channel.id, name, list)
                 }
             } else {
                 if (BuildConfig.DEBUG) Log.d(TAG, "scope update_channel_$name already active!")
@@ -111,11 +96,61 @@ object ChannelManager {
         }
     }
 
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun deleteFromChannel(channelId: Long, movieId: String) {
+        findProgramByMovieId(channelId, movieId)?.let { program ->
+            removeProgram(program.id)
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun removeAll() {
         synchronized(lock) {
-            ChannelHelper.list().forEach {
-                ChannelHelper.rem(it)
+            ChannelHelper.list().forEach { ChannelHelper.rem(it) }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun updateChannelMetadata(channel: Channel, displayName: String) {
+        val channelValues = Channel.Builder()
+            .setDisplayName(displayName)
+            .setType(TvContractCompat.Channels.TYPE_PREVIEW)
+            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/${channel.internalProviderId}"))
+            .build()
+            .toContentValues()
+
+        App.context.contentResolver.update(
+            TvContractCompat.buildChannelUri(channel.id),
+            channelValues, null, null
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun clearChannelPrograms(channelId: Long) {
+        App.context.contentResolver.delete(
+            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
+            null, null
+        )
+    }
+
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun addProgramsToChannel(channelId: Long, provName: String, list: List<LampaCard>) {
+        list.forEachIndexed { index, card ->
+            val program = createPreviewProgram(channelId, provName, card, list.size - index)
+            program?.let {
+                if (existsInChannel(channelId, it.internalProviderId)) {
+                    if (BuildConfig.DEBUG) Log.d(
+                        TAG,
+                        "Program ${it.internalProviderId} already exists in channel $channelId, removing..."
+                    )
+                    deleteFromChannel(channelId, it.internalProviderId)
+                }
+                App.context.contentResolver.insert(
+                    TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
+                    it.toContentValues()
+                )
             }
         }
     }
@@ -123,147 +158,111 @@ object ChannelManager {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun removeLostChannels() {
         synchronized(lock) {
-            //remove channels with null data
+            // Remove channels with null data
             ChannelHelper.list().filter { it.internalProviderDataByteArray == null }.forEach {
                 ChannelHelper.rem(it)
             }
 
-            //remove duplicate channels
-            val list = ChannelHelper.list()
-            val del = mutableListOf<Channel>()
-            for (i in list.indices) {
-                for (j in list.size - 1 downTo i) {
-                    if (i != j && list[i].data == list[j].data)
-                        del.add(list[j])
-                }
-            }
-
-            del.distinctBy { it.id }.forEach {
+            // Remove duplicate channels
+            val channels = ChannelHelper.list()
+            val duplicates = channels.groupBy { it.data }.values.filter { it.size > 1 }
+            duplicates.flatten().distinctBy { it.id }.forEach {
                 ChannelHelper.rem(it)
             }
         }
     }
 
     @SuppressLint("RestrictedApi")
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun deleteFromChannel(channelId: Long, movieId: String) {
-        movieId.let {
-            val program = findProgramByMovieId(channelId = channelId, movieId = it)
-            program?.let { prg ->
-                removeProgram(previewProgramId = prg.id)
+    fun getInternalIdAndChanIdFromPreviewProgramId(previewProgramId: Long): Pair<String?, Long?> {
+        return App.context.contentResolver.query(
+            TvContractCompat.buildPreviewProgramUri(previewProgramId), null, null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val program = PreviewProgram.fromCursor(cursor)
+                Pair(program.internalProviderId, program.channelId)
+            } else {
+                Pair(null, null)
             }
-        }
+        } ?: Pair(null, null)
     }
 
     @SuppressLint("RestrictedApi")
     private fun findProgramByMovieId(channelId: Long, movieId: String): PreviewProgram? {
-        val cursor = App.context.contentResolver.query(
+        App.context.contentResolver.query(
             TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
             PREVIEW_PROGRAM_MAP_PROJECTION,
             null,
             null,
             null
-        )
-        cursor?.let {
-            if (it.moveToFirst())
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
                 do {
-                    val program = PreviewProgram.fromCursor(it)
+                    val program = PreviewProgram.fromCursor(cursor)
                     if (movieId == program.internalProviderId) {
-                        cursor.close()
                         return program
                     }
-                } while (it.moveToNext())
-            cursor.close()
+                } while (cursor.moveToNext())
+            }
         }
         return null
     }
 
     @SuppressLint("RestrictedApi")
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun exist(channelId: Long, previewProgram: PreviewProgram?): Boolean {
-        val movieId = previewProgram?.internalProviderId
-        val cursor = App.context.contentResolver.query(
-            TvContractCompat.buildPreviewProgramsUriForChannel(channelId),
-            PREVIEW_PROGRAM_MAP_PROJECTION,
-            null,
-            null
-        )
-        cursor?.let {
-            if (it.moveToFirst())
-                do {
-                    val program = PreviewProgram.fromCursor(it)
-                    if (movieId == program.internalProviderId) {
-                        cursor.close()
-                        return true
-                    }
-                } while (it.moveToNext())
-            cursor.close()
-        }
-        return false
-    }
-
-    @SuppressLint("RestrictedApi")
-    fun getInternalIdAndChanIdFromPreviewProgramId(previewProgramId: Long): Pair<String?, Long?> {
-        val curWatchNextUri = TvContractCompat.buildPreviewProgramUri(previewProgramId)
-        var previewProgram: PreviewProgram? = null
-        App.context.contentResolver.query(
-            curWatchNextUri, null, null, null, null
-        ).use { cursor ->
-            if (cursor != null && cursor.count != 0) {
-                cursor.moveToFirst()
-                previewProgram = PreviewProgram.fromCursor(cursor)
-            }
-        }
-        return Pair(previewProgram?.internalProviderId, previewProgram?.channelId)
+    private fun existsInChannel(channelId: Long, movieId: String): Boolean {
+        return findProgramByMovieId(channelId, movieId) != null
     }
 
     private fun removeProgram(previewProgramId: Long): Int {
-        val rowsDeleted = App.context.contentResolver.delete(
+        return App.context.contentResolver.delete(
             TvContractCompat.buildPreviewProgramUri(previewProgramId),
             null, null
-        )
-        if (rowsDeleted < 1) {
-            Log.e(TAG, "Failed to delete program $previewProgramId")
+        ).also {
+            if (it < 1) Log.e(TAG, "Failed to delete program $previewProgramId")
         }
-        return rowsDeleted
     }
 
     @SuppressLint("RestrictedApi")
-    private fun getProgram(
+    private fun createPreviewProgram(
         channelId: Long,
         provName: String,
         card: LampaCard,
         weight: Int
     ): PreviewProgram? {
+        val title = card.name ?: card.title ?: return null
         val info = mutableListOf<String>()
 
-        val title = if (!card.name.isNullOrEmpty()) card.name else card.title
+        card.vote_average?.takeIf { it > 0.0 }?.let { info.add("%.1f".format(it)) }
 
-        card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
-
-        var type = TvContractCompat.PreviewPrograms.TYPE_MOVIE
-        if (card.type == "tv") {
-            type = TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
-            card.number_of_seasons?.let { info.add("S$it") } ?: info.add(App.context.getString(R.string.series))
+        val type = if (card.type == "tv") {
+            card.number_of_seasons?.let { info.add("S$it") }
+                ?: info.add(App.context.getString(R.string.series))
+            TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
+        } else {
+            TvContractCompat.PreviewPrograms.TYPE_MOVIE
         }
 
-        val genreList = mutableListOf<String>()
-        card.genres?.forEach { g ->
-            if (g?.name?.isNotEmpty() == true)
-                genreList.add(g.name.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString() })
+        card.genres?.mapNotNull {
+            it?.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.joinToString(", ")?.let { info.add(it) }
+
+        val country = card.production_countries?.joinToString(", ") { it.iso_3166_1.toString() }
+            ?: card.origin_country?.joinToString(", ")
+            ?: card.original_language?.uppercase()
+            ?: ""
+        if (country.isNotEmpty()) info.add(country)
+
+        val releaseYear = card.release_year ?: when {
+            card.type == "tv" && !card.first_air_date.isNullOrEmpty() -> card.first_air_date.substringBefore(
+                "-"
+            )
+
+            !card.release_date.isNullOrEmpty() -> card.release_date.substringBefore("-")
+            else -> ""
         }
-        if (genreList.isNotEmpty())
-            info.add(genreList.joinToString(", "))
 
-        var country = card.production_countries?.joinToString(", ") { it.iso_3166_1.toString() } ?: ""
-        if (country.isEmpty())
-            country = card.origin_country?.joinToString(", ") ?: ""
-        if (country.isEmpty())
-            country = card.original_language?.uppercase() ?: ""
-        if (country.isNotEmpty())
-            info.add(country)
-
-        val preview = PreviewProgram.Builder()
+        return PreviewProgram.Builder()
             .setChannelId(channelId)
             .setTitle(title)
             .setAvailability(TvContractCompat.PreviewProgramColumns.AVAILABILITY_AVAILABLE)
@@ -276,50 +275,20 @@ object ChannelManager {
             .setDurationMillis(card.runtime?.times(60000) ?: 0)
             .setSearchable(true)
             .setLive(false)
-
-        val releaseYear = if (!card.release_year.isNullOrEmpty()) card.release_year
-        else if (card.type == "tv" && !card.first_air_date.isNullOrEmpty())
-            card.first_air_date.substringBefore("-", card.first_air_date)
-        else if (!card.release_date.isNullOrEmpty())
-            card.release_date.substringBefore("-", card.release_date)
-        else ""
-
-        if (releaseYear.isNotEmpty()) {
-            preview.setReleaseDate(releaseYear)
-        }
-
-        card.vote_average?.let {
-            preview.setReviewRating((it.div(2)).toString())
-        }
-
-        var usePoster = true // use backdrop for recs
-        if (!card.background_image.isNullOrEmpty() && provName == RECS) {
-            val poster = card.background_image
-            preview.setPosterArtUri(Uri.parse(poster))
-                .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
-            preview.setThumbnailUri(Uri.parse(poster))
-                .setThumbnailAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
-            usePoster = false
-        }
-        if (usePoster) {
-            if (card.img.isNullOrEmpty()) {
-                val resourceId = R.drawable.empty_poster // in-app poster
-                val emptyPoster = Uri.Builder()
-                    .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-                    .authority(App.context.resources.getResourcePackageName(resourceId))
-                    .appendPath(App.context.resources.getResourceTypeName(resourceId))
-                    .appendPath(App.context.resources.getResourceEntryName(resourceId))
-                    .build()
-                preview.setPosterArtUri(emptyPoster)
-                    .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
-            } else {
-                val poster = card.img
-                preview.setPosterArtUri(Uri.parse(poster))
-                    .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
+            .apply {
+                if (releaseYear.isNotEmpty()) setReleaseDate(releaseYear)
+                card.vote_average?.let { setReviewRating((it / 2).toString()) }
+                if (provName == RECS && !card.background_image.isNullOrEmpty()) {
+                    setPosterArtUri(Uri.parse(card.background_image))
+                        .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
+                    setThumbnailUri(Uri.parse(card.background_image))
+                        .setThumbnailAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
+                } else {
+                    val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()
+                    setPosterArtUri(posterUri)
+                        .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
+                }
             }
-        }
-
-        return preview.build()
+            .build()
     }
-
 }

@@ -3,6 +3,7 @@ package top.rootu.lampa.helpers
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -24,6 +25,7 @@ import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
+import top.rootu.lampa.R
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Prefs.addBookToRemove
 import top.rootu.lampa.helpers.Prefs.addContToRemove
@@ -35,16 +37,6 @@ import top.rootu.lampa.helpers.Prefs.addThrwToRemove
 import top.rootu.lampa.helpers.Prefs.addViewToRemove
 import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
 import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
-import top.rootu.lampa.helpers.Prefs.bookToRemove
-import top.rootu.lampa.helpers.Prefs.contToRemove
-import top.rootu.lampa.helpers.Prefs.histToRemove
-import top.rootu.lampa.helpers.Prefs.likeToRemove
-import top.rootu.lampa.helpers.Prefs.lookToRemove
-import top.rootu.lampa.helpers.Prefs.schdToRemove
-import top.rootu.lampa.helpers.Prefs.thrwToRemove
-import top.rootu.lampa.helpers.Prefs.viewToRemove
-import top.rootu.lampa.helpers.Prefs.wathToAdd
-import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.CubBookmark
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
@@ -343,49 +335,43 @@ object Helpers {
         }
     }
 
-    fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
-        // actions: add | rem
-        if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")
-        if (action != null) {
-            when (action) {
-                "rem" -> {
-                    when (where) {
-                        LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
-                        LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
-                        LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
-                        LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
-                        LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
-                        LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
-                        LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
-                        LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
-                        LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
-                    }
-                    if (BuildConfig.DEBUG) {
-                        Log.d("*****", "book items to remove: ${App.context.bookToRemove}")
-                        Log.d("*****", "wath items to remove: ${App.context.wathToRemove}")
-                        Log.d("*****", "like items to remove: ${App.context.likeToRemove}")
-                        Log.d("*****", "hist items to remove: ${App.context.histToRemove}")
-                        Log.d("*****", "look items to remove: ${App.context.lookToRemove}")
-                        Log.d("*****", "view items to remove: ${App.context.viewToRemove}")
-                        Log.d("*****", "schd items to remove: ${App.context.schdToRemove}")
-                        Log.d("*****", "cont items to remove: ${App.context.contToRemove}")
-                        Log.d("*****", "thrw items to remove: ${App.context.thrwToRemove}")
-                    }
-                }
+    fun getDefaultPosterUri(): Uri {
+        val resourceId = R.drawable.empty_poster
+        return Uri.Builder()
+            .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+            .authority(App.context.resources.getResourcePackageName(resourceId))
+            .appendPath(App.context.resources.getResourceTypeName(resourceId))
+            .appendPath(App.context.resources.getResourceEntryName(resourceId))
+            .build()
+    }
 
-                "add" -> {
-                    when (where) {
-                        LampaProvider.LATE -> App.context.addWatchNextToAdd(
-                            WatchNextToAdd(
-                                id,
-                                card
-                            )
+    // Function to manage favorites, actions: add | rem
+    fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
+        if (BuildConfig.DEBUG) Log.d("Prefs", "manageFavorite($action, $where, $id)")
+        when (action) {
+            "rem" -> when (where) {
+                LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
+                LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
+                LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
+                LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
+                LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
+                LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
+                LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
+                LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
+                LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
+            }
+
+            "add" -> when (where) {
+                LampaProvider.LATE -> card?.let {
+                    App.context.addWatchNextToAdd(
+                        WatchNextToAdd(
+                            id,
+                            it
                         )
-                    }
-                    if (BuildConfig.DEBUG)
-                        Log.d("*****", "wath items to add: ${App.context.wathToAdd}")
+                    )
                 }
             }
         }
     }
 }
+
