@@ -67,7 +67,7 @@ object LampaChannels {
     fun updateRecsChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV) return
         synchronized(lock) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "updateRecsChannel")
+            if (BuildConfig.DEBUG) Log.d(TAG, "updateRecsChannel()")
             val list = LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP)
             ChannelManager.update(LampaProvider.RECS, list)
         }

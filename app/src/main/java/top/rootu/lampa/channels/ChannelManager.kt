@@ -71,7 +71,7 @@ object ChannelManager {
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.O)
     fun update(name: String, list: List<LampaCard>) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "update($name, size:${list.size})")
+        if (BuildConfig.DEBUG) Log.d(TAG, "update($name, ${list.size} items)")
         removeLostChannels()
 
         synchronized(lock) {
