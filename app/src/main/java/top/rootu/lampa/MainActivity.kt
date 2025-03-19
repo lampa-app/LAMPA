@@ -30,7 +30,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
-import android.widget.ListAdapter
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
@@ -78,9 +77,7 @@ import top.rootu.lampa.helpers.Backup.saveSettings
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
-import top.rootu.lampa.helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
@@ -112,6 +109,8 @@ import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
+import top.rootu.lampa.helpers.hideSystemUI
+import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
@@ -439,10 +438,9 @@ class MainActivity : AppCompatActivity(),
             // then the user used Crosswalk in previous versions of the application
             SELECTED_BROWSER = "XWalk"
         }
-        val wvv = Helpers.getWebViewVersion(this)
         val wvvMajorVersion: Double = try {
-            wvv.substringBefore(".").toDouble()
-        } catch (npe: NumberFormatException) {
+            Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
+        } catch (_: NumberFormatException) {
             0.0
         }
         // Hide XWalk chooser on RuStore builds and modern Android WebView
@@ -494,7 +492,7 @@ class MainActivity : AppCompatActivity(),
 
         if (this.firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d("*****", "First run scheduleUpdate(sync)")
+                if (BuildConfig.DEBUG) Log.d(TAG, "First run scheduleUpdate(sync: true)")
                 Scheduler.scheduleUpdate(true)
             }
         }
@@ -541,8 +539,8 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             progressBar?.visibility = View.GONE
-            Log.d("*****", "LAMPA onLoadFinished $url")
-            if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
+            Log.d(TAG, "LAMPA onLoadFinished $url")
+            if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
             processIntent(intent, 1000)
             lifecycleScope.launch {
                 delay(3000)
@@ -566,6 +564,7 @@ class MainActivity : AppCompatActivity(),
                 delayedVoidJsFunc.clear()
             }
             CoroutineScope(Dispatchers.IO).launch {
+                if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() scheduleUpdate(sync = false)")
                 Scheduler.scheduleUpdate(false)
             }
         }
@@ -588,7 +587,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (BuildConfig.DEBUG) Log.d("*****", "onNewIntent() processIntent")
+        if (BuildConfig.DEBUG) Log.d(TAG, "onNewIntent() processIntent")
         processIntent(intent)
     }
 
@@ -639,7 +638,7 @@ class MainActivity : AppCompatActivity(),
             LampaProvider.CONT to App.context.contToRemove,
             LampaProvider.THRW to App.context.thrwToRemove
         ).forEach { (category, items) ->
-            if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() remove from $category: $items")
+            if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() remove from $category: $items")
             items.forEach { id ->
                 runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
             }
@@ -677,12 +676,12 @@ class MainActivity : AppCompatActivity(),
         var source = ""
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+            Log.d(TAG, "processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
                 for (key in it.keySet()) {
                     Log.d(
                         TAG,
-                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
+                        ("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
                     )
                 }
             }
@@ -819,42 +818,77 @@ class MainActivity : AppCompatActivity(),
         browser?.setFocus()
     }
 
+    // Data class for menu items
+    private data class MenuItem(
+        val title: String,
+        val action: String,
+        val icon: Int
+    )
+
     private fun showMenuDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(5)
-        val menuItemsAction = arrayOfNulls<String?>(5)
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
 
-        menuItemsTitle[0] =
-            if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) getString(R.string.update_chan_title)
-            else if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
-        menuItemsAction[0] = "closeMenu"
-        menuItemsTitle[1] = getString(R.string.change_url_title)
-        menuItemsAction[1] = "showUrlInputDialog"
-        menuItemsTitle[2] = getString(R.string.change_engine)
-        menuItemsAction[2] = "showBrowserInputDialog"
-        menuItemsTitle[3] = getString(R.string.backup_restore_title)
-        menuItemsAction[3] = "showBackupDialog"
-        menuItemsTitle[4] = getString(R.string.exit)
-        menuItemsAction[4] = "appExit"
-
-        val icons = arrayOf(
-            if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
-            R.drawable.round_link_24,
-            R.drawable.round_explorer_24,
-            R.drawable.round_settings_backup_restore_24,
-            R.drawable.round_exit_to_app_24,
+        // Define menu items
+        val menuItems = mutableListOf(
+            MenuItem(
+                title = if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    getString(R.string.update_chan_title)
+                } else if (isAndroidTV) {
+                    getString(R.string.update_home_title)
+                } else {
+                    getString(R.string.close_menu_title)
+                },
+                action = "updateOrClose",
+                icon = if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24
+            ),
+            MenuItem(
+                title = getString(R.string.change_url_title),
+                action = "showUrlInputDialog",
+                icon = R.drawable.round_link_24
+            ),
+            MenuItem(
+                title = getString(R.string.change_engine),
+                action = "showBrowserInputDialog",
+                icon = R.drawable.round_explorer_24
+            ),
+            MenuItem(
+                title = getString(R.string.backup_restore_title),
+                action = "showBackupDialog",
+                icon = R.drawable.round_settings_backup_restore_24
+            ),
+            MenuItem(
+                title = getString(R.string.exit),
+                action = "appExit",
+                icon = R.drawable.round_exit_to_app_24
+            )
         )
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
 
-        menu.setTitle(getString(R.string.menu_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        val wvvMajorVersion: Double = try {
+            Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
+        } catch (_: NumberFormatException) {
+            0.0
+        }
+        if (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
+            menuItems.removeAt(2)
+
+        // Set up the adapter
+        val adapter = ImgArrayAdapter(
+            mainActivity,
+            menuItems.map { it.title }.toList(),
+            menuItems.map { it.icon }.toList()
+        )
+
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.menu_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
-            when (menuItemsAction[which]) {
-                "closeMenu" ->
+            when (menuItems[which].action) {
+                "updateOrClose" -> {
                     if (isAndroidTV) {
                         Scheduler.scheduleUpdate(false)
                     }
+                }
 
                 "showUrlInputDialog" -> {
                     App.toast(R.string.change_note)
@@ -870,87 +904,115 @@ class MainActivity : AppCompatActivity(),
                 "appExit" -> appExit()
             }
         }
-        menu.setOnDismissListener {
+
+        // Set dismiss listener
+        dialogBuilder.setOnDismissListener {
             isMenuVisible = false
             showFab(true)
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
+
+        // Show the dialog
+        val dialog = dialogBuilder.create()
+        dialog.show()
         isMenuVisible = true
+    }
+
+    // Function to handle backup all settings
+    private fun backupAllSettings() {
+        lifecycleScope.launch {
+            dumpStorage() // fixme: add callback
+            delay(3000)
+            if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+            } else {
+                App.toast(R.string.settings_save_fail)
+            }
+        }
+    }
+
+    // Function to handle restore app settings
+    private fun restoreAppSettings() {
+        if (loadFromBackup(Prefs.APP_PREFERENCES)) {
+            App.toast(R.string.settings_restored)
+            recreate()
+        } else {
+            App.toast(R.string.settings_rest_fail)
+        }
+    }
+
+    // Function to handle restore Lampa settings
+    private fun restoreLampaSettings() {
+        lifecycleScope.launch {
+            if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                restoreStorage() // fixme: add callback
+                App.toast(R.string.settings_restored)
+                delay(3000)
+                recreate()
+            } else {
+                App.toast(R.string.settings_rest_fail)
+            }
+        }
+    }
+
+    // Function to handle restore default settings
+    private fun restoreDefaultSettings() {
+        clearStorage()
+        appPrefs.edit().clear().apply()
+        recreate()
     }
 
     private fun showBackupDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(4)
-        val menuItemsAction = arrayOfNulls<String?>(4)
-        val icons = arrayOf(
-            R.drawable.round_settings_backup_restore_24,
-            R.drawable.round_refresh_24,
-            R.drawable.round_refresh_24,
-            R.drawable.round_close_24
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
+
+        // Define menu items
+        val menuItems = listOf(
+            MenuItem(
+                title = getString(R.string.backup_all_title),
+                action = "backupAllSettings",
+                icon = R.drawable.round_settings_backup_restore_24
+            ),
+            MenuItem(
+                title = getString(R.string.restore_app_title),
+                action = "restoreAppSettings",
+                icon = R.drawable.round_refresh_24
+            ),
+            MenuItem(
+                title = getString(R.string.restore_storage_title),
+                action = "restoreLampaSettings",
+                icon = R.drawable.round_refresh_24
+            ),
+            MenuItem(
+                title = getString(R.string.default_setting_title),
+                action = "restoreDefaultSettings",
+                icon = R.drawable.round_close_24
+            )
         )
-        menuItemsTitle[0] = getString(R.string.backup_all_title)
-        menuItemsAction[0] = "backupAllSettings"
-        menuItemsTitle[1] = getString(R.string.restore_app_title)
-        menuItemsAction[1] = "restoreAppSettings"
-        menuItemsTitle[2] = getString(R.string.restore_storage_title)
-        menuItemsAction[2] = "restoreLampaSettings"
-        menuItemsTitle[3] = getString(R.string.default_setting_title)
-        menuItemsAction[3] = "restoreDefaultSettings"
 
+        // Set up the adapter
+        val adapter = ImgArrayAdapter(
+            mainActivity,
+            menuItems.map { it.title }.toList(),
+            menuItems.map { it.icon }.toList()
+        )
 
-        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
-        menu.setTitle(getString(R.string.backup_restore_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.backup_restore_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
-            when (menuItemsAction[which]) {
-                "backupAllSettings" -> {
-                    lifecycleScope.launch {
-                        dumpStorage() // fixme: add callback
-                        delay(3000)
-                        if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
-                            App.toast(
-                                getString(
-                                    R.string.settings_saved_toast,
-                                    Backup.DIR.toString()
-                                )
-                            )
-                        else
-                            App.toast(R.string.settings_save_fail)
-                    }
-                }
-
-                "restoreAppSettings" -> {
-                    if (loadFromBackup(Prefs.APP_PREFERENCES)) {
-                        App.toast(R.string.settings_restored)
-                        recreate()
-                    } else
-                        App.toast(R.string.settings_rest_fail)
-                }
-
-                "restoreLampaSettings" -> {
-                    lifecycleScope.launch {
-                        if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
-                            restoreStorage() // fixme: add callback
-                            App.toast(R.string.settings_restored)
-                            delay(3000)
-                            recreate()
-                        } else
-                            App.toast(R.string.settings_rest_fail)
-                    }
-                }
-
-                "restoreDefaultSettings" -> {
-                    clearStorage()
-                    appPrefs.edit().clear().apply()
-                    recreate()
-                }
+            when (menuItems[which].action) {
+                "backupAllSettings" -> backupAllSettings()
+                "restoreAppSettings" -> restoreAppSettings()
+                "restoreLampaSettings" -> restoreLampaSettings()
+                "restoreDefaultSettings" -> restoreDefaultSettings()
             }
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
+
+        // Show the dialog
+        dialogBuilder.create().show()
         adapter.setSelectedItem(0)
+
+        // Check storage permissions
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
         }
@@ -958,62 +1020,69 @@ class MainActivity : AppCompatActivity(),
 
     private fun showBrowserInputDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle: Array<String?>
-        val menuItemsAction: Array<String?>
-        val icons: Array<Int>
-        var current = 0
-        if (Helpers.isWebViewAvailable(this)) {
-            menuItemsTitle = arrayOfNulls(2)
-            menuItemsAction = arrayOfNulls(2)
-            val wvv = Helpers.getWebViewVersion(mainActivity)
-            val wvvMajorVersion: Double = try {
-                wvv.substringBefore(".").toDouble()
-            } catch (npe: NumberFormatException) {
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
+        var selectedIndex = 0
+
+        // Determine available browser options
+        val (menuItemsTitle, menuItemsAction, icons) = if (Helpers.isWebViewAvailable(this)) {
+            val webViewVersion = Helpers.getWebViewVersion(mainActivity)
+            val webViewMajorVersion = try {
+                webViewVersion.substringBefore(".").toDouble()
+            } catch (_: NumberFormatException) {
                 0.0
             }
-            menuItemsAction[0] = "XWalk"
-            menuItemsAction[1] = "SysView"
-            if (menuItemsAction[0] == SELECTED_BROWSER) {
-                menuItemsTitle[0] =
-                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
-                menuItemsTitle[1] = "${getString(R.string.engine_webkit)} $wvv"
+
+            val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
+            val crosswalkTitle = if (isCrosswalkActive) {
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
             } else {
-                menuItemsTitle[0] =
-                    if (wvvMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
-                    else "${getString(R.string.engine_crosswalk)} 53.589.4"
-                menuItemsTitle[1] =
-                    "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
-                current = 1
+                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
+                else "${getString(R.string.engine_crosswalk)} 53.589.4"
             }
-            icons = arrayOf(
-                R.drawable.round_explorer_24,
-                R.drawable.round_explorer_24
-            )
+
+            val webkitTitle = if (isCrosswalkActive) {
+                "${getString(R.string.engine_webkit)} $webViewVersion"
+            } else {
+                "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $webViewVersion"
+            }
+
+            val titles = listOf(crosswalkTitle, webkitTitle)
+            val actions = listOf("XWalk", "SysView")
+            val icons = listOf(R.drawable.round_explorer_24, R.drawable.round_explorer_24)
+            selectedIndex = if (isCrosswalkActive) 0 else 1
+
+            Triple(titles, actions, icons)
         } else {
-            menuItemsTitle = arrayOfNulls(1)
-            menuItemsAction = arrayOfNulls(1)
-            menuItemsAction[0] = "XWalk"
-            if (menuItemsAction[0] == SELECTED_BROWSER) {
-                menuItemsTitle[0] =
-                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
+            val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
             } else {
-                menuItemsTitle[0] = getString(R.string.engine_crosswalk)
+                getString(R.string.engine_crosswalk)
             }
-            icons = arrayOf(R.drawable.round_explorer_24)
+
+            val titles = listOf(crosswalkTitle)
+            val actions = listOf("XWalk")
+            val icons = listOf(R.drawable.round_explorer_24)
+            selectedIndex = 0
+
+            Triple(titles, actions, icons)
         }
+
+        // Set up the adapter
         val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
-        menu.setTitle(getString(R.string.change_engine_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        adapter.setSelectedItem(selectedIndex)
+
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.change_engine_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                menuItemsAction[which]?.let { this.appBrowser = it }
+                this.appBrowser = menuItemsAction[which]
                 mainActivity.recreate()
             }
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
-        adapter.setSelectedItem(current)
+
+        // Show the dialog
+        dialogBuilder.create().show()
     }
 
     private class UrlAdapter(context: Context) :
@@ -1238,7 +1307,7 @@ class MainActivity : AppCompatActivity(),
             putString("playJSONArray", playJSONArray.toString())
             apply()
         }
-        Log.d("*****", "saveLastPlayed $playJSONArray")
+        Log.d(TAG, "saveLastPlayed $playJSONArray")
         // store to prefs for resume from WatchNext
         this.playActivityJS = lampaActivity
     }
@@ -1583,7 +1652,7 @@ class MainActivity : AppCompatActivity(),
                     val vimuVersionNumber =
                         getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
                     if (BuildConfig.DEBUG) Log.d(
-                        "*****",
+                        TAG,
                         "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber"
                     )
                     intent.setPackage(SELECTED_PLAYER)
@@ -1686,14 +1755,14 @@ class MainActivity : AppCompatActivity(),
                     card?.let {
                         it.fixCard()
                         try {
-                            if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
+                            if (BuildConfig.DEBUG) Log.d(TAG, "resultPlayer PlayNext $it")
                             if (!ended)
                                 WatchNext.addLastPlayed(it)
                             else
                                 WatchNext.removeContinueWatch()
                         } catch (e: Exception) {
                             if (BuildConfig.DEBUG) Log.d(
-                                "*****",
+                                TAG,
                                 "resultPlayer Error add $it to WatchNext: $e"
                             )
                         }
@@ -1749,7 +1818,7 @@ class MainActivity : AppCompatActivity(),
             }
             if (i in playIndex until returnIndex) {
                 if (BuildConfig.DEBUG) Log.d(
-                    "*****",
+                    TAG,
                     "mark complete index $i (in range from $playIndex to $returnIndex)"
                 )
                 val newTimeline = JSONObject()
@@ -1766,9 +1835,9 @@ class MainActivity : AppCompatActivity(),
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
             if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
-                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+                if (BuildConfig.DEBUG) Log.d(TAG, "SpeechRecognizer not available!")
             } else {
-                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+                if (BuildConfig.DEBUG) Log.d(TAG, "SpeechRecognizer available!")
             }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1927,9 +1996,9 @@ class MainActivity : AppCompatActivity(),
                         langTag.split("-")[0],
                         langTag.split("-")[1]
                     ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
-                    if (BuildConfig.DEBUG) Log.d("*****", "appLang = $appLang")
-                    if (BuildConfig.DEBUG) Log.d("*****", "langTag = $langTag")
-                    if (BuildConfig.DEBUG) Log.d("*****", "locale = $locale")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "appLang = $appLang")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "langTag = $langTag")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "locale = $locale")
                     setLocale(locale)
                     startListening(progress, object : SpeechDelegate {
                         private var success = true
