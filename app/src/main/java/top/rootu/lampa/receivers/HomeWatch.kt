@@ -15,18 +15,17 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
+import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.sched.Scheduler
 
 @TargetApi(Build.VERSION_CODES.O)
-class HomeWatch : BroadcastReceiver() {
-    private val TAG = "HomeWatch"
+class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
 
         val action = intent.action
 
-        if (action == null || !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isAndroidTV))
+        if (action == null || !(isAndroidTV))
             return
 
         val watchNextId = intent.getLongExtra(TvContract.EXTRA_WATCH_NEXT_PROGRAM_ID, -1L)
@@ -49,8 +48,8 @@ class HomeWatch : BroadcastReceiver() {
                         "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
-                    if (!App.context.isInLampaWatchNext(it)) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (!App.context.isInWatchNext(it)) {
                         val card = WatchNext.getCardFromWatchNextProgramId(watchNextId)
                         Helpers.manageFavorite("add", "wath", it, card)
                     }
@@ -66,8 +65,8 @@ class HomeWatch : BroadcastReceiver() {
                         "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d("*****", "$it isInLampaWatchNext? ${App.context.isInLampaWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
-                    if (App.context.isInLampaWatchNext(movieId)) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (App.context.isInWatchNext(movieId)) {
                         Helpers.manageFavorite("rem", "wath", movieId)
                     }
                     try { // remove from contentPrivider

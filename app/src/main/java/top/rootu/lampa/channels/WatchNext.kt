@@ -22,7 +22,7 @@ import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
-import top.rootu.lampa.helpers.Prefs.isInLampaWatchNext
+import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
@@ -79,7 +79,7 @@ object WatchNext {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         val context = App.context
         val deleted = removeStale()
-        if (BuildConfig.DEBUG) Log.d(TAG, "updateWatchNext() WatchNext cards removed: $deleted")
+        if (BuildConfig.DEBUG) Log.d(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
 
         val lst = when { // reversed order
             // CUB
@@ -102,7 +102,7 @@ object WatchNext {
         if (BuildConfig.DEBUG) {
             Log.d(
                 TAG,
-                "updateWatchNext() WatchNext items:${excludePending.size} ${excludePending.map { it.id }} pending to remove:${pending.size} ${pending.map { it.id }}"
+                "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }} pending to remove: ${pending.size} ${pending.map { it.id }}"
             )
         }
 
@@ -212,7 +212,7 @@ object WatchNext {
             if (cursor.moveToFirst()) {
                 do {
                     val program = WatchNextProgram.fromCursor(cursor)
-                    if (!App.context.isInLampaWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
+                    if (!App.context.isInWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
                         count++
                         removeProgram(program.id)
                     }

@@ -108,6 +108,7 @@ object Prefs {
             return isFirstRun
         }
 
+    // Extension properties for Continue Watch
     var Context.playActivityJS: String?
         get() = defPrefs.getString(PLAY_ACT_KEY, "{}")
         set(json) = defPrefs.edit().putString(PLAY_ACT_KEY, json).apply()
@@ -124,26 +125,27 @@ object Prefs {
             }
         }
 
-    fun Context.saveFavorite(json: String) = defPrefs.edit().putString(FAV_KEY, json).apply()
+    val Context.CUB: List<CubBookmark>?
+        get() = defPrefs.getString(CUB_KEY, "[]")?.let { json ->
+            getJson(json, Array<CubBookmark>::class.java)?.toList()
+        }
 
     val Context.REC: List<LampaRec>?
         get() = defPrefs.getString(REC_KEY, "[]")?.let { json ->
             getJson(json, Array<LampaRec>::class.java)?.toList()
         }
 
-    fun Context.saveRecs(json: String) = defPrefs.edit().putString(REC_KEY, json).apply()
+    var Context.syncEnabled: Boolean
+        get() = appPrefs.getBoolean(SYNC_KEY, false)
+        set(enabled) = appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
 
-    val Context.CUB: List<CubBookmark>?
-        get() = defPrefs.getString(CUB_KEY, "[]")?.let { json ->
-            getJson(json, Array<CubBookmark>::class.java)?.toList()
-        }
+    // Helper functions for store lampa json to app prefs
+    fun Context.saveFavorite(json: String) = defPrefs.edit().putString(FAV_KEY, json).apply()
 
     fun Context.saveAccountBookmarks(json: String) =
         defPrefs.edit().putString(CUB_KEY, json).apply()
 
-    var Context.syncEnabled: Boolean
-        get() = appPrefs.getBoolean(SYNC_KEY, false)
-        set(enabled) = appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
+    fun Context.saveRecs(json: String) = defPrefs.edit().putString(REC_KEY, json).apply()
 
     // Helper functions for managing watch next and bookmarks
     private fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {
@@ -177,23 +179,15 @@ object Prefs {
     private val Context.cubThrown: List<String?>
         get() = getCubBookmarkCardIds(LampaProvider.THRW)
 
-    private fun Context.isInCubWatchNext(id: String): Boolean {
-        return cubWatchNext.contains(id)
-    }
-
-    private fun Context.isInFavWatchNext(id: String): Boolean {
-        return this.FAV?.wath?.contains(id) == true
-    }
-
-    fun Context.isInLampaWatchNext(id: String): Boolean {
-        return if (syncEnabled) isInCubWatchNext(id) else isInFavWatchNext(id)
+    fun Context.isInWatchNext(id: String): Boolean {
+        return FAV?.wath?.contains(id) == true || cubWatchNext.contains(id)
     }
 
     // Extension properties for pending actions
     val Context.wathToAdd: List<WatchNextToAdd>
         get() = defPrefs.getString(WNA_KEY, "[]")?.let { json ->
             getJson(json, Array<WatchNextToAdd>::class.java)?.filter {
-                !isInLampaWatchNext(it.id)
+                !isInWatchNext(it.id)
             } ?: emptyList()
         } ?: emptyList()
 
@@ -347,6 +341,7 @@ object Prefs {
 
     // fun Context.clearUrlHistory() = defPrefs.edit().putString(APP_URL_HISTORY, "[]").apply()
 
+    // Generic function to get preferences
     @Suppress("UNCHECKED_CAST")
     fun <T> get(name: String, def: T): T {
         return try {
