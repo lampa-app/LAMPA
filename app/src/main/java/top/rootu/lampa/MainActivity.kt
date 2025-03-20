@@ -1,7 +1,6 @@
 package top.rootu.lampa
 
 import android.annotation.SuppressLint
-import android.app.ProgressDialog
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -48,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -133,6 +133,7 @@ class MainActivity : AppCompatActivity(),
     private var browserInit = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
+    private lateinit var progressIndicator: LinearProgressIndicator
     private var isMenuVisible = false
 
     companion object {
@@ -542,12 +543,15 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished migrate: ${this@MainActivity.migrate}")
+        if (BuildConfig.DEBUG) Log.d(
+            TAG,
+            "onBrowserPageFinished migrate: ${this@MainActivity.migrate}"
+        )
         // restore lampa settings and reload
         if (this@MainActivity.migrate) {
             lifecycleScope.launch {
-                restoreStorage { success ->
-                    if (success) {
+                restoreStorage { callback ->
+                    if (callback.contains("SUCCESS", true)) {
                         Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
                         recreate()
                     } else {
@@ -723,7 +727,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun restoreStorage(callback: (Boolean) -> Unit) {
+    private fun restoreStorage(callback: (String) -> Unit) {
         val restoreJavascript = """
             (function() {
                 console.log('Restoring localStorage');
@@ -744,10 +748,10 @@ class MainActivity : AppCompatActivity(),
         browser?.evaluateJavascript(restoreJavascript) { result ->
             if (result != null) {
                 Log.d(TAG, "localStorage restored. result $result")
-                callback(true) // Success
+                callback(result) // Success
             } else {
                 Log.e(TAG, "Failed to restore localStorage.")
-                callback(false) // Failure
+                callback(result) // Failure
             }
         }
     }
@@ -1038,8 +1042,8 @@ class MainActivity : AppCompatActivity(),
     private fun restoreLampaSettings() {
         lifecycleScope.launch {
             if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
-                restoreStorage { success ->
-                    if (success) {
+                restoreStorage { callback ->
+                    if (callback.contains("SUCCESS", true)) {
                         App.toast(R.string.settings_restored)
                         recreate()
                     } else {
@@ -1312,16 +1316,63 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun handleMigrateButtonClick(dialog: AlertDialog) {
-        val progressDialog = ProgressDialog(this).apply {
-            setMessage("Migrate Lampa settings...")
-            setCancelable(false)
-            show()
+    private fun addProgressIndicatorToDialog(dialog: AlertDialog) {
+        // Access the dialog's root view
+        val rootView = dialog.window?.decorView?.findViewById<ViewGroup>(android.R.id.content)
+        // Create a LinearProgressIndicator
+        progressIndicator = LinearProgressIndicator(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            isIndeterminate = true // Set to indeterminate mode
+            trackCornerRadius = dp2px(dialog.context, 2.0F)
+            trackThickness = dp2px(dialog.context, 4.0F)
+            visibility = LinearProgressIndicator.VISIBLE // Make it visible by default
         }
+        // Add the progress indicator to the dialog's layout
+        if (rootView is LinearLayout) {
+            // rootView.addView(progressIndicator) // Add at the bottom
+            rootView.addView(progressIndicator, 0) // Add at the top of the layout
+        } else {
+            // If the root view is not a LinearLayout, wrap it in a new LinearLayout
+            val newLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+            // Remove the rootView from its current parent (if it has one)
+            (rootView?.parent as? ViewGroup)?.removeView(rootView)
+            // Add the progress indicator and the existing rootView to the new layout
+            newLayout.addView(progressIndicator) // Add to top
+            newLayout.addView(rootView)
+            // Set the new layout as the dialog's content view
+            dialog.window?.setContentView(newLayout)
+        }
+    }
+
+    // Function to control the visibility of the progress indicator
+    private fun setProgressIndicatorVisibility(isVisible: Boolean) {
+        if (::progressIndicator.isInitialized) {
+            progressIndicator.visibility =
+                if (isVisible) LinearProgressIndicator.VISIBLE else LinearProgressIndicator.GONE
+        }
+    }
+
+    private fun handleMigrateButtonClick(dialog: AlertDialog) {
+
+        // Add a LinearProgressIndicator to the dialog
+        addProgressIndicatorToDialog(dialog)
+
+        // Show the loader
+        setProgressIndicatorVisibility(true) // Show the loader indicator
+
         lifecycleScope.launch {
             try {
                 val result = dumpStorage().trim().removeSurrounding("\"")
-                progressDialog.dismiss()
+                setProgressIndicatorVisibility(false) // Hide the progress indicator
                 if (result.contains("SUCCESS")) {
                     Log.d(TAG, "handleMigrateButtonClick: Backup successful - $result")
                     this@MainActivity.migrate = true
@@ -1333,7 +1384,7 @@ class MainActivity : AppCompatActivity(),
                     App.toast(R.string.settings_save_fail)
                 }
             } catch (e: Exception) {
-                progressDialog.dismiss()
+                setProgressIndicatorVisibility(false)
                 Log.e(TAG, "handleMigrateButtonClick: Exception in dumpStorage - ${e.message}", e)
                 App.toast(R.string.settings_save_fail)
             }
