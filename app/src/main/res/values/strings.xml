@@ -89,6 +89,7 @@
     <string name="settings_save_fail">Unable to backup settings</string>
     <string name="settings_rest_fail">Unable to restore settings</string>
     <string name="settings_restored">Settings restored</string>
+    <string name="migrate">Migration</string>
     <!--App Errors-->
     <string name="app_crash_title">Sorry for the Inconvenience</string>
     <string name="app_crash_message">Sometimes Lampa has faults but no worry. In next update we will fix this. You can report this error in out Telegram channel - @lampa_group. Please click on Restart App button to continue.</string>

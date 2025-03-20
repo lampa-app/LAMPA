@@ -53,6 +53,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Logger
@@ -541,47 +542,55 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished migrate: ${this@MainActivity.migrate}")
+        // restore lampa settings and reload
+        if (this@MainActivity.migrate) {
+            lifecycleScope.launch {
+                restoreStorage { success ->
+                    if (success) {
+                        Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
+                        recreate()
+                    } else {
+                        App.toast(R.string.settings_rest_fail)
+                    }
+                }
+                this@MainActivity.migrate = false
+            }
+        }
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
-            // restore lampa settings and reload
-            if (this@MainActivity.migrate) {
-                restoreLampaSettings()
-                this@MainActivity.migrate = false
-                Log.d(TAG, "LAMPA migration ended!")
-            } else {
-                progressBar?.visibility = View.GONE
-                Log.d(TAG, "LAMPA onLoadFinished $url")
-                if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
-                processIntent(intent, 1000)
-                lifecycleScope.launch {
-                    delay(3000)
-                    runVoidJsFunc(
-                        "Lampa.Storage.listener.add",
-                        "'change'," +
-                                "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-                    )
-                    runJsStorageChangeField("activity", "{}") // get current lampaActivity
-                    runJsStorageChangeField("player_timecode")
-                    runJsStorageChangeField("playlist_next")
-                    runJsStorageChangeField("torrserver_preload")
-                    runJsStorageChangeField("internal_torrclient")
-                    runJsStorageChangeField("language")
-                    runJsStorageChangeField("source")
-                    runJsStorageChangeField("account_use") // get sync state
-                    runJsStorageChangeField("recomends_list", "[]") // force update recs var
-                    changeTmdbUrls()
-                    syncBookmarks()
-                    for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-                    delayedVoidJsFunc.clear()
-                }
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (BuildConfig.DEBUG) Log.d(
-                        TAG,
-                        "onBrowserPageFinished() scheduleUpdate(sync = false)"
-                    )
-                    Scheduler.scheduleUpdate(false)
-                }
-            }
+        }
+        progressBar?.visibility = View.GONE
+        Log.d(TAG, "LAMPA onLoadFinished $url")
+        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
+        processIntent(intent, 1000)
+        lifecycleScope.launch {
+            delay(3000)
+            runVoidJsFunc(
+                "Lampa.Storage.listener.add",
+                "'change'," +
+                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+            )
+            runJsStorageChangeField("activity", "{}") // get current lampaActivity
+            runJsStorageChangeField("player_timecode")
+            runJsStorageChangeField("playlist_next")
+            runJsStorageChangeField("torrserver_preload")
+            runJsStorageChangeField("internal_torrclient")
+            runJsStorageChangeField("language")
+            runJsStorageChangeField("source")
+            runJsStorageChangeField("account_use") // get sync state
+            runJsStorageChangeField("recomends_list", "[]") // force update recs var
+            changeTmdbUrls()
+            syncBookmarks()
+            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+            delayedVoidJsFunc.clear()
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            if (BuildConfig.DEBUG) Log.d(
+                TAG,
+                "onBrowserPageFinished() scheduleUpdate(sync = false)"
+            )
+            Scheduler.scheduleUpdate(false)
         }
     }
 
@@ -625,7 +634,7 @@ class MainActivity : AppCompatActivity(),
     private fun syncBookmarks() {
         runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
 
-        if (BuildConfig.DEBUG) Log.d("Prefs", "syncBookmarks() wathToAdd: ${App.context.wathToAdd}")
+        if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() wathToAdd: ${App.context.wathToAdd}")
         App.context.wathToAdd.forEach { item ->
             val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
             lampaCard?.let { card ->
@@ -662,40 +671,82 @@ class MainActivity : AppCompatActivity(),
         App.context.clearPending()
     }
 
-    private fun dumpStorage(callback: (Boolean) -> Unit) {
-        val backupJavascript = "(function() {" +
-                "console.log('Backing up localStorage');" +
-                "AndroidJS.clear();" +
-                "for (var key in localStorage) { AndroidJS.set(key, localStorage.getItem(key)); }" +
-                "})()"
-        browser?.evaluateJavascript(backupJavascript) { result ->
-            if (result != null) {
-                //sleep(1000)
-                Log.d(TAG, "localStorage backed up successfully. $result")
-                callback(true) // Success
-            } else {
-                //sleep(1000)
-                Log.e(TAG, "Failed to back up localStorage")
-                callback(false) // Failure
+    private suspend fun dumpStorage(): String {
+        return suspendCancellableCoroutine { continuation ->
+            val backupJavascript = """
+            (function() {
+                console.log('Backing up localStorage');
+                try {
+                    AndroidJS.clear();
+                    let count = 0;
+                    for (var key in localStorage) {
+                        AndroidJS.set(key, localStorage.getItem(key));
+                        count++;
+                    }
+                    return 'SUCCESS. ' + count + ' items backed up.';
+                } catch (error) {
+                    return 'FAILED: ' + error.message;
+                }
+            })()
+            """.trimIndent()
+            browser?.evaluateJavascript(backupJavascript) { result ->
+                if (result != null) {
+                    Log.d(TAG, "localStorage backed up successfully. Result: $result")
+                    continuation.resume(result) { cause ->
+                        Log.w(
+                            TAG,
+                            "Continuation cancelled after successful backup: ${cause.message}"
+                        )
+                    } // Success
+                } else {
+                    val errorMessage = "Backup failed: Result is null"
+                    Log.e(TAG, errorMessage)
+                    // Resume with an error message and provide onCancellation
+                    continuation.resume(errorMessage) { cause ->
+                        Log.d(TAG, "Backup was canceled after resuming. $cause")
+                        // Perform any necessary cleanup here
+                    }
+                }
+            } ?: run {
+                val errorMessage = "Backup failed: Browser is null"
+                Log.e(TAG, errorMessage)
+                // Resume with an error message and provide onCancellation
+                continuation.resume(errorMessage) { cause ->
+                    Log.d(TAG, "Backup was canceled after resuming. $cause")
+                    // Perform any necessary cleanup here
+                }
+            }
+            // Handle cancellation
+            continuation.invokeOnCancellation { cause ->
+                Log.w(TAG, "DumpStorage was cancelled: ${cause?.message}")
             }
         }
     }
 
     private fun restoreStorage(callback: (Boolean) -> Unit) {
-        val restoreJavascript = "(function() {" +
-                "console.log('Restoring localStorage');" +
-                "AndroidJS.dump();" +
-                "var len = AndroidJS.size();" +
-                "for (i = 0; i < len; i++) { var key = AndroidJS.key(i);  console.log(key); localStorage.setItem(key, AndroidJS.get(key)); }" +
-                "})()"
+        val restoreJavascript = """
+            (function() {
+                console.log('Restoring localStorage');
+                try {
+                    AndroidJS.dump();
+                    var len = AndroidJS.size();
+                    for (i = 0; i < len; i++) {
+                        var key = AndroidJS.key(i);
+                        console.log('[' + key + ']');
+                        localStorage.setItem(key, AndroidJS.get(key));
+                    }
+                    return 'SUCCESS. ' + len + ' items restored.';
+                } catch (error) {
+                    return 'FAILED: ' + error.message;
+                }
+            })()
+            """.trimIndent()
         browser?.evaluateJavascript(restoreJavascript) { result ->
             if (result != null) {
-                //sleep(1000)
-                Log.d(TAG, "localStorage restored")
+                Log.d(TAG, "localStorage restored. result $result")
                 callback(true) // Success
             } else {
-                //sleep(1000)
-                Log.e(TAG, "Failed to restore localStorage")
+                Log.e(TAG, "Failed to restore localStorage.")
                 callback(false) // Failure
             }
         }
@@ -955,18 +1006,20 @@ class MainActivity : AppCompatActivity(),
     // Function to handle backup all settings
     private fun backupAllSettings() {
         lifecycleScope.launch {
-            dumpStorage { success ->
-                if (success) {
-                    // Proceed with saving settings if the backup was successful
-                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
-                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
-                    } else {
-                        App.toast(R.string.settings_save_fail)
-                    }
+            // Use async to perform dumpStorage() asynchronously
+            //val deferredResult = async { dumpStorage() }
+            //val result = deferredResult.await()
+            val result = dumpStorage().trim().removeSurrounding("\"") // Await the result
+            if (result.contains("SUCCESS")) {
+                // Proceed with saving settings if the backup was successful
+                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                    App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
                 } else {
-                    // Handle backup failure
                     App.toast(R.string.settings_save_fail)
                 }
+            } else {
+                // Handle backup failure
+                App.toast(R.string.settings_save_fail)
             }
         }
     }
@@ -1160,7 +1213,7 @@ class MainActivity : AppCompatActivity(),
             setView(view)
             setPositiveButton(R.string.save) { _, _ -> handleSaveButtonClick(input) }
             setNegativeButton(R.string.cancel) { di, _ -> handleCancelButtonClick(di) }
-            setNeutralButton(R.string.backup_all) { _, _ -> } // Override later
+            setNeutralButton(R.string.migrate) { _, _ -> } // Override later
         }
 
         // Show the dialog
@@ -1220,6 +1273,7 @@ class MainActivity : AppCompatActivity(),
                         dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
                         true
                     }
+
                     else -> false
                 }
             }
@@ -1230,7 +1284,7 @@ class MainActivity : AppCompatActivity(),
     private fun handleSaveButtonClick(input: AutoCompleteTV?) {
         LAMPA_URL = input?.text.toString()
         if (isValidUrl(LAMPA_URL)) {
-            println("URL '$LAMPA_URL' is valid")
+            Log.d(TAG, "URL '$LAMPA_URL' is valid")
             if (this.appUrl != LAMPA_URL) {
                 this.appUrl = LAMPA_URL
                 this.addUrlHistory(LAMPA_URL)
@@ -1240,7 +1294,7 @@ class MainActivity : AppCompatActivity(),
                 browser?.loadUrl(LAMPA_URL) // Reload current URL
             }
         } else {
-            println("URL '$LAMPA_URL' is invalid")
+            Log.d(TAG, "URL '$LAMPA_URL' is invalid")
             App.toast(R.string.invalid_url)
             showUrlInputDialog()
         }
@@ -1258,30 +1312,30 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    // Helper function to handle the backup button click
     private fun handleMigrateButtonClick(dialog: AlertDialog) {
         val progressDialog = ProgressDialog(this).apply {
-            setMessage("Backing up settings...")
+            setMessage("Migrate Lampa settings...")
             setCancelable(false)
             show()
         }
-
         lifecycleScope.launch {
-            dumpStorage { success ->
+            try {
+                val result = dumpStorage().trim().removeSurrounding("\"")
                 progressDialog.dismiss()
-                if (success) {
-                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
-                        this@MainActivity.migrate = true
-                        val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
-                        handleSaveButtonClick(input)
-                        dialog.dismiss()
-                        // App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
-                    } else {
-                        App.toast(R.string.settings_save_fail)
-                    }
+                if (result.contains("SUCCESS")) {
+                    Log.d(TAG, "handleMigrateButtonClick: Backup successful - $result")
+                    this@MainActivity.migrate = true
+                    val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+                    handleSaveButtonClick(input)
+                    dialog.dismiss()
                 } else {
+                    Log.e(TAG, "handleMigrateButtonClick: dumpStorage failed - $result")
                     App.toast(R.string.settings_save_fail)
                 }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Log.e(TAG, "handleMigrateButtonClick: Exception in dumpStorage - ${e.message}", e)
+                App.toast(R.string.settings_save_fail)
             }
         }
     }
@@ -1296,7 +1350,7 @@ class MainActivity : AppCompatActivity(),
             || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
             || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
         ) {
-            println("Menu key pressed")
+            Log.d(TAG, "Menu key pressed")
             showMenuDialog()
             return true
         }
@@ -1305,7 +1359,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            println("Back button long pressed")
+            Log.d(TAG, "Back button long pressed")
             showMenuDialog()
             return true
         }

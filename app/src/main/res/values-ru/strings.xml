@@ -86,6 +86,7 @@
     <string name="settings_save_fail">Невозможно выполнить резервное копирование настроек</string>
     <string name="settings_rest_fail">Невозможно восстановить настройки</string>
     <string name="settings_restored">Настройки восстановлены</string>
+    <string name="migrate">Миграция</string>
     <!--App Errors-->
     <string name="app_crash_title">Приносим извинения за неудобства</string>
     <string name="app_crash_message">Иногда у Лампы бывают сбои, но не беспокойтесь. В следующем обновлении мы это исправим. Вы можете сообщить об этой ошибке в нашем Telegram-канале — @lampa_group. Нажмите кнопку «Перезапустить», чтобы продолжить.</string>
