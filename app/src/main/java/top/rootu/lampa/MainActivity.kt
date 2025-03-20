@@ -1,6 +1,7 @@
 package top.rootu.lampa
 
 import android.annotation.SuppressLint
+import android.app.ProgressDialog
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -101,6 +102,7 @@ import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.lookToRemove
+import top.rootu.lampa.helpers.Prefs.migrate
 import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.resumeJS
 import top.rootu.lampa.helpers.Prefs.schdToRemove
@@ -541,37 +543,44 @@ class MainActivity : AppCompatActivity(),
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
-            progressBar?.visibility = View.GONE
-            Log.d(TAG, "LAMPA onLoadFinished $url")
-            if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
-            processIntent(intent, 1000)
-            lifecycleScope.launch {
-                delay(3000)
-                runVoidJsFunc(
-                    "Lampa.Storage.listener.add",
-                    "'change'," +
-                            "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-                )
-                runJsStorageChangeField("activity", "{}") // get current lampaActivity
-                runJsStorageChangeField("player_timecode")
-                runJsStorageChangeField("playlist_next")
-                runJsStorageChangeField("torrserver_preload")
-                runJsStorageChangeField("internal_torrclient")
-                runJsStorageChangeField("language")
-                runJsStorageChangeField("source")
-                runJsStorageChangeField("account_use") // get sync state
-                runJsStorageChangeField("recomends_list", "[]") // force update recs var
-                changeTmdbUrls()
-                syncBookmarks()
-                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-                delayedVoidJsFunc.clear()
-            }
-            CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d(
-                    TAG,
-                    "onBrowserPageFinished() scheduleUpdate(sync = false)"
-                )
-                Scheduler.scheduleUpdate(false)
+            // restore lampa settings and reload
+            if (this@MainActivity.migrate) {
+                restoreLampaSettings()
+                this@MainActivity.migrate = false
+                Log.d(TAG, "LAMPA migration ended!")
+            } else {
+                progressBar?.visibility = View.GONE
+                Log.d(TAG, "LAMPA onLoadFinished $url")
+                if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
+                processIntent(intent, 1000)
+                lifecycleScope.launch {
+                    delay(3000)
+                    runVoidJsFunc(
+                        "Lampa.Storage.listener.add",
+                        "'change'," +
+                                "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+                    )
+                    runJsStorageChangeField("activity", "{}") // get current lampaActivity
+                    runJsStorageChangeField("player_timecode")
+                    runJsStorageChangeField("playlist_next")
+                    runJsStorageChangeField("torrserver_preload")
+                    runJsStorageChangeField("internal_torrclient")
+                    runJsStorageChangeField("language")
+                    runJsStorageChangeField("source")
+                    runJsStorageChangeField("account_use") // get sync state
+                    runJsStorageChangeField("recomends_list", "[]") // force update recs var
+                    changeTmdbUrls()
+                    syncBookmarks()
+                    for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+                    delayedVoidJsFunc.clear()
+                }
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (BuildConfig.DEBUG) Log.d(
+                        TAG,
+                        "onBrowserPageFinished() scheduleUpdate(sync = false)"
+                    )
+                    Scheduler.scheduleUpdate(false)
+                }
             }
         }
     }
@@ -1136,107 +1145,143 @@ class MainActivity : AppCompatActivity(),
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
-        val builder = AlertDialog.Builder(mainActivity)
-        builder.setTitle(R.string.input_url_title)
+
+        // Inflate the dialog view
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val tilt = view.findViewById<TextInputLayout>(R.id.tiltLampaUrl)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
-        // Set up the input
+
+        // Set up the input field
+        setupInputField(input, tilt, msg, dialog, inputManager)
+
+        // Build the dialog
+        val builder = AlertDialog.Builder(mainActivity).apply {
+            setTitle(R.string.input_url_title)
+            setView(view)
+            setPositiveButton(R.string.save) { _, _ -> handleSaveButtonClick(input) }
+            setNegativeButton(R.string.cancel) { di, _ -> handleCancelButtonClick(di) }
+            setNeutralButton(R.string.backup_all) { _, _ -> } // Override later
+        }
+
+        // Show the dialog
+        dialog = builder.create()
+        dialog.show()
+
+        // Set up the backup button
+        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
+            handleMigrateButtonClick(dialog)
+        }
+
+        // Automatically show the keyboard
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+    }
+
+    // Helper function to set up the input field
+    private fun setupInputField(
+        input: AutoCompleteTV?,
+        tilt: TextInputLayout?,
+        msg: String,
+        dialog: AlertDialog?,
+        inputManager: InputMethodManager
+    ) {
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
             if (msg.isNotEmpty()) {
-                tilt.isErrorEnabled = true
-                tilt.error = msg
+                tilt?.isErrorEnabled = true
+                tilt?.error = msg
             }
             setAdapter(urlAdapter)
+
             if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
                 setOnFocusChangeListener { _, hasFocus ->
-                    if (hasFocus && !this.isPopupShowing) {
-                        this.showDropDown()
+                    if (hasFocus && !isPopupShowing) {
+                        showDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
                     } else {
-                        this.dismissDropDown()
+                        dismissDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
                     }
                 }
                 setOnItemClickListener { _, _, _, _ ->
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
                 }
                 setOnClickListener {
-                    this.dismissDropDown()
+                    dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
+                    inputManager.showSoftInput(this, 0)
                 }
             }
-            setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
-                if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
-                    return@OnEditorActionListener true
+
+            setOnEditorActionListener { _, actionId, _ ->
+                when (actionId) {
+                    EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
+                        inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
+                        dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                        true
+                    }
+                    else -> false
                 }
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
-                    return@OnEditorActionListener true
-                }
-                false
-            })
+            }
         }
-        builder.setView(view)
-        // Set up the buttons
-        builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
-            LAMPA_URL = input?.text.toString()
-            if (isValidUrl(LAMPA_URL)) { // if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
-                println("URL '$LAMPA_URL' is valid")
-                if (this.appUrl != LAMPA_URL) {
-                    this.appUrl = LAMPA_URL
-                    this.addUrlHistory(LAMPA_URL)
-                    browser?.loadUrl(LAMPA_URL)
-                    App.toast(R.string.change_url_press_back)
-                } else {
-                    browser?.loadUrl(LAMPA_URL) // reload current URL
-                }
+    }
+
+    // Helper function to handle the save button click
+    private fun handleSaveButtonClick(input: AutoCompleteTV?) {
+        LAMPA_URL = input?.text.toString()
+        if (isValidUrl(LAMPA_URL)) {
+            println("URL '$LAMPA_URL' is valid")
+            if (this.appUrl != LAMPA_URL) {
+                this.appUrl = LAMPA_URL
+                this.addUrlHistory(LAMPA_URL)
+                browser?.loadUrl(LAMPA_URL)
+                App.toast(R.string.change_url_press_back)
             } else {
-                println("URL '$LAMPA_URL' is invalid")
-                App.toast(R.string.invalid_url)
-                showUrlInputDialog()
+                browser?.loadUrl(LAMPA_URL) // Reload current URL
             }
+        } else {
+            println("URL '$LAMPA_URL' is invalid")
+            App.toast(R.string.invalid_url)
+            showUrlInputDialog()
+        }
+        hideSystemUI()
+    }
+
+    // Helper function to handle the cancel button click
+    private fun handleCancelButtonClick(dialog: DialogInterface) {
+        dialog.cancel()
+        if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
+            appExit()
+        } else {
+            LAMPA_URL = this.appUrl
             hideSystemUI()
         }
-        builder.setNegativeButton(R.string.cancel) { di: DialogInterface, _: Int ->
-            di.cancel()
-            if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
-                appExit()
-            } else {
-                LAMPA_URL = this.appUrl
-                hideSystemUI()
-            }
+    }
+
+    // Helper function to handle the backup button click
+    private fun handleMigrateButtonClick(dialog: AlertDialog) {
+        val progressDialog = ProgressDialog(this).apply {
+            setMessage("Backing up settings...")
+            setCancelable(false)
+            show()
         }
-        builder.setNeutralButton(R.string.backup_all) { _: DialogInterface, _: Int ->
-            //Do nothing here because we override this button later
-        }
-        // show dialog
-        dialog = builder.create()
-        dialog.show()
-        // setup backup button
-        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
-            val wantToCloseDialog = false
-            // Do stuff, possibly set wantToCloseDialog to true then...
-            lifecycleScope.launch {
-                dumpStorage { success ->
-                    if (success) {
-                        if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
-                            App.toast(
-                                getString(
-                                    R.string.settings_saved_toast,
-                                    Backup.DIR.toString()
-                                )
-                            )
-                        } else App.toast(R.string.settings_save_fail)
-                    } else App.toast(R.string.settings_save_fail)
+
+        lifecycleScope.launch {
+            dumpStorage { success ->
+                progressDialog.dismiss()
+                if (success) {
+                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                        this@MainActivity.migrate = true
+                        val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+                        handleSaveButtonClick(input)
+                        dialog.dismiss()
+                        // App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+                    } else {
+                        App.toast(R.string.settings_save_fail)
+                    }
+                } else {
+                    App.toast(R.string.settings_save_fail)
                 }
-                if (wantToCloseDialog) dialog.dismiss()
-                // else dialog stays open
             }
         }
     }

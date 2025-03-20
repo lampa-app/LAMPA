@@ -48,6 +48,7 @@ object Prefs {
     private const val SYNC_KEY = "sync_account"
     private const val PLAY_ACT_KEY = "playActivityJS"
     private const val RESUME_KEY = "resumeJS"
+    private const val MIGRATE_KEY = "migrate"
 
     // Extension properties for SharedPreferences
     val Context.appPrefs: SharedPreferences
@@ -135,6 +136,24 @@ object Prefs {
     var Context.syncEnabled: Boolean
         get() = appPrefs.getBoolean(SYNC_KEY, false)
         set(enabled) = appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
+
+    /**
+     * A property to get or set the migration status in SharedPreferences.
+     * - `true`: Migration is enabled.
+     * - `false`: Migration is disabled or not set.
+     */
+    var Context.migrate: Boolean
+        get() = defPrefs.getBoolean(MIGRATE_KEY, false) // Default to false if key doesn't exist
+        set(enabled) {
+            defPrefs.edit().apply {
+                if (enabled) {
+                    putBoolean(MIGRATE_KEY, true)
+                } else {
+                    remove(MIGRATE_KEY)
+                }
+                apply() // Save changes asynchronously
+            }
+        }
 
     // Helper functions for store lampa json to app prefs
     fun Context.saveFavorite(json: String) = defPrefs.edit().putString(FAV_KEY, json).apply()
@@ -357,7 +376,7 @@ object Prefs {
     private fun parseUrlHistory(json: String?): List<InputHistory> {
         return try {
             Gson().fromJson(json, Array<InputHistory>::class.java)?.toList() ?: emptyList()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList() // Return an empty list if parsing fails
         }
     }
