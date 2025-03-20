@@ -637,7 +637,6 @@ class MainActivity : AppCompatActivity(),
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
     private fun syncBookmarks() {
         runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
-
         if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() wathToAdd: ${App.context.wathToAdd}")
         App.context.wathToAdd.forEach { item ->
             val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
@@ -696,16 +695,10 @@ class MainActivity : AppCompatActivity(),
             browser?.evaluateJavascript(backupJavascript) { result ->
                 if (result != null) {
                     Log.d(TAG, "localStorage backed up successfully. Result: $result")
-                    continuation.resume(result) { cause ->
-                        Log.w(
-                            TAG,
-                            "Continuation cancelled after successful backup: ${cause.message}"
-                        )
-                    } // Success
+                    continuation.resume(result) { cause -> } // Success
                 } else {
                     val errorMessage = "Backup failed: Result is null"
                     Log.e(TAG, errorMessage)
-                    // Resume with an error message and provide onCancellation
                     continuation.resume(errorMessage) { cause ->
                         Log.d(TAG, "Backup was canceled after resuming. $cause")
                         // Perform any necessary cleanup here
@@ -714,7 +707,6 @@ class MainActivity : AppCompatActivity(),
             } ?: run {
                 val errorMessage = "Backup failed: Browser is null"
                 Log.e(TAG, errorMessage)
-                // Resume with an error message and provide onCancellation
                 continuation.resume(errorMessage) { cause ->
                     Log.d(TAG, "Backup was canceled after resuming. $cause")
                     // Perform any necessary cleanup here
@@ -727,10 +719,38 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    private fun dumpStorage(callback: (String) -> Unit) {
+        val backupJavascript = """
+            (function() {
+                console.log('Backing up localStorage to App Prefs');
+                try {
+                    AndroidJS.clear();
+                    let count = 0;
+                    for (var key in localStorage) {
+                        AndroidJS.set(key, localStorage.getItem(key));
+                        count++;
+                    }
+                    return 'SUCCESS. ' + count + ' items backed up.';
+                } catch (error) {
+                    return 'FAILED: ' + error.message;
+                }
+            })()
+            """.trimIndent()
+        browser?.evaluateJavascript(backupJavascript) { result ->
+            if (result != null) {
+                Log.d(TAG, "localStorage backed up. Result $result")
+                callback(result) // Success
+            } else {
+                Log.e(TAG, "Failed to backup localStorage.")
+                callback(result) // Failure
+            }
+        }
+    }
+
     private fun restoreStorage(callback: (String) -> Unit) {
         val restoreJavascript = """
             (function() {
-                console.log('Restoring localStorage');
+                console.log('Restoring localStorage from App Prefs');
                 try {
                     AndroidJS.dump();
                     var len = AndroidJS.size();
@@ -747,7 +767,7 @@ class MainActivity : AppCompatActivity(),
             """.trimIndent()
         browser?.evaluateJavascript(restoreJavascript) { result ->
             if (result != null) {
-                Log.d(TAG, "localStorage restored. result $result")
+                Log.d(TAG, "localStorage restored. Result $result")
                 callback(result) // Success
             } else {
                 Log.e(TAG, "Failed to restore localStorage.")
@@ -1010,20 +1030,17 @@ class MainActivity : AppCompatActivity(),
     // Function to handle backup all settings
     private fun backupAllSettings() {
         lifecycleScope.launch {
-            // Use async to perform dumpStorage() asynchronously
-            //val deferredResult = async { dumpStorage() }
-            //val result = deferredResult.await()
-            val result = dumpStorage().trim().removeSurrounding("\"") // Await the result
-            if (result.contains("SUCCESS")) {
-                // Proceed with saving settings if the backup was successful
-                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
-                    App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+            dumpStorage { callback ->
+                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                    // Proceed with saving settings if the backup was successful
+                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+                    } else {
+                        App.toast(R.string.settings_save_fail)
+                    }
                 } else {
                     App.toast(R.string.settings_save_fail)
                 }
-            } else {
-                // Handle backup failure
-                App.toast(R.string.settings_save_fail)
             }
         }
     }
@@ -1362,31 +1379,23 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun handleMigrateButtonClick(dialog: AlertDialog) {
-
         // Add a LinearProgressIndicator to the dialog
         addProgressIndicatorToDialog(dialog)
-
-        // Show the loader
-        setProgressIndicatorVisibility(true) // Show the loader indicator
-
+        // Show the loader progress
+        setProgressIndicatorVisibility(true)
         lifecycleScope.launch {
-            try {
-                val result = dumpStorage().trim().removeSurrounding("\"")
+            dumpStorage { callback ->
                 setProgressIndicatorVisibility(false) // Hide the progress indicator
-                if (result.contains("SUCCESS")) {
-                    Log.d(TAG, "handleMigrateButtonClick: Backup successful - $result")
+                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                    Log.d(TAG, "handleMigrateButtonClick: Backup successful - $callback")
                     this@MainActivity.migrate = true
                     val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
                     handleSaveButtonClick(input)
                     dialog.dismiss()
                 } else {
-                    Log.e(TAG, "handleMigrateButtonClick: dumpStorage failed - $result")
+                    Log.e(TAG, "handleMigrateButtonClick: dumpStorage failed - $callback")
                     App.toast(R.string.settings_save_fail)
                 }
-            } catch (e: Exception) {
-                setProgressIndicatorVisibility(false)
-                Log.e(TAG, "handleMigrateButtonClick: Exception in dumpStorage - ${e.message}", e)
-                App.toast(R.string.settings_save_fail)
             }
         }
     }
