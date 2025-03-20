@@ -12,18 +12,22 @@ import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.recs.RecsService
 import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
+import java.util.concurrent.atomic.AtomicBoolean
 
 object Scheduler {
     private const val CARDS_JOB_ID = 0
-    private val lock = Any()
-    private var isUpdate = false
+    private val isUpdate = AtomicBoolean(false)
+
+    private val schedulerScope = CoroutineScope(Dispatchers.Default)
 
     /**
      * Schedules periodic updates for cards.
@@ -33,7 +37,7 @@ object Scheduler {
     fun scheduleUpdate(sched: Boolean) {
         if (!isAndroidTV) return
 
-        if (BuildConfig.DEBUG) Log.i("Scheduler", "scheduleUpdate(sched: $sched)")
+        if (BuildConfig.DEBUG) Log.d("Scheduler", "scheduleUpdate(sched: $sched)")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             jobScheduler(sched)
@@ -63,14 +67,14 @@ object Scheduler {
                 setRequiresDeviceIdle(false) // Don't require device to be idle
                 setRequiresCharging(false) // Don't require device to be charging
             }.build()
-            if (BuildConfig.DEBUG) Log.i(
+            if (BuildConfig.DEBUG) Log.d(
                 "Scheduler",
                 "jobScheduler schedule periodic updates with CardJobService"
             )
             jobScheduler?.schedule(jobInfo)
         } else { // Perform a one-shot update in a background thread
-            thread {
-                if (BuildConfig.DEBUG) Log.i(
+            schedulerScope.launch {
+                if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
                     "jobScheduler call updateCards(sync: $sched)"
                 )
@@ -110,34 +114,25 @@ object Scheduler {
      */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateCards(sync: Boolean) {
-        synchronized(lock) {
-            if (BuildConfig.DEBUG) Log.i(
-                "Scheduler",
-                "updateCards sync: $sync isUpdate: $isUpdate."
-            )
-            if (isUpdate) {
-                if (BuildConfig.DEBUG) Log.i("Scheduler", "updateCards isUpdate = true, cancel.")
-                return // Prevent multiple updates at the same time
-            }
-            isUpdate = true
-        }
+
+        if (isUpdate.compareAndSet(false, true)) return
 
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                if (BuildConfig.DEBUG) Log.i(
+                if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
                     "updateCards call RecsService.updateRecs()."
                 )
                 RecsService.updateRecs() // Update recommendations for older versions
             } else {
-                if (BuildConfig.DEBUG) Log.i(
+                if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
                     "updateCards call LampaChannels.update($sync)."
                 )
                 LampaChannels.update(sync) // Update channels for newer versions
             }
         } finally {
-            isUpdate = false // Reset the update flag
+            isUpdate.set(false)
         }
     }
 }
