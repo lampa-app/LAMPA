@@ -20,6 +20,7 @@ import android.os.Parcelable
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.util.Patterns
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -92,6 +93,7 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
+import top.rootu.lampa.helpers.Prefs.clearUrlHistory
 import top.rootu.lampa.helpers.Prefs.contToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
@@ -114,9 +116,7 @@ import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
-import java.lang.Thread.sleep
 import java.util.Locale
-import java.util.regex.Pattern
 import kotlin.collections.set
 
 
@@ -133,7 +133,6 @@ class MainActivity : AppCompatActivity(),
     private var isMenuVisible = false
 
     companion object {
-        private const val TAG = "APP_MAIN"
         const val RESULT_VIMU_ENDED = 2
         const val RESULT_VIMU_START = 3
         const val RESULT_VIMU_ERROR = 4
@@ -151,15 +150,18 @@ class MainActivity : AppCompatActivity(),
         var playVideoUrl: String = ""
         var lampaActivity: String = "{}" // JSON
 
-        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
-        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
-        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
-        private const val IP6_REGEX =
-            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
-        private const val URL_REGEX =
-            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
-        private val URL_PATTERN = Pattern.compile(URL_REGEX)
+        private const val TAG = "APP_MAIN"
+
+        // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
+        // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
+        // private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
+        // private const val IP6_REGEX =
+        //    "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        // private const val URL_REGEX =
+        //    "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
+        // private val URL_PATTERN = Pattern.compile(URL_REGEX)
         private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+
         lateinit var urlAdapter: ArrayAdapter<String>
     }
 
@@ -991,7 +993,9 @@ class MainActivity : AppCompatActivity(),
     // Function to handle restore default settings
     private fun restoreDefaultSettings() {
         clearStorage()
+        clearUrlHistory()
         appPrefs.edit().clear().apply()
+        //defPrefs.edit().clear().apply()
         recreate()
     }
 
@@ -1182,7 +1186,7 @@ class MainActivity : AppCompatActivity(),
         // Set up the buttons
         builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
             LAMPA_URL = input?.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
+            if (isValidUrl(LAMPA_URL)) { // if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
                 println("URL '$LAMPA_URL' is valid")
                 if (this.appUrl != LAMPA_URL) {
                     this.appUrl = LAMPA_URL
@@ -1208,10 +1212,6 @@ class MainActivity : AppCompatActivity(),
                 hideSystemUI()
             }
         }
-//        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
-//            di.cancel()
-//            appExit()
-//        }
         builder.setNeutralButton(R.string.backup_all) { _: DialogInterface, _: Int ->
             //Do nothing here because we override this button later
         }
@@ -1223,20 +1223,21 @@ class MainActivity : AppCompatActivity(),
             val wantToCloseDialog = false
             // Do stuff, possibly set wantToCloseDialog to true then...
             lifecycleScope.launch {
-                dumpStorage() // fixme: add callback
-                delay(3000)
-                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
-                    App.toast(
-                        getString(
-                            R.string.settings_saved_toast,
-                            Backup.DIR.toString()
-                        )
-                    )
-                else
-                    App.toast(R.string.settings_save_fail)
+                dumpStorage { success ->
+                    if (success) {
+                        if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                            App.toast(
+                                getString(
+                                    R.string.settings_saved_toast,
+                                    Backup.DIR.toString()
+                                )
+                            )
+                        } else App.toast(R.string.settings_save_fail)
+                    } else App.toast(R.string.settings_save_fail)
+                }
+                if (wantToCloseDialog) dialog.dismiss()
+                // else dialog stays open
             }
-            if (wantToCloseDialog) dialog.dismiss()
-            // else dialog stays open
         }
     }
 
@@ -1587,7 +1588,10 @@ class MainActivity : AppCompatActivity(),
                             if (listUrls.isNotEmpty()) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
                             } else {
-                                intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
+                                intent.putStringArrayListExtra(
+                                    "videoList",
+                                    arrayListOf(videoUrl)
+                                )
                             }
                         }
                     }
@@ -1963,7 +1967,10 @@ class MainActivity : AppCompatActivity(),
                     dialog?.dismiss()
                     val query = etSearch.text.toString()
                     if (query.isNotEmpty()) {
-                        runVoidJsFunc("window.voiceResult", "'" + query.replace("'", "\\'") + "'")
+                        runVoidJsFunc(
+                            "window.voiceResult",
+                            "'" + query.replace("'", "\\'") + "'"
+                        )
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
@@ -2054,7 +2061,9 @@ class MainActivity : AppCompatActivity(),
                             for (res in results) {
                                 str.append(res).append(" ")
                             }
-                            Log.i("speech", "partial result: " + str.toString().trim { it <= ' ' })
+                            Log.i(
+                                "speech",
+                                "partial result: " + str.toString().trim { it <= ' ' })
                             onSpeech(str.toString().trim { it <= ' ' }, false, success)
                         }
 

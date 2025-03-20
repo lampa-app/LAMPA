@@ -49,9 +49,6 @@ object Prefs {
     private const val PLAY_ACT_KEY = "playActivityJS"
     private const val RESUME_KEY = "resumeJS"
 
-    // Data class for URL history
-    data class InputHistory(val input: String, val timestamp: Long)
-
     // Extension properties for SharedPreferences
     val Context.appPrefs: SharedPreferences
         get() = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE)
@@ -320,26 +317,58 @@ object Prefs {
             .apply()
     }
 
-    // Helper functions for managing URL history
+    // Data class to represent URL history entries
+    data class InputHistory(
+        val input: String,
+        val timestamp: Long
+    )
+
+    // Extension property to get URL history
     val Context.urlHistory: List<String>
-        get() = defPrefs.getString(APP_URL_HISTORY, "[]")?.let { json ->
-            getJson(json, Array<InputHistory>::class.java)
-                ?.sortedByDescending { it.timestamp }
-                ?.map { it.input }
-                ?: emptyList()
-        } ?: emptyList()
+        get() {
+            val json = defPrefs.getString(APP_URL_HISTORY, "[]")
+            return parseUrlHistory(json)
+                .sortedByDescending { it.timestamp } // Sort by timestamp in descending order
+                .map { it.input } // Extract the URL strings
+        }
 
+    // Extension function to add a URL to history
     fun Context.addUrlHistory(url: String) {
-        val history = urlHistory.toMutableList().apply { add(0, url) }.distinct()
-        defPrefs.edit().putString(APP_URL_HISTORY, Gson().toJson(history)).apply()
+        val history = parseUrlHistory(defPrefs.getString(APP_URL_HISTORY, "[]"))
+            .filter { it.input != url } // Remove duplicates
+            .toMutableList()
+        history.add(InputHistory(url, System.currentTimeMillis())) // Add new entry
+        saveUrlHistory(history)
     }
 
+    // Extension function to remove a URL from history
     fun Context.remUrlHistory(url: String) {
-        val history = urlHistory.toMutableList().apply { remove(url) }
-        defPrefs.edit().putString(APP_URL_HISTORY, Gson().toJson(history)).apply()
+        val history = parseUrlHistory(defPrefs.getString(APP_URL_HISTORY, "[]"))
+            .filter { it.input != url } // Remove the specified URL
+        saveUrlHistory(history)
     }
 
-    // fun Context.clearUrlHistory() = defPrefs.edit().putString(APP_URL_HISTORY, "[]").apply()
+    // Extension function to clear URL history
+    fun Context.clearUrlHistory() {
+        saveUrlHistory(emptyList())
+    }
+
+    // Helper function to parse URL history from JSON
+    private fun parseUrlHistory(json: String?): List<InputHistory> {
+        return try {
+            Gson().fromJson(json, Array<InputHistory>::class.java)?.toList() ?: emptyList()
+        } catch (e: Exception) {
+            emptyList() // Return an empty list if parsing fails
+        }
+    }
+
+    // Helper function to save URL history to SharedPreferences
+    private fun Context.saveUrlHistory(history: List<InputHistory>) {
+        val json = Gson().toJson(history)
+        defPrefs.edit()
+            .putString(APP_URL_HISTORY, json)
+            .apply()
+    }
 
     // Generic function to get preferences
     @Suppress("UNCHECKED_CAST")

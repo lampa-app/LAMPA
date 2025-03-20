@@ -1,7 +1,6 @@
 package top.rootu.lampa.channels
 
 import android.annotation.SuppressLint
-import android.content.ContentResolver
 import android.net.Uri
 import android.os.Build
 import android.util.Log
