@@ -114,6 +114,7 @@ import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
+import java.lang.Thread.sleep
 import java.util.Locale
 import java.util.regex.Pattern
 import kotlin.collections.set
@@ -564,7 +565,10 @@ class MainActivity : AppCompatActivity(),
                 delayedVoidJsFunc.clear()
             }
             CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() scheduleUpdate(sync = false)")
+                if (BuildConfig.DEBUG) Log.d(
+                    TAG,
+                    "onBrowserPageFinished() scheduleUpdate(sync = false)"
+                )
                 Scheduler.scheduleUpdate(false)
             }
         }
@@ -647,23 +651,43 @@ class MainActivity : AppCompatActivity(),
         App.context.clearPending()
     }
 
-    private fun dumpStorage() {
+    private fun dumpStorage(callback: (Boolean) -> Unit) {
         val backupJavascript = "(function() {" +
                 "console.log('Backing up localStorage');" +
                 "AndroidJS.clear();" +
                 "for (var key in localStorage) { AndroidJS.set(key, localStorage.getItem(key)); }" +
                 "})()"
-        browser?.evaluateJavascript(backupJavascript) { Log.d(TAG, "localStorage backed up") }
+        browser?.evaluateJavascript(backupJavascript) { result ->
+            if (result != null) {
+                //sleep(1000)
+                Log.d(TAG, "localStorage backed up successfully. $result")
+                callback(true) // Success
+            } else {
+                //sleep(1000)
+                Log.e(TAG, "Failed to back up localStorage")
+                callback(false) // Failure
+            }
+        }
     }
 
-    private fun restoreStorage() {
+    private fun restoreStorage(callback: (Boolean) -> Unit) {
         val restoreJavascript = "(function() {" +
                 "console.log('Restoring localStorage');" +
                 "AndroidJS.dump();" +
                 "var len = AndroidJS.size();" +
                 "for (i = 0; i < len; i++) { var key = AndroidJS.key(i);  console.log(key); localStorage.setItem(key, AndroidJS.get(key)); }" +
                 "})()"
-        browser?.evaluateJavascript(restoreJavascript) { Log.d(TAG, "localStorage restored") }
+        browser?.evaluateJavascript(restoreJavascript) { result ->
+            if (result != null) {
+                //sleep(1000)
+                Log.d(TAG, "localStorage restored")
+                callback(true) // Success
+            } else {
+                //sleep(1000)
+                Log.e(TAG, "Failed to restore localStorage")
+                callback(false) // Failure
+            }
+        }
     }
 
     private fun clearStorage() {
@@ -920,12 +944,18 @@ class MainActivity : AppCompatActivity(),
     // Function to handle backup all settings
     private fun backupAllSettings() {
         lifecycleScope.launch {
-            dumpStorage() // fixme: add callback
-            delay(3000)
-            if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
-                App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
-            } else {
-                App.toast(R.string.settings_save_fail)
+            dumpStorage { success ->
+                if (success) {
+                    // Proceed with saving settings if the backup was successful
+                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+                    } else {
+                        App.toast(R.string.settings_save_fail)
+                    }
+                } else {
+                    // Handle backup failure
+                    App.toast(R.string.settings_save_fail)
+                }
             }
         }
     }
@@ -944,10 +974,14 @@ class MainActivity : AppCompatActivity(),
     private fun restoreLampaSettings() {
         lifecycleScope.launch {
             if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
-                restoreStorage() // fixme: add callback
-                App.toast(R.string.settings_restored)
-                delay(3000)
-                recreate()
+                restoreStorage { success ->
+                    if (success) {
+                        App.toast(R.string.settings_restored)
+                        recreate()
+                    } else {
+                        App.toast(R.string.settings_rest_fail)
+                    }
+                }
             } else {
                 App.toast(R.string.settings_rest_fail)
             }
@@ -1088,9 +1122,9 @@ class MainActivity : AppCompatActivity(),
     private class UrlAdapter(context: Context) :
         ArrayAdapter<String>(
             context,
-            R.layout.lampa_dropdown_item, // custom dropdown layout
+            R.layout.lampa_dropdown_item, // Custom dropdown layout
             android.R.id.text1, // ID of the TextView in the custom layout
-            context.urlHistory.toMutableList()
+            context.urlHistory.toMutableList() // Load URL history
         )
 
     fun showUrlInputDialog(msg: String = "") {
@@ -1204,6 +1238,11 @@ class MainActivity : AppCompatActivity(),
             if (wantToCloseDialog) dialog.dismiss()
             // else dialog stays open
         }
+    }
+
+    // Helper function to validate URLs
+    private fun isValidUrl(url: String): Boolean {
+        return Patterns.WEB_URL.matcher(url).matches()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -2109,9 +2148,9 @@ class MainActivity : AppCompatActivity(),
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
-                    + "return 'ok';"
+                    + "return 'OK';"
                     + "} catch (e) {"
-                    + "return 'error: ' + e.message;"
+                    + "return 'Error: ' + e.message;"
                     + "}"
                     + "})();")
             browser?.evaluateJavascript(
@@ -2119,7 +2158,7 @@ class MainActivity : AppCompatActivity(),
             ) { r: String ->
                 Log.i(
                     "runVoidJsFunc",
-                    "$funcName($params) $r"
+                    "$funcName($params) Result $r"
                 )
             }
         } else {
