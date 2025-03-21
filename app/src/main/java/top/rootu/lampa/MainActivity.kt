@@ -53,7 +53,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Logger
@@ -641,51 +640,6 @@ class MainActivity : AppCompatActivity(),
         App.context.clearPending()
     }
 
-    private suspend fun dumpStorage(): String {
-        return suspendCancellableCoroutine { continuation ->
-            val backupJavascript = """
-            (function() {
-                console.log('Backing up localStorage');
-                try {
-                    AndroidJS.clear();
-                    let count = 0;
-                    for (var key in localStorage) {
-                        AndroidJS.set(key, localStorage.getItem(key));
-                        count++;
-                    }
-                    return 'SUCCESS. ' + count + ' items backed up.';
-                } catch (error) {
-                    return 'FAILED: ' + error.message;
-                }
-            })()
-            """.trimIndent()
-            browser?.evaluateJavascript(backupJavascript) { result ->
-                if (result != null) {
-                    Log.d(TAG, "localStorage backed up successfully. Result: $result")
-                    continuation.resume(result) { cause -> } // Success
-                } else {
-                    val errorMessage = "Backup failed: Result is null"
-                    Log.e(TAG, errorMessage)
-                    continuation.resume(errorMessage) { cause ->
-                        Log.d(TAG, "Backup was canceled after resuming. $cause")
-                        // Perform any necessary cleanup here
-                    }
-                }
-            } ?: run {
-                val errorMessage = "Backup failed: Browser is null"
-                Log.e(TAG, errorMessage)
-                continuation.resume(errorMessage) { cause ->
-                    Log.d(TAG, "Backup was canceled after resuming. $cause")
-                    // Perform any necessary cleanup here
-                }
-            }
-            // Handle cancellation
-            continuation.invokeOnCancellation { cause ->
-                Log.w(TAG, "DumpStorage was cancelled: ${cause?.message}")
-            }
-        }
-    }
-
     private fun dumpStorage(callback: (String) -> Unit) {
         val backupJavascript = """
             (function() {
@@ -1192,9 +1146,6 @@ class MainActivity : AppCompatActivity(),
         val tilt = view.findViewById<TextInputLayout>(R.id.tiltLampaUrl)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
 
-        // Set up the input field
-        setupInputField(input, tilt, msg, dialog, inputManager)
-
         // Build the dialog
         val builder = AlertDialog.Builder(mainActivity).apply {
             setTitle(R.string.input_url_title)
@@ -1206,6 +1157,10 @@ class MainActivity : AppCompatActivity(),
 
         // Show the dialog
         dialog = builder.create()
+
+        // Set up the input field
+        setupInputField(input, tilt, msg, dialog, inputManager)
+
         dialog.show()
 
         // Set up the backup button
@@ -1354,14 +1309,21 @@ class MainActivity : AppCompatActivity(),
             dumpStorage { callback ->
                 setProgressIndicatorVisibility(false) // Hide the progress indicator
                 if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
-                    Log.d(TAG, "handleMigrateButtonClick: Backup successful - $callback")
+                    Log.d(TAG, "handleMigrateButtonClick: dumpStorage completed - $callback")
                     this@MainActivity.migrate = true
                     val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
                     handleSaveButtonClick(input)
                     dialog.dismiss()
                 } else {
                     Log.e(TAG, "handleMigrateButtonClick: dumpStorage failed - $callback")
-                    App.toast(R.string.settings_save_fail)
+                    // try use backup on Error
+                    if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                        Log.d(TAG, "handleMigrateButtonClick: do migrate from backup")
+                        this@MainActivity.migrate = true
+                        val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+                        handleSaveButtonClick(input)
+                        dialog.dismiss()
+                    } else App.toast(R.string.settings_migrate_fail)
                 }
             }
         }

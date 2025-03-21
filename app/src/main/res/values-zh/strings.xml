@@ -84,6 +84,7 @@
     <string name="change_note">此操作可以将 Lampa 设置重置为其默认值。 在此更改之前，建议对您的设置进行备份！</string>
     <string name="settings_saved_toast">所有设置已保存到 %s</string>
     <string name="settings_save_fail">无法备份设置</string>
+    <string name="settings_migrate_fail">无法迁移设置</string>
     <string name="settings_rest_fail">无法恢复设置</string>
     <string name="settings_restored">设置已恢复</string>
     <string name="migrate">迁移</string>

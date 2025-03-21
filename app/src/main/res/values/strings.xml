@@ -87,6 +87,7 @@
     <string name="change_note">This action can reset the Lampa settings to their default values. Before this change, it is recommended to make a backup copy of your settings!</string>
     <string name="settings_saved_toast">All settings saved to %s</string>
     <string name="settings_save_fail">Unable to backup settings</string>
+    <string name="settings_migrate_fail">Unable to migrate settings</string>
     <string name="settings_rest_fail">Unable to restore settings</string>
     <string name="settings_restored">Settings restored</string>
     <string name="migrate">Migration</string>

@@ -84,6 +84,7 @@
     <string name="change_note">Ця дія поверне типові налаштування Lampa. Рекомендується створити резервну копію налаштувань!</string>
     <string name="settings_saved_toast">Всі налаштування збережено в %s</string>
     <string name="settings_save_fail">Неможливо виконати резервне копіювання</string>
+    <string name="settings_migrate_fail">Неможливо перенести налаштування</string>
     <string name="settings_rest_fail">Неможливо відновити налаштування</string>
     <string name="settings_restored">Налаштування відновлено</string>
     <string name="migrate">Міграція</string>
