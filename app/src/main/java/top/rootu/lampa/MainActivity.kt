@@ -172,13 +172,9 @@ class MainActivity : AppCompatActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setupActivity()
-        setupBrowser()
-        setupUI()
-        setupIntents()
-
         LAMPA_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
+        if (BuildConfig.DEBUG) Log.d(TAG, "onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
 
         playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
@@ -187,6 +183,12 @@ class MainActivity : AppCompatActivity(),
         } catch (_: Exception) {
             JSONArray()
         }
+
+        setupActivity()
+        setupBrowser()
+        setupUI()
+        setupIntents()
+
         if (this.firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
                 if (BuildConfig.DEBUG) Log.d(TAG, "First run scheduleUpdate(sync: true)")
@@ -209,6 +211,7 @@ class MainActivity : AppCompatActivity(),
             setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
+        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
         if (LAMPA_URL.isEmpty()) {
             showUrlInputDialog()
         } else {

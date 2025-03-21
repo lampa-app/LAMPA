@@ -156,7 +156,6 @@ object ChannelManager {
             ChannelHelper.list().filter { it.internalProviderDataByteArray == null }.forEach {
                 ChannelHelper.rem(it)
             }
-
             // Remove duplicate channels
             val channels = ChannelHelper.list()
             val duplicates = channels.groupBy { it.data }.values.filter { it.size > 1 }
