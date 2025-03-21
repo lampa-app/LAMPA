@@ -126,35 +126,24 @@ import kotlin.collections.set
 class MainActivity : AppCompatActivity(),
     Browser.Listener,
     XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
+    // Local properties
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
     private var progressBar: LottieAnimationView? = null // CircularProgressIndicator
     private var browserInit = false
+    private var isMenuVisible = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private lateinit var progressIndicator: LinearProgressIndicator
-    private var isMenuVisible = false
 
     companion object {
-        const val RESULT_VIMU_ENDED = 2
-        const val RESULT_VIMU_START = 3
-        const val RESULT_VIMU_ERROR = 4
-        var delayedVoidJsFunc = mutableListOf<List<String>>()
-        var LAMPA_URL: String = ""
-        var SELECTED_PLAYER: String? = ""
-        var SELECTED_BROWSER: String? =
-            if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
-        var playerTimeCode: String = "continue"
-        var playerAutoNext: Boolean = true
-        var internalTorrserve: Boolean = false
-        var torrserverPreload: Boolean = false
-        var playJSONArray: JSONArray = JSONArray()
-        var playIndex = 0
-        var playVideoUrl: String = ""
-        var lampaActivity: String = "{}" // JSON
-
+        // Constants
         private const val TAG = "APP_MAIN"
+        private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+        private const val RESULT_VIMU_ENDED = 2
+        private const val RESULT_VIMU_START = 3
+        private const val RESULT_VIMU_ERROR = 4
 
         // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -164,9 +153,121 @@ class MainActivity : AppCompatActivity(),
         // private const val URL_REGEX =
         //    "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
         // private val URL_PATTERN = Pattern.compile(URL_REGEX)
-        private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
 
+        // Properties
+        var LAMPA_URL: String = ""
+        var SELECTED_PLAYER: String? = ""
+        var SELECTED_BROWSER: String? =
+            if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
+        var delayedVoidJsFunc = mutableListOf<List<String>>()
+        var playerTimeCode: String = "continue"
+        var playerAutoNext: Boolean = true
+        var internalTorrserve: Boolean = false
+        var torrserverPreload: Boolean = false
+        var playJSONArray: JSONArray = JSONArray()
+        var playIndex = 0
+        var playVideoUrl: String = ""
+        var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setupActivity()
+        setupBrowser()
+        setupUI()
+        setupIntents()
+
+        LAMPA_URL = this.appUrl
+        SELECTED_PLAYER = this.appPlayer
+
+        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
+        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
+        playJSONArray = try {
+            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
+        } catch (_: Exception) {
+            JSONArray()
+        }
+        if (this.firstRun) {
+            CoroutineScope(Dispatchers.IO).launch {
+                if (BuildConfig.DEBUG) Log.d(TAG, "First run scheduleUpdate(sync: true)")
+                Scheduler.scheduleUpdate(true)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (BuildConfig.DEBUG) Log.d(TAG, "onNewIntent() processIntent")
+        processIntent(intent)
+    }
+
+    override fun onBrowserInitCompleted() {
+        browserInit = true
+        HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
+        browser?.apply {
+            setUserAgentString(HttpHelper.userAgent)
+            setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
+            addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
+        }
+        if (LAMPA_URL.isEmpty()) {
+            showUrlInputDialog()
+        } else {
+            browser?.loadUrl(LAMPA_URL)
+        }
+    }
+
+    override fun onBrowserPageFinished(view: ViewGroup, url: String) {
+        // Restore Lampa settings and reload if migrate
+        if (this.migrate) {
+            lifecycleScope.launch {
+                restoreStorage { callback ->
+                    if (callback.contains("SUCCESS", true)) {
+                        Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
+                        recreate()
+                    } else {
+                        App.toast(R.string.settings_rest_fail)
+                    }
+                }
+                this@MainActivity.migrate = false
+            }
+        }
+        // Switch Loader
+        if (view.visibility != View.VISIBLE) {
+            view.visibility = View.VISIBLE
+        }
+        progressBar?.visibility = View.GONE
+
+        Log.d(TAG, "LAMPA onLoadFinished $url")
+
+        // Lazy Load Intents
+        processIntent(intent, 1000)
+        // Sync with Lampa
+        lifecycleScope.launch {
+            delay(3000)
+            runVoidJsFunc(
+                "Lampa.Storage.listener.add",
+                "'change'," +
+                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
+            )
+            runJsStorageChangeField("activity", "{}") // get current lampaActivity
+            runJsStorageChangeField("player_timecode")
+            runJsStorageChangeField("playlist_next")
+            runJsStorageChangeField("torrserver_preload")
+            runJsStorageChangeField("internal_torrclient")
+            runJsStorageChangeField("language")
+            runJsStorageChangeField("source")
+            runJsStorageChangeField("account_use") // get sync state
+            runJsStorageChangeField("recomends_list", "[]") // force update recs var
+            changeTmdbUrls()
+            syncBookmarks()
+            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+            delayedVoidJsFunc.clear()
+        }
+        // Background update Android TV channels and Recommendations
+        CoroutineScope(Dispatchers.IO).launch {
+            Scheduler.scheduleUpdate(false)
+        }
     }
 
     private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
@@ -174,9 +275,8 @@ class MainActivity : AppCompatActivity(),
         return positionMillis >= durationMillis
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private fun setupActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         @Suppress("DEPRECATION")
         if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
@@ -194,250 +294,10 @@ class MainActivity : AppCompatActivity(),
                 runVoidJsFunc("window.history.back", "")
             }
         }
-        LAMPA_URL = this.appUrl
-        SELECTED_PLAYER = this.appPlayer
-        Helpers.setLocale(this, this.appLang)
+    }
 
-        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
-        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
-        playJSONArray = try {
-            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
-        } catch (_: Exception) {
-            JSONArray()
-        }
-        // Some external video player api specs:
-        // vlc https://wiki.videolan.org/Android_Player_Intents/
-        // justplayer https://github.com/moneytoo/Player/issues/203
-        // mxplayer https://mx.j2inter.com/api
-        // mpv http://mpv-android.github.io/mpv-android/intent.html
-        // vimu https://www.vimu.tv/player-api
-        resultLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            val data: Intent? = result.data
-//            if (BuildConfig.DEBUG) {
-//                val bundle = data?.extras
-//                bundle?.let { b ->
-//                    for (key in b.keySet()) {
-//                        Log.d(
-//                            TAG,
-//                            ("onActivityResult: $key : ${b.get(key) ?: "NULL"}")
-//                        )
-//                    }
-//                }
-//            }
-            val videoUrl: String = data?.data.toString()
-            val resultCode = result.resultCode
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Returned intent url: $videoUrl")
-                when (resultCode) { // just for debug
-                    RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
-                    RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
-                    RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
-                    RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}") // 2
-                    RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}") // 3
-                    RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}") // 4
-                    else -> Log.w(
-                        TAG,
-                        "Undefined result code ($resultCode): ${data?.toUri(0)}"
-                    )
-                }
-            }
-            data?.let {
-                if (it.action.equals("com.mxtech.intent.result.VIEW")) { // MX / Just
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            when (val endBy = it.getStringExtra("end_by")) {
-                                "playback_completion" -> {
-                                    Log.i(TAG, "Playback completed")
-                                    resultPlayer(videoUrl, 0, 0, true)
-                                }
-
-                                "user" -> {
-                                    val pos = it.getIntExtra("position", 0)
-                                    val dur = it.getIntExtra("duration", 0)
-                                    if (pos > 0 && dur > 0) {
-                                        val ended =
-                                            isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                        Log.i(
-                                            TAG,
-                                            "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                        )
-                                        resultPlayer(videoUrl, pos, dur, ended)
-                                    } else {
-                                        Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
-                                    }
-                                }
-
-                                else -> {
-                                    Log.e(TAG, "Invalid state [endBy=$endBy]")
-                                }
-                            }
-                        }
-
-                        RESULT_CANCELED -> {
-                            Log.i(TAG, "Playback stopped by user")
-                        }
-
-                        RESULT_FIRST_USER -> {
-                            Log.e(TAG, "Playback stopped by unknown error")
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("org.videolan.vlc.player.result")) { // VLC
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getLongExtra("extra_position", 0L)
-                            val dur = it.getLongExtra("extra_duration", 0L)
-                            val url =
-                                if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri")
-                                    .toString()
-                                else videoUrl
-                            if (pos > 0L && dur > 0L) {
-                                val ended = isAfterEndCreditsPosition(pos, dur)
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                )
-                                resultPlayer(url, pos.toInt(), dur.toInt(), ended)
-                            } else if (pos == 0L && dur == 0L) {
-                                Log.i(TAG, "Playback completed")
-                                resultPlayer(url, 0, 0, true)
-                            } else if (pos > 0L) {
-                                Log.i(TAG, "Playback stopped with no duration! Playback Error?")
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("is.xyz.mpv.MPVActivity.result")) { // MPV
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (dur > 0) {
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                )
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            } else if (dur == 0 && pos == 0) {
-                                Log.i(TAG, "Playback completed")
-                                resultPlayer(videoUrl, 0, 0, true)
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("com.uapplication.uplayer.result") ||
-                    it.action.equals("com.uapplication.uplayer.beta.result")
-                ) { // UPlayer
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getLongExtra("position", 0L)
-                            val dur = it.getLongExtra("duration", 0L)
-                            if (pos > 0L && dur > 0L) {
-                                val ended = it.getBooleanExtra(
-                                    "isEnded",
-                                    pos == dur
-                                ) || isAfterEndCreditsPosition(pos, dur)
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
-                                )
-                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
-                            }
-                        }
-
-                        RESULT_CANCELED -> {
-                            Log.e(
-                                TAG,
-                                "Playback Error. It isn't possible to get the duration or create the playlist."
-                            )
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("net.gtvbox.videoplayer.result") ||
-                    it.action.equals("net.gtvbox.vimuhd.result")
-                ) { // ViMu >= 930
-                    when (resultCode) {
-                        RESULT_FIRST_USER -> {
-                            Log.i(TAG, "Playback completed")
-                            resultPlayer(videoUrl, 0, 0, true)
-                        }
-
-                        RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            }
-                        }
-
-                        RESULT_VIMU_ERROR -> {
-                            Log.e(TAG, "Playback error")
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else { // ViMu < 930 (875 first with duration) and others
-                    when (resultCode) {
-                        RESULT_FIRST_USER -> {
-                            Log.i(TAG, "Playback completed")
-                            resultPlayer(videoUrl, 0, 0, true)
-                        }
-
-                        RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                }
-            }
-        }
-
-        speechLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == RESULT_OK) {
-                // There are no request codes
-                val data: Intent? = result.data
-                val spokenText: String? =
-                    data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-                        results[0]
-                    }
-                // Do something with spokenText.
-                if (spokenText != null) {
-                    runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
-                }
-            }
-        }
-
-        SELECTED_BROWSER = this.appBrowser
+    private fun setupBrowser() {
+        SELECTED_BROWSER = appBrowser
         if (!Helpers.isWebViewAvailable(this)
             || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
         ) {
@@ -465,7 +325,6 @@ class MainActivity : AppCompatActivity(),
                 // holds the XWalkView object.
                 mXWalkInitializer = XWalkInitializer(this, this)
                 mXWalkInitializer?.initAsync()
-
                 // Until onXWalkInitCompleted() is invoked, you should do nothing with the
                 // embedding API except the following:
                 // 1. Instantiate the XWalkView object
@@ -475,8 +334,6 @@ class MainActivity : AppCompatActivity(),
                 // 5. Call mXWalkView.addJavascriptInterface()
                 XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
                 XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-                // maybe this fixes crashes on mitv2?
-                // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
                 setContentView(R.layout.activity_xwalk)
             }
 
@@ -490,19 +347,206 @@ class MainActivity : AppCompatActivity(),
                 showBrowserInputDialog()
             }
         }
-        hideSystemUI()
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
         progressBar = findViewById(R.id.progressBar_cyclic)
         browser?.init()
+    }
 
-        if (this.firstRun) {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d(TAG, "First run scheduleUpdate(sync: true)")
-                Scheduler.scheduleUpdate(true)
+    private fun handleSpeechResult(result: androidx.activity.result.ActivityResult) {
+        if (result.resultCode == RESULT_OK) {
+            // There are no request codes
+            val data: Intent? = result.data
+            val spokenText: String? =
+                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+                    results[0]
+                }
+            // Do something with spokenText.
+            if (spokenText != null) {
+                runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
             }
         }
+    }
+
+    // Some external video player api specs:
+    // vlc https://wiki.videolan.org/Android_Player_Intents/
+    // justplayer https://github.com/moneytoo/Player/issues/203
+    // mxplayer https://mx.j2inter.com/api
+    // mpv http://mpv-android.github.io/mpv-android/intent.html
+    // vimu https://www.vimu.tv/player-api
+    private fun handlePlayerResult(result: androidx.activity.result.ActivityResult) {
+        val data: Intent? = result.data
+        val videoUrl: String = data?.data?.toString() ?: "null"
+        val resultCode = result.resultCode
+
+        if (BuildConfig.DEBUG) {
+            logDebugInfo(data, resultCode, videoUrl)
+        }
+
+        data?.let { intent ->
+            when (intent.action) {
+                "com.mxtech.intent.result.VIEW" -> handleMxPlayerResult(intent, resultCode, videoUrl)
+                "org.videolan.vlc.player.result" -> handleVlcPlayerResult(intent, resultCode, videoUrl)
+                "is.xyz.mpv.MPVActivity.result" -> handleMpvPlayerResult(intent, resultCode, videoUrl)
+                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" -> handleUPlayerResult(intent, resultCode, videoUrl)
+                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" -> handleViMuPlayerResult(intent, resultCode, videoUrl)
+                else -> handleGenericPlayerResult(intent, resultCode, videoUrl)
+            }
+        }
+    }
+
+    private fun logDebugInfo(data: Intent?, resultCode: Int, videoUrl: String) {
+        Log.d(TAG, "Returned intent url: $videoUrl")
+        when (resultCode) {
+            RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}")
+            RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}")
+            RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}")
+            RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}")
+            RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}")
+            RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}")
+            else -> Log.w(TAG, "Undefined result code ($resultCode): ${data?.toUri(0)}")
+        }
+    }
+
+    private fun handleMxPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_OK -> {
+                when (intent.getStringExtra("end_by")) {
+                    "playback_completion" -> {
+                        Log.i(TAG, "Playback completed")
+                        resultPlayer(videoUrl, 0, 0, true)
+                    }
+                    "user" -> {
+                        val pos = intent.getIntExtra("position", 0)
+                        val dur = intent.getIntExtra("duration", 0)
+                        if (pos > 0 && dur > 0) {
+                            val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                            Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                            resultPlayer(videoUrl, pos, dur, ended)
+                        } else {
+                            Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
+                        }
+                    }
+                    else -> Log.e(TAG, "Invalid state [endBy=${intent.getStringExtra("end_by")}]")
+                }
+            }
+            RESULT_CANCELED -> Log.i(TAG, "Playback stopped by user")
+            RESULT_FIRST_USER -> Log.e(TAG, "Playback stopped by unknown error")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleVlcPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        if (resultCode == RESULT_OK) {
+            val pos = intent.getLongExtra("extra_position", 0L)
+            val dur = intent.getLongExtra("extra_duration", 0L)
+            val url = if (videoUrl.isEmpty() || videoUrl == "null") intent.getStringExtra("extra_uri") ?: videoUrl else videoUrl
+            when {
+                pos > 0L && dur > 0L -> {
+                    val ended = isAfterEndCreditsPosition(pos, dur)
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(url, pos.toInt(), dur.toInt(), ended)
+                }
+                pos == 0L && dur == 0L -> {
+                    Log.i(TAG, "Playback completed")
+                    resultPlayer(url, 0, 0, true)
+                }
+                pos > 0L -> Log.i(TAG, "Playback stopped with no duration! Playback Error?")
+            }
+        } else {
+            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleMpvPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        if (resultCode == RESULT_OK) {
+            val pos = intent.getIntExtra("position", 0)
+            val dur = intent.getIntExtra("duration", 0)
+            when {
+                dur > 0 -> {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+                dur == 0 && pos == 0 -> {
+                    Log.i(TAG, "Playback completed")
+                    resultPlayer(videoUrl, 0, 0, true)
+                }
+            }
+        } else {
+            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleUPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_OK -> {
+                val pos = intent.getLongExtra("position", 0L)
+                val dur = intent.getLongExtra("duration", 0L)
+                if (pos > 0L && dur > 0L) {
+                    val ended = intent.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(pos, dur)
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended=$ended]")
+                    resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
+                }
+            }
+            RESULT_CANCELED -> Log.e(TAG, "Playback Error. It isn't possible to get the duration or create the playlist.")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleViMuPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_FIRST_USER -> {
+                Log.i(TAG, "Playback completed")
+                resultPlayer(videoUrl, 0, 0, true)
+            }
+            RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
+                val pos = intent.getIntExtra("position", 0)
+                val dur = intent.getIntExtra("duration", 0)
+                if (pos > 0 && dur > 0) {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+            }
+            RESULT_VIMU_ERROR -> Log.e(TAG, "Playback error")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleGenericPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_FIRST_USER -> {
+                Log.i(TAG, "Playback completed")
+                resultPlayer(videoUrl, 0, 0, true)
+            }
+            RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
+                val pos = intent.getIntExtra("position", 0)
+                val dur = intent.getIntExtra("duration", 0)
+                if (pos > 0 && dur > 0) {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+            }
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun setupIntents() {
+        resultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                handlePlayerResult(result)
+            }
+        speechLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                handleSpeechResult(result)
+            }
+    }
+
+    private fun setupUI() {
+        Helpers.setLocale(this, this.appLang)
+        hideSystemUI() // Must be invoked after setContentView!
     }
 
     override fun onXWalkInitStarted() {
@@ -524,12 +568,6 @@ class MainActivity : AppCompatActivity(),
         mXWalkUpdater?.updateXWalkRuntime()
     }
 
-    private fun setupXWalkApkUrl() {
-        val abi = MyXWalkEnvironment.getRuntimeAbi()
-        val apkUrl = String.format(getString(R.string.xwalk_apk_link), abi)
-        mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
-    }
-
     override fun onXWalkInitCompleted() {
         if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCompleted()")
         browser = XWalk(this, R.id.xWalkView)
@@ -542,81 +580,10 @@ class MainActivity : AppCompatActivity(),
         finish()
     }
 
-    override fun onBrowserPageFinished(view: ViewGroup, url: String) {
-        if (BuildConfig.DEBUG) Log.d(
-            TAG,
-            "onBrowserPageFinished migrate: ${this@MainActivity.migrate}"
-        )
-        // restore lampa settings and reload
-        if (this@MainActivity.migrate) {
-            lifecycleScope.launch {
-                restoreStorage { callback ->
-                    if (callback.contains("SUCCESS", true)) {
-                        Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
-                        recreate()
-                    } else {
-                        App.toast(R.string.settings_rest_fail)
-                    }
-                }
-                this@MainActivity.migrate = false
-            }
-        }
-        if (view.visibility != View.VISIBLE) {
-            view.visibility = View.VISIBLE
-        }
-        progressBar?.visibility = View.GONE
-        Log.d(TAG, "LAMPA onLoadFinished $url")
-        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserPageFinished() processIntent")
-        processIntent(intent, 1000)
-        lifecycleScope.launch {
-            delay(3000)
-            runVoidJsFunc(
-                "Lampa.Storage.listener.add",
-                "'change'," +
-                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-            )
-            runJsStorageChangeField("activity", "{}") // get current lampaActivity
-            runJsStorageChangeField("player_timecode")
-            runJsStorageChangeField("playlist_next")
-            runJsStorageChangeField("torrserver_preload")
-            runJsStorageChangeField("internal_torrclient")
-            runJsStorageChangeField("language")
-            runJsStorageChangeField("source")
-            runJsStorageChangeField("account_use") // get sync state
-            runJsStorageChangeField("recomends_list", "[]") // force update recs var
-            changeTmdbUrls()
-            syncBookmarks()
-            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-            delayedVoidJsFunc.clear()
-        }
-        CoroutineScope(Dispatchers.IO).launch {
-            if (BuildConfig.DEBUG) Log.d(
-                TAG,
-                "onBrowserPageFinished() scheduleUpdate(sync = false)"
-            )
-            Scheduler.scheduleUpdate(false)
-        }
-    }
-
-    override fun onBrowserInitCompleted() {
-        browserInit = true
-        HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
-        browser?.apply {
-            setUserAgentString(HttpHelper.userAgent)
-            setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
-            addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
-        }
-        if (LAMPA_URL.isEmpty()) {
-            showUrlInputDialog()
-        } else {
-            browser?.loadUrl(LAMPA_URL)
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        if (BuildConfig.DEBUG) Log.d(TAG, "onNewIntent() processIntent")
-        processIntent(intent)
+    private fun setupXWalkApkUrl() {
+        val abi = MyXWalkEnvironment.getRuntimeAbi()
+        val apkUrl = String.format(getString(R.string.xwalk_apk_link), abi)
+        mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
     fun changeTmdbUrls() {
