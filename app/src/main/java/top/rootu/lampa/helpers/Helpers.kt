@@ -335,13 +335,12 @@ object Helpers {
         }
     }
 
-    fun getDefaultPosterUri(): Uri {
-        val resourceId = R.drawable.empty_poster
+    fun getDefaultPosterUri(resId: Int = R.drawable.empty_poster): Uri {
         return Uri.Builder()
             .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-            .authority(App.context.resources.getResourcePackageName(resourceId))
-            .appendPath(App.context.resources.getResourceTypeName(resourceId))
-            .appendPath(App.context.resources.getResourceEntryName(resourceId))
+            .authority(App.context.resources.getResourcePackageName(resId))
+            .appendPath(App.context.resources.getResourceTypeName(resId))
+            .appendPath(App.context.resources.getResourceEntryName(resId))
             .build()
     }
 

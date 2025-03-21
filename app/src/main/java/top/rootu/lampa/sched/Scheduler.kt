@@ -99,12 +99,18 @@ object Scheduler {
         alarmManager.cancel(pendingIntent)
 
         // Schedule a repeating alarm
-        alarmManager.setInexactRepeating(
-            AlarmManager.ELAPSED_REALTIME_WAKEUP, // Wake up the device
-            SystemClock.elapsedRealtime(), // Start time
-            AlarmManager.INTERVAL_HOUR, // Repeat every hour
-            pendingIntent // PendingIntent to trigger
-        )
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            if (BuildConfig.DEBUG) Log.d(
+                "Scheduler",
+                "alarmScheduler schedule AlarmManager for 1H update Recs."
+            )
+            alarmManager.setInexactRepeating(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP, // Wake up the device
+                SystemClock.elapsedRealtime(), // Start time
+                AlarmManager.INTERVAL_HOUR, // Repeat every hour
+                pendingIntent // PendingIntent to trigger
+            )
+        }
     }
 
     /**

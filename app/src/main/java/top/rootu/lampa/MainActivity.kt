@@ -598,10 +598,12 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    // Function to sync bookmarks
+    // Function to sync bookmarks (Required only for Android TV)
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
     private fun syncBookmarks() {
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return
+
         runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
         if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() wathToAdd: ${App.context.wathToAdd}")
         App.context.wathToAdd.forEach { item ->
