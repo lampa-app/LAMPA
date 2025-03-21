@@ -319,7 +319,6 @@ class MainActivity : AppCompatActivity(),
         ) {
             SELECTED_BROWSER = "SysView"
         }
-        if (BuildConfig.DEBUG) Log.d(TAG, "onCreate() SELECTED_BROWSER: $SELECTED_BROWSER")
         when (SELECTED_BROWSER) {
             "XWalk" -> {
                 // Must call initAsync() before anything that involves the embedding
