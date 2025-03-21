@@ -41,28 +41,23 @@ object ChannelManager {
         TvContractCompat.PreviewPrograms.COLUMN_BROWSABLE
     )
 
-    // Cache for channel display names to avoid repeated string resource lookups
-    private val channelDisplayNameCache = mutableMapOf<String, String>()
-
     /**
      * Gets the localized display name for a channel.
      */
     fun getChannelDisplayName(name: String): String {
-        return channelDisplayNameCache.getOrPut(name) {
-            App.context.setLanguage()
-            when (name) {
-                RECS -> App.context.getString(R.string.ch_recs)
-                LIKE -> App.context.getString(R.string.ch_liked)
-                BOOK -> App.context.getString(R.string.ch_bookmarks)
-                HIST -> App.context.getString(R.string.ch_history)
-                LOOK -> App.context.getString(R.string.ch_look)
-                VIEW -> App.context.getString(R.string.ch_viewed)
-                SCHD -> App.context.getString(R.string.ch_scheduled)
-                CONT -> App.context.getString(R.string.ch_continued)
-                THRW -> App.context.getString(R.string.ch_thrown)
-                else -> name.replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString()
-                }
+        App.context.setLanguage()
+        return when (name) {
+            RECS -> App.context.getString(R.string.ch_recs)
+            LIKE -> App.context.getString(R.string.ch_liked)
+            BOOK -> App.context.getString(R.string.ch_bookmarks)
+            HIST -> App.context.getString(R.string.ch_history)
+            LOOK -> App.context.getString(R.string.ch_look)
+            VIEW -> App.context.getString(R.string.ch_viewed)
+            SCHD -> App.context.getString(R.string.ch_scheduled)
+            CONT -> App.context.getString(R.string.ch_continued)
+            THRW -> App.context.getString(R.string.ch_thrown)
+            else -> name.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString()
             }
         }
     }
@@ -115,7 +110,7 @@ object ChannelManager {
         val channelValues = Channel.Builder()
             .setDisplayName(displayName)
             .setType(TvContractCompat.Channels.TYPE_PREVIEW)
-            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/${channel.internalProviderId}"))
+            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/${channel.data}")) // channel.internalProviderId is null
             .build()
             .toContentValues()
 
