@@ -135,6 +135,12 @@ class MainActivity : AppCompatActivity(),
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private lateinit var progressIndicator: LinearProgressIndicator
+    // Data class for menu items
+    private data class MenuItem(
+        val title: String,
+        val action: String,
+        val icon: Int
+    )
 
     companion object {
         // Constants
@@ -220,19 +226,9 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
-        // Restore Lampa settings and reload if migrate
-        if (this.migrate) {
-            lifecycleScope.launch {
-                restoreStorage { callback ->
-                    if (callback.contains("SUCCESS", true)) {
-                        Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
-                        recreate()
-                    } else {
-                        App.toast(R.string.settings_rest_fail)
-                    }
-                }
-                this@MainActivity.migrate = false
-            }
+        // Restore Lampa settings and reload if migrate flag set
+        if (migrate) {
+            migrateSettings()
         }
         // Switch Loader
         if (view.visibility != View.VISIBLE) {
@@ -252,15 +248,7 @@ class MainActivity : AppCompatActivity(),
                 "'change'," +
                         "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
             )
-            runJsStorageChangeField("activity", "{}") // get current lampaActivity
-            runJsStorageChangeField("player_timecode")
-            runJsStorageChangeField("playlist_next")
-            runJsStorageChangeField("torrserver_preload")
-            runJsStorageChangeField("internal_torrclient")
-            runJsStorageChangeField("language")
-            runJsStorageChangeField("source")
-            runJsStorageChangeField("account_use") // get sync state
-            runJsStorageChangeField("recomends_list", "[]") // force update recs var
+            syncStorage()
             changeTmdbUrls()
             syncBookmarks()
             for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
@@ -312,7 +300,7 @@ class MainActivity : AppCompatActivity(),
         } catch (_: NumberFormatException) {
             0.0
         }
-        // Hide XWalk chooser on RuStore builds and modern Android WebView
+        // Hide Browser chooser on RuStore builds and modern Android WebView
         if (Helpers.isWebViewAvailable(this)
             && SELECTED_BROWSER.isNullOrEmpty()
             && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
@@ -587,6 +575,34 @@ class MainActivity : AppCompatActivity(),
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
+    fun migrateSettings() {
+        lifecycleScope.launch {
+            restoreStorage { callback ->
+                if (callback.contains("SUCCESS", true)) {
+                    Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
+                    recreate()
+                } else {
+                    App.toast(R.string.settings_rest_fail)
+                }
+            }
+            this@MainActivity.migrate = false
+        }
+    }
+
+    fun syncStorage() {
+        lifecycleScope.launch {
+            runJsStorageChangeField("activity", "{}") // get current lampaActivity
+            runJsStorageChangeField("player_timecode")
+            runJsStorageChangeField("playlist_next")
+            runJsStorageChangeField("torrserver_preload")
+            runJsStorageChangeField("internal_torrclient")
+            runJsStorageChangeField("language")
+            runJsStorageChangeField("source")
+            runJsStorageChangeField("account_use") // get sync state
+            runJsStorageChangeField("recomends_list", "[]") // force update recs
+        }
+    }
+
     fun changeTmdbUrls() {
         lifecycleScope.launch {
             runVoidJsFunc(
@@ -600,48 +616,57 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    // Function to sync bookmarks (Required only for Android TV)
+    // Function to sync bookmarks (Required only for Android TV 8+)
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
     private fun syncBookmarks() {
         if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return
-
-        runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
-        if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() wathToAdd: ${App.context.wathToAdd}")
-        App.context.wathToAdd.forEach { item ->
-            val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
-            lampaCard?.let { card ->
-                card.fixCard()
-                val id = card.id?.toIntOrNull()
-                id?.let {
-                    val params =
-                        if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
-                    runVoidJsFunc(
-                        "Lampa.Favorite.add",
-                        "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
-                    )
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
+            }
+            if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
+            App.context.wathToAdd.forEach { item ->
+                val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
+                lampaCard?.let { card ->
+                    card.fixCard()
+                    val id = card.id?.toIntOrNull()
+                    id?.let {
+                        val params =
+                            if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
+                        withContext(Dispatchers.Main) {
+                            runVoidJsFunc(
+                                "Lampa.Favorite.add",
+                                "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                            )
+                        }
+                    }
+                }
+                delay(500) // don't do it too fast
+            }
+            // Remove items from various categories
+            listOf(
+                LampaProvider.LATE to App.context.wathToRemove,
+                LampaProvider.BOOK to App.context.bookToRemove,
+                LampaProvider.LIKE to App.context.likeToRemove,
+                LampaProvider.HIST to App.context.histToRemove,
+                LampaProvider.LOOK to App.context.lookToRemove,
+                LampaProvider.VIEW to App.context.viewToRemove,
+                LampaProvider.SCHD to App.context.schdToRemove,
+                LampaProvider.CONT to App.context.contToRemove,
+                LampaProvider.THRW to App.context.thrwToRemove
+            ).forEach { (category, items) ->
+                if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() remove from $category: $items")
+                items.forEach { id ->
+                    withContext(Dispatchers.Main) {
+                        runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
+                    }
+                    delay(500) // don't do it too fast
                 }
             }
+            // don't do it again
+            App.context.clearPending()
         }
-        // Remove items from various categories
-        listOf(
-            LampaProvider.LATE to App.context.wathToRemove,
-            LampaProvider.BOOK to App.context.bookToRemove,
-            LampaProvider.LIKE to App.context.likeToRemove,
-            LampaProvider.HIST to App.context.histToRemove,
-            LampaProvider.LOOK to App.context.lookToRemove,
-            LampaProvider.VIEW to App.context.viewToRemove,
-            LampaProvider.SCHD to App.context.schdToRemove,
-            LampaProvider.CONT to App.context.contToRemove,
-            LampaProvider.THRW to App.context.thrwToRemove
-        ).forEach { (category, items) ->
-            if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() remove from $category: $items")
-            items.forEach { id ->
-                runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
-            }
-        }
-        // don't do it again
-        App.context.clearPending()
     }
 
     private fun dumpStorage(callback: (String) -> Unit) {
@@ -852,13 +877,6 @@ class MainActivity : AppCompatActivity(),
         // fix focus
         browser?.setFocus()
     }
-
-    // Data class for menu items
-    private data class MenuItem(
-        val title: String,
-        val action: String,
-        val icon: Int
-    )
 
     private fun showMenuDialog() {
         val mainActivity = this

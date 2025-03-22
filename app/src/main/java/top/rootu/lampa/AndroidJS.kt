@@ -408,20 +408,22 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun saveBookmarks(json: String?) {
         if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired!")
-        // Filter out invalid CubBookmark objects
-        val validBookmarks = filterValidCubBookmarks(json)
-        if (validBookmarks.isNotEmpty()) {
-            if (BuildConfig.DEBUG) Log.d(
-                TAG,
-                "saveBookmarks - found ${validBookmarks.size} valid elements"
-            )
-            // Save the valid bookmarks
-            App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
-        } else {
-            if (BuildConfig.DEBUG) Log.e(
-                TAG,
-                "saveBookmarks - no valid CUB bookmarks found in the JSON"
-            )
+        CoroutineScope(Dispatchers.IO).launch {
+            // Filter out invalid CubBookmark objects
+            val validBookmarks = filterValidCubBookmarks(json)
+            if (validBookmarks.isNotEmpty()) {
+                if (BuildConfig.DEBUG) Log.d(
+                    TAG,
+                    "saveBookmarks - found ${validBookmarks.size} valid elements"
+                )
+                // Save the valid bookmarks
+                App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
+            } else {
+                if (BuildConfig.DEBUG) Log.e(
+                    TAG,
+                    "saveBookmarks - no valid CUB bookmarks found in the JSON"
+                )
+            }
         }
     }
 
