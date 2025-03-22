@@ -26,6 +26,9 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -135,6 +138,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private lateinit var progressIndicator: LinearProgressIndicator
+
     // Data class for menu items
     private data class MenuItem(
         val title: String,
@@ -180,7 +184,10 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         LAMPA_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
-        if (BuildConfig.DEBUG) Log.d(TAG, "onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
+        if (BuildConfig.DEBUG) Log.d(
+            TAG,
+            "onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER"
+        )
 
         playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
@@ -374,11 +381,36 @@ class MainActivity : AppCompatActivity(),
 
         data?.let { intent ->
             when (intent.action) {
-                "com.mxtech.intent.result.VIEW" -> handleMxPlayerResult(intent, resultCode, videoUrl)
-                "org.videolan.vlc.player.result" -> handleVlcPlayerResult(intent, resultCode, videoUrl)
-                "is.xyz.mpv.MPVActivity.result" -> handleMpvPlayerResult(intent, resultCode, videoUrl)
-                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" -> handleUPlayerResult(intent, resultCode, videoUrl)
-                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" -> handleViMuPlayerResult(intent, resultCode, videoUrl)
+                "com.mxtech.intent.result.VIEW" -> handleMxPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "org.videolan.vlc.player.result" -> handleVlcPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "is.xyz.mpv.MPVActivity.result" -> handleMpvPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" -> handleUPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" -> handleViMuPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
                 else -> handleGenericPlayerResult(intent, resultCode, videoUrl)
             }
         }
@@ -405,20 +437,26 @@ class MainActivity : AppCompatActivity(),
                         Log.i(TAG, "Playback completed")
                         resultPlayer(videoUrl, 0, 0, true)
                     }
+
                     "user" -> {
                         val pos = intent.getIntExtra("position", 0)
                         val dur = intent.getIntExtra("duration", 0)
                         if (pos > 0 && dur > 0) {
                             val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                            Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                            Log.i(
+                                TAG,
+                                "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
+                            )
                             resultPlayer(videoUrl, pos, dur, ended)
                         } else {
                             Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
                         }
                     }
+
                     else -> Log.e(TAG, "Invalid state [endBy=${intent.getStringExtra("end_by")}]")
                 }
             }
+
             RESULT_CANCELED -> Log.i(TAG, "Playback stopped by user")
             RESULT_FIRST_USER -> Log.e(TAG, "Playback stopped by unknown error")
             else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
@@ -429,17 +467,21 @@ class MainActivity : AppCompatActivity(),
         if (resultCode == RESULT_OK) {
             val pos = intent.getLongExtra("extra_position", 0L)
             val dur = intent.getLongExtra("extra_duration", 0L)
-            val url = if (videoUrl.isEmpty() || videoUrl == "null") intent.getStringExtra("extra_uri") ?: videoUrl else videoUrl
+            val url =
+                if (videoUrl.isEmpty() || videoUrl == "null") intent.getStringExtra("extra_uri")
+                    ?: videoUrl else videoUrl
             when {
                 pos > 0L && dur > 0L -> {
                     val ended = isAfterEndCreditsPosition(pos, dur)
                     Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
                     resultPlayer(url, pos.toInt(), dur.toInt(), ended)
                 }
+
                 pos == 0L && dur == 0L -> {
                     Log.i(TAG, "Playback completed")
                     resultPlayer(url, 0, 0, true)
                 }
+
                 pos > 0L -> Log.i(TAG, "Playback stopped with no duration! Playback Error?")
             }
         } else {
@@ -457,6 +499,7 @@ class MainActivity : AppCompatActivity(),
                     Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
                     resultPlayer(videoUrl, pos, dur, ended)
                 }
+
                 dur == 0 && pos == 0 -> {
                     Log.i(TAG, "Playback completed")
                     resultPlayer(videoUrl, 0, 0, true)
@@ -473,12 +516,21 @@ class MainActivity : AppCompatActivity(),
                 val pos = intent.getLongExtra("position", 0L)
                 val dur = intent.getLongExtra("duration", 0L)
                 if (pos > 0L && dur > 0L) {
-                    val ended = intent.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(pos, dur)
+                    val ended =
+                        intent.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(
+                            pos,
+                            dur
+                        )
                     Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended=$ended]")
                     resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
                 }
             }
-            RESULT_CANCELED -> Log.e(TAG, "Playback Error. It isn't possible to get the duration or create the playlist.")
+
+            RESULT_CANCELED -> Log.e(
+                TAG,
+                "Playback Error. It isn't possible to get the duration or create the playlist."
+            )
+
             else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
         }
     }
@@ -489,6 +541,7 @@ class MainActivity : AppCompatActivity(),
                 Log.i(TAG, "Playback completed")
                 resultPlayer(videoUrl, 0, 0, true)
             }
+
             RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
                 val pos = intent.getIntExtra("position", 0)
                 val dur = intent.getIntExtra("duration", 0)
@@ -498,6 +551,7 @@ class MainActivity : AppCompatActivity(),
                     resultPlayer(videoUrl, pos, dur, ended)
                 }
             }
+
             RESULT_VIMU_ERROR -> Log.e(TAG, "Playback error")
             else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
         }
@@ -509,6 +563,7 @@ class MainActivity : AppCompatActivity(),
                 Log.i(TAG, "Playback completed")
                 resultPlayer(videoUrl, 0, 0, true)
             }
+
             RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
                 val pos = intent.getIntExtra("position", 0)
                 val dur = intent.getIntExtra("duration", 0)
@@ -518,6 +573,7 @@ class MainActivity : AppCompatActivity(),
                     resultPlayer(videoUrl, pos, dur, ended)
                 }
             }
+
             else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
         }
     }
@@ -625,7 +681,10 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Main) {
                 runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
             }
-            if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
+            if (BuildConfig.DEBUG) Log.d(
+                TAG,
+                "syncBookmarks() add to wath: ${App.context.wathToAdd}"
+            )
             App.context.wathToAdd.forEach { item ->
                 val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
                 lampaCard?.let { card ->
@@ -965,8 +1024,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         // Show the dialog
-        val dialog = dialogBuilder.create()
-        dialog.show()
+        showFullScreenDialog(dialogBuilder.create())
         isMenuVisible = true
     }
 
@@ -1073,7 +1131,8 @@ class MainActivity : AppCompatActivity(),
         }
 
         // Show the dialog
-        dialogBuilder.create().show()
+        showFullScreenDialog(dialogBuilder.create())
+        // Set active row
         adapter.setSelectedItem(0)
 
         // Check storage permissions
@@ -1146,7 +1205,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         // Show the dialog
-        dialogBuilder.create().show()
+        showFullScreenDialog(dialogBuilder.create())
     }
 
     private class UrlAdapter(context: Context) :
@@ -1183,9 +1242,9 @@ class MainActivity : AppCompatActivity(),
         // Set up the input field
         setupInputField(input, tilt, msg, dialog, inputManager)
 
-        dialog.show()
+        showFullScreenDialog(dialog)
 
-        // Set up the backup button
+        // Set up the migrate button
         dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
             handleMigrateButtonClick(dialog)
         }
@@ -1263,7 +1322,7 @@ class MainActivity : AppCompatActivity(),
             App.toast(R.string.invalid_url)
             showUrlInputDialog()
         }
-        hideSystemUI()
+        // hideSystemUI()
     }
 
     // Helper function to handle the cancel button click
@@ -1273,7 +1332,7 @@ class MainActivity : AppCompatActivity(),
             appExit()
         } else {
             LAMPA_URL = this.appUrl
-            hideSystemUI()
+            // hideSystemUI()
         }
     }
 
@@ -1536,7 +1595,7 @@ class MainActivity : AppCompatActivity(),
                 runPlayer(jsonObject, SELECTED_PLAYER!!)
             }
             val playerChooserDialog = playerChooser.create()
-            playerChooserDialog.show()
+            showFullScreenDialog(playerChooserDialog)
             playerChooserDialog.listView.requestFocus()
         } else {
             var videoPosition: Long = 0
@@ -2086,36 +2145,74 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
                 .create()
-
-            // top position (no keyboard overlap)
-            val lp = dialog.window?.attributes
-            lp?.apply {
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                verticalMargin = 0.1F
-            }
+                .apply {
+                    window?.apply {
+                        // top position (no keyboard overlap)
+                        attributes = attributes.apply {
+                            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                            verticalMargin = 0.1F
+                        }
+                    }
+                }
             // show fullscreen dialog
-            dialog.window?.setFlags(
+            showFullScreenDialog(dialog)
+            // run voice search
+            btnVoice?.performClick()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun showFullScreenDialog(dialog: AlertDialog?) {
+        dialog?.apply {
+            // Set the dialog to be not focusable initially
+            window?.setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             )
-            // set fullscreen mode (immersive sticky):
-            @Suppress("DEPRECATION")
-            var uiFlags: Int = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
-            if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                @Suppress("DEPRECATION")
-                uiFlags = uiFlags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            if (VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                // Use systemUiVisibility for older APIs
+                window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                } else {
+                    0
+                })
+                // make navbar translucent
+                if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    window?.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+                }
             }
-            @Suppress("DEPRECATION")
-            dialog.window?.decorView?.systemUiVisibility = uiFlags
-            dialog.show()
-            dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            // Show the dialog
+            show()
+            // Ensure the window is ready before accessing WindowInsetsController
+            window?.decorView?.let { decorView ->
+                if (VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Use WindowInsetsController for API 30+
+                    decorView.viewTreeObserver.addOnWindowAttachListener(object :
+                        ViewTreeObserver.OnWindowAttachListener {
+                        override fun onWindowAttached() {
+                            // Window is attached, now it's safe to access WindowInsetsController
+                            decorView.windowInsetsController?.let { controller ->
+                                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                                controller.systemBarsBehavior =
+                                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            }
+                            // Remove the listener to avoid memory leaks
+                            decorView.viewTreeObserver.removeOnWindowAttachListener(this)
+                        }
 
-            // run voice search
-            btnVoice?.performClick()
+                        override fun onWindowDetached() {
+                            // No-op
+                        }
+                    })
+                }
+            }
+            // Clear the not focusable flag after the dialog is shown
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         }
     }
 
