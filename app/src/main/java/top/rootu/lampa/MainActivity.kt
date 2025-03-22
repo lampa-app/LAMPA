@@ -1535,7 +1535,7 @@ class MainActivity : AppCompatActivity(),
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
-            if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+            "video/*"
         )
         val resInfo =
             packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
