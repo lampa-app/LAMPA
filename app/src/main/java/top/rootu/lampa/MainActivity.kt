@@ -646,7 +646,6 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun syncStorage() {
-        lifecycleScope.launch {
             runJsStorageChangeField("activity", "{}") // get current lampaActivity
             runJsStorageChangeField("player_timecode")
             runJsStorageChangeField("playlist_next")
@@ -656,7 +655,6 @@ class MainActivity : AppCompatActivity(),
             runJsStorageChangeField("source")
             runJsStorageChangeField("account_use") // get sync state
             runJsStorageChangeField("recomends_list", "[]") // force update recs
-        }
     }
 
     fun changeTmdbUrls() {
