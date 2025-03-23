@@ -113,12 +113,12 @@ data class LampaCard(
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
         }
     }
-    
+
     private fun fixGenres() {
         if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty()) {
             genres = genre_ids.mapNotNull { id ->
                 val genreId = id.toIntOrNull()
-                if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "Unknown Genre", "") else null
+                if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "", "") else null
             }
         }
     }
@@ -164,7 +164,10 @@ data class LampaRec(
         // fix media_type
         val mt = media_type ?: "movie"
         // fix genres
-        val genres = genre_ids?.map { Genre(it, TMDB.genres[it.toIntOrNull()], "") }
+        val genres = genre_ids?.mapNotNull { id ->
+            val genreId = id.toIntOrNull()
+            if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "", "") else null
+        }
         // fix images
         val img =
             if (!poster_path.isNullOrEmpty() && poster_path.startsWith("/")) TMDB.imageUrl(
