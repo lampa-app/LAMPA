@@ -162,8 +162,6 @@ dependencies {
     // material-ui
     def muiVersion = '1.12.0'
     implementation "com.google.android.material:material:${muiVersion}"
-    // speech
-    //implementation 'net.gotev:speech:1.6.2'
     // coroutines
     def coroutinesVersion = '1.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${coroutinesVersion}"

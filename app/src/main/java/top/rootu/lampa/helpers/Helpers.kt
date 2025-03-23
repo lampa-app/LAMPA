@@ -1,9 +1,9 @@
 package top.rootu.lampa.helpers
 
 import android.app.Activity
-import android.app.UiModeManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,13 +16,10 @@ import android.os.Build
 import android.os.LocaleList
 import android.util.Log
 import android.util.TypedValue
-import android.view.View
-import android.view.WindowInsets
-import android.view.WindowInsetsController
-import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebViewCompat
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
 import top.rootu.lampa.App
@@ -40,17 +37,7 @@ import top.rootu.lampa.helpers.Prefs.addThrwToRemove
 import top.rootu.lampa.helpers.Prefs.addViewToRemove
 import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
 import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
-import top.rootu.lampa.helpers.Prefs.appLang
-import top.rootu.lampa.helpers.Prefs.bookToRemove
-import top.rootu.lampa.helpers.Prefs.contToRemove
-import top.rootu.lampa.helpers.Prefs.histToRemove
-import top.rootu.lampa.helpers.Prefs.likeToRemove
-import top.rootu.lampa.helpers.Prefs.lookToRemove
-import top.rootu.lampa.helpers.Prefs.schdToRemove
-import top.rootu.lampa.helpers.Prefs.thrwToRemove
-import top.rootu.lampa.helpers.Prefs.viewToRemove
-import top.rootu.lampa.helpers.Prefs.wathToAdd
-import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.models.CubBookmark
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
 import java.util.Locale
@@ -119,27 +106,6 @@ object Helpers {
         resources.updateConfiguration(config, resources.displayMetrics)
     }
 
-    fun Context.setLanguage() {
-        if (this.appLang.isNotBlank())
-            this.appLang.apply {
-                val languageCode = this /* en / ru / zh-TW etc */
-                var locale = Locale(languageCode.lowercase(Locale.getDefault()))
-                if (languageCode.split("-").size > 1) {
-                    val language = languageCode.split("-")[0].lowercase(Locale.getDefault())
-                    val country = languageCode.split("-")[1].uppercase(Locale.getDefault())
-                    locale = Locale(language, country)
-                }
-                val config: Configuration = resources.configuration
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                    config.setLocales(LocaleList(locale))
-                else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-                    config.setLocale(locale)
-                else
-                    config.locale = locale
-                resources.updateConfiguration(config, resources.displayMetrics)
-            }
-    }
-
     @Suppress("DEPRECATION")
     private fun isConnectedOld(context: Context): Boolean {
         val connManager =
@@ -174,7 +140,7 @@ object Helpers {
             var version = WebViewCompat.getCurrentWebViewPackage(context)?.versionName
             if (version.isNullOrEmpty()) version = ""
             version
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -186,7 +152,7 @@ object Helpers {
                     context
                 )?.packageName!!, 0
             ).enabled
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT
         }
     }
@@ -199,7 +165,11 @@ object Helpers {
         intent.putExtra("source", card.source)
         intent.putExtra("media", card.type)
 
-        val idStr = try { Gson().toJson(card) } catch (e: Exception) { null } // used to get card from HomeWatch
+        val idStr = try {
+            Gson().toJson(card)
+        } catch (_: Exception) {
+            null
+        } // used to get card from HomeWatch
         idStr?.let { intent.putExtra("LampaCardJS", idStr) }
 
         continueWatch?.let { intent.putExtra("continueWatch", it) }
@@ -257,7 +227,8 @@ object Helpers {
                 "s7xx",
                 "sberbox",
                 "sbdv-00006",
-                "streaming box 8000"
+                "streaming box 8000",
+                "vidaa_tv"
             )
             val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
             return match
@@ -268,73 +239,90 @@ object Helpers {
             return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
         }
 
-    val isGoogleTV: Boolean // wide posters on home
-        get() {
-            return App.context.packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-        }
-
-    val isAmazonDev: Boolean
-        get() {
-            return App.context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
-        }
-
-    val Context.isTvBox: Boolean
-        get() {
-            val pm = packageManager
-            // TV for sure
-            val uiModeManager =
-                getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-            if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
-                return true
-            }
-            if (isAmazonDev) {
-                return true
-            }
-            // Missing Files app (DocumentsUI) means box (some boxes still have non functional app or stub)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                if (!hasSAFChooser(pm)) {
-                    return true
-                }
-            }
-            // Legacy storage no longer works on Android 11 (level 30)
-            if (Build.VERSION.SDK_INT < 30) {
-                // (Some boxes still report touchscreen feature)
-                if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
-                    return true
-                }
-                if (pm.hasSystemFeature("android.hardware.hdmi.cec")) {
-                    return true
-                }
-                if (Build.MANUFACTURER.equals("zidoo", ignoreCase = true)) {
-                    return true
-                }
-            }
-            // Default: No TV - use SAF
-            return false
-        }
-
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun hasSAFChooser(pm: PackageManager?): Boolean {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-        intent.addCategory(Intent.CATEGORY_OPENABLE)
-        intent.type = "video/*"
-        return intent.resolveActivity(pm!!) != null
-    }
-
+    /**
+     * Checks if a JSON string is valid.
+     *
+     * @param json The JSON string to validate.
+     * @return True if the JSON is valid, false otherwise.
+     */
     fun isValidJson(json: String?): Boolean {
         return try {
             parseStrict(json) != null
-        } catch (ex: JsonSyntaxException) {
+        } catch (_: JsonSyntaxException) {
             false
         }
     }
 
+    /**
+     * Parses a JSON string strictly.
+     *
+     * @param json The JSON string to parse.
+     * @return A JsonElement if the JSON is valid, null otherwise.
+     */
     private fun parseStrict(json: String?): JsonElement? {
         return try {
-            // throws on almost any non-valid json
             Gson().getAdapter(JsonElement::class.java).fromJson(json)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
+        }
+    }
+
+    /**
+     * Filters out invalid CubBookmark objects and preserves valid ones.
+     *
+     * @param json The JSON string containing an array of CubBookmark objects.
+     * @return A list of valid CubBookmark objects.
+     */
+    fun filterValidCubBookmarks(json: String?): List<CubBookmark> {
+        if (json.isNullOrEmpty()) return emptyList()
+
+        val filteredList = mutableListOf<CubBookmark>()
+
+        // Parse the JSON string into a JsonElement
+        val jsonElement: JsonElement = Gson().fromJson(json, JsonElement::class.java)
+
+        // Check if the JSON is an array
+        if (jsonElement.isJsonArray) {
+            // Convert the JsonElement to a List of Maps
+            (jsonElement as JsonArray).forEach { el ->
+                try {
+                    val bookmark = Gson().fromJson(el, CubBookmark::class.java)
+                    if (isValidLampaCard(Gson().toJson(bookmark.data)))
+                        filteredList.add(bookmark)
+                    else
+                        Log.e(
+                            "filterValidCubBookmarks",
+                            "CubBookmark ${bookmark.card_id} data is invalid"
+                        )
+                } catch (e: Exception) {
+                    Log.e("filterValidCubBookmarks", "CubBookmark $el error $e")
+                }
+            }
+            return filteredList
+        } else return emptyList()
+    }
+
+    /**
+     * Checks if a JSON string is a valid LampaCard.
+     *
+     * @param json The JSON string to validate.
+     * @return True if the JSON is a valid LampaCard, false otherwise.
+     */
+    fun isValidLampaCard(json: String?): Boolean {
+        if (json.isNullOrEmpty()) return false
+        return try {
+            // Parse the JSON string into a LampaCard
+            Gson().fromJson(json, LampaCard::class.java)
+            // If all checks pass, the JSON is a valid LampaCard
+            true
+        } catch (e: JsonSyntaxException) {
+            // Invalid JSON syntax
+            Log.e("isValidLampaCard", "JsonSyntaxException: $e")
+            false
+        } catch (e: Exception) {
+            Log.e("isValidLampaCard", "Exception: $e")
+            // Other errors (e.g., type casting issues)
+            false
         }
     }
 
@@ -347,137 +335,47 @@ object Helpers {
         }
     }
 
+    fun getDefaultPosterUri(resId: Int = R.drawable.empty_poster): Uri {
+        return Uri.Builder()
+            .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+            .authority(App.context.resources.getResourcePackageName(resId))
+            .appendPath(App.context.resources.getResourceTypeName(resId))
+            .appendPath(App.context.resources.getResourceEntryName(resId))
+            .build()
+    }
+
+    // Function to manage favorites, actions: add | rem
     fun manageFavorite(action: String?, where: String, id: String, card: LampaCard? = null) {
-        // actions: add | rem
-        if (BuildConfig.DEBUG) Log.d("*****", "manageFavorite($action, $where, $id)")
-        if (action != null) {
-            when (action) {
-                "rem" -> {
-                    when (where) {
-                        LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
-                        LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
-                        LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
-                        LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
-                        LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
-                        LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
-                        LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
-                        LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
-                        LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
-                    }
-                    if (BuildConfig.DEBUG) {
-                        Log.d("*****", "book items to remove: ${App.context.bookToRemove}")
-                        Log.d("*****", "wath items to remove: ${App.context.wathToRemove}")
-                        Log.d("*****", "like items to remove: ${App.context.likeToRemove}")
-                        Log.d("*****", "hist items to remove: ${App.context.histToRemove}")
-                        Log.d("*****", "look items to remove: ${App.context.lookToRemove}")
-                        Log.d("*****", "view items to remove: ${App.context.viewToRemove}")
-                        Log.d("*****", "schd items to remove: ${App.context.schdToRemove}")
-                        Log.d("*****", "cont items to remove: ${App.context.contToRemove}")
-                        Log.d("*****", "thrw items to remove: ${App.context.thrwToRemove}")
-                    }
-                }
+        if (BuildConfig.DEBUG) Log.d("Prefs", "manageFavorite($action, $where, $id)")
+        when (action) {
+            "rem" -> when (where) {
+                LampaProvider.BOOK -> App.context.addBookToRemove(listOf(id))
+                LampaProvider.LATE -> App.context.addWatchNextToRemove(listOf(id))
+                LampaProvider.LIKE -> App.context.addLikeToRemove(listOf(id))
+                LampaProvider.HIST -> App.context.addHistToRemove(listOf(id))
+                LampaProvider.LOOK -> App.context.addLookToRemove(listOf(id))
+                LampaProvider.VIEW -> App.context.addViewToRemove(listOf(id))
+                LampaProvider.SCHD -> App.context.addSchdToRemove(listOf(id))
+                LampaProvider.CONT -> App.context.addContToRemove(listOf(id))
+                LampaProvider.THRW -> App.context.addThrwToRemove(listOf(id))
+            }
 
-                "add" -> {
-                    when (where) {
-                        LampaProvider.LATE -> App.context.addWatchNextToAdd(
-                            WatchNextToAdd(
-                                id,
-                                card
-                            )
+            "add" -> when (where) {
+                LampaProvider.LATE -> card?.let {
+                    App.context.addWatchNextToAdd(
+                        WatchNextToAdd(
+                            id,
+                            it
                         )
-                    }
-                    if (BuildConfig.DEBUG)
-                        Log.d("*****", "wath items to add: ${App.context.wathToAdd}")
+                    )
                 }
             }
         }
     }
 
-    /* NOTE! must be called after setContentView */
-    fun Activity.hideSystemUI() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window?.insetsController?.let {
-                // Default behavior is that if navigation bar is hidden, the system will "steal" touches
-                // and show it again upon user's touch. We just want the user to be able to show the
-                // navigation bar by swipe, touches are handled by custom code -> change system bar behavior.
-                // Alternative to deprecated SYSTEM_UI_FLAG_IMMERSIVE.
-                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                // make navigation bar translucent (alternative to deprecated
-                // WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-                // - do this already in hideSystemUI() so that the bar
-                // is translucent if user swipes it up
-                window?.navigationBarColor = getColor(R.color.black_80)
-                // Finally, hide the system bars, alternative to View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                // and SYSTEM_UI_FLAG_FULLSCREEN.
-                it.hide(WindowInsets.Type.systemBars())
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            window?.decorView?.systemUiVisibility = (
-                    // Hide the nav bar and status bar
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
-                            // Keep the app content behind the bars even if user swipes them up
-                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-            @Suppress("DEPRECATION")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                // use immersive sticky mode
-                window?.decorView?.systemUiVisibility =
-                    window?.decorView?.systemUiVisibility?.or(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)!!
-                // make navbar translucent
-                window?.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-            }
-        }
-    }
-
-    /* NOTE! must be called after setContentView */
-    fun Activity.showSystemUI() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // show app content in fullscreen, i. e. behind the bars when they are shown (alternative to
-            // deprecated View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION and View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-            window?.setDecorFitsSystemWindows(false)
-            // finally, show the system bars
-            window?.insetsController?.show(WindowInsets.Type.systemBars())
-        } else {
-            // Shows the system bars by removing all the flags
-            // except for the ones that make the content appear under the system bars.
-            @Suppress("DEPRECATION")
-            window?.decorView?.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-        }
-    }
-
-    /**
-     * Retrieves the name of the app responsible for the installation of this app.
-     * This can help in identifying which market this app was installed from or whether the user
-     * sideloaded it using an APK (Package Installer).
-     */
-    fun getAppInstaller(context: Context): String {
-        val appContext = context.applicationContext
-
-        val installerPackageName = try {
-            val appPackageManager = appContext.packageManager
-            val appPackageName = appContext.packageName
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-                appPackageManager.getInstallSourceInfo(appPackageName).installingPackageName
-            else
-                appPackageManager.getInstallerPackageName(appPackageName)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "--"
-        }
-
-        return when (installerPackageName) {
-            "com.android.vending" -> "Google Play Store"
-            "com.amazon.venezia" -> "Amazon AppStore"
-            "com.huawei.appmarket" -> "Huawei AppGallery"
-            "ru.vk.store" -> "RuStore"
-            "ru.vk.store.tv" -> "RuStoreTV"
-            "com.google.android.packageinstaller" -> "Package Installer"
-            else -> installerPackageName ?: "Unknown"
+    fun printLog(message: String, tag: String = "DEBUG") {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, message)
         }
     }
 }

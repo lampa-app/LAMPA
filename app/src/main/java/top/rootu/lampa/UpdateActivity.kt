@@ -21,7 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.rootu.lampa.helpers.Helpers.hideSystemUI
+import top.rootu.lampa.helpers.hideSystemUI
 import top.rootu.lampa.helpers.Updater
 
 

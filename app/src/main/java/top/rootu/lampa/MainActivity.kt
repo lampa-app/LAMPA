@@ -20,17 +20,20 @@ import android.os.Parcelable
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.util.Patterns
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
-import android.widget.ListAdapter
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
@@ -47,6 +50,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,10 +82,9 @@ import top.rootu.lampa.helpers.Backup.saveSettings
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
-import top.rootu.lampa.helpers.Helpers.hideSystemUI
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Helpers.isTvBox
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -95,6 +98,7 @@ import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
 import top.rootu.lampa.helpers.Prefs.clearPending
+import top.rootu.lampa.helpers.Prefs.clearUrlHistory
 import top.rootu.lampa.helpers.Prefs.contToRemove
 import top.rootu.lampa.helpers.Prefs.firstRun
 import top.rootu.lampa.helpers.Prefs.histToRemove
@@ -102,6 +106,7 @@ import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.likeToRemove
 import top.rootu.lampa.helpers.Prefs.lookToRemove
+import top.rootu.lampa.helpers.Prefs.migrate
 import top.rootu.lampa.helpers.Prefs.playActivityJS
 import top.rootu.lampa.helpers.Prefs.resumeJS
 import top.rootu.lampa.helpers.Prefs.schdToRemove
@@ -112,36 +117,59 @@ import top.rootu.lampa.helpers.Prefs.viewToRemove
 import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
+import top.rootu.lampa.helpers.hideSystemUI
+import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
-import java.util.regex.Pattern
 import kotlin.collections.set
 
 
 class MainActivity : AppCompatActivity(),
     Browser.Listener,
     XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
+    // Local properties
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private var progressBar: LottieAnimationView? = null // CircularProgressIndicator
+    private var loaderView: LottieAnimationView? = null
     private var browserInit = false
+    private var isMenuVisible = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
-    private var isMenuVisible = false
+    private lateinit var progressIndicator: LinearProgressIndicator
+
+    // Data class for menu items
+    private data class MenuItem(
+        val title: String,
+        val action: String,
+        val icon: Int
+    )
 
     companion object {
+        // Constants
         private const val TAG = "APP_MAIN"
-        const val RESULT_VIMU_ENDED = 2
-        const val RESULT_VIMU_START = 3
-        const val RESULT_VIMU_ERROR = 4
-        var delayedVoidJsFunc = mutableListOf<List<String>>()
+        private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
+        private const val RESULT_VIMU_ENDED = 2
+        private const val RESULT_VIMU_START = 3
+        private const val RESULT_VIMU_ERROR = 4
+
+        // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
+        // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
+        // private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
+        // private const val IP6_REGEX =
+        //    "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        // private const val URL_REGEX =
+        //    "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
+        // private val URL_PATTERN = Pattern.compile(URL_REGEX)
+
+        // Properties
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
         var SELECTED_BROWSER: String? =
             if (VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) "XWalk" else ""
+        var delayedVoidJsFunc = mutableListOf<List<String>>()
         var playerTimeCode: String = "continue"
         var playerAutoNext: Boolean = true
         var internalTorrserve: Boolean = false
@@ -150,17 +178,89 @@ class MainActivity : AppCompatActivity(),
         var playIndex = 0
         var playVideoUrl: String = ""
         var lampaActivity: String = "{}" // JSON
-
-        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
-        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
-        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
-        private const val IP6_REGEX =
-            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
-        private const val URL_REGEX =
-            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
-        private val URL_PATTERN = Pattern.compile(URL_REGEX)
-        private const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.96
         lateinit var urlAdapter: ArrayAdapter<String>
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        LAMPA_URL = this.appUrl
+        SELECTED_PLAYER = this.appPlayer
+        printLog("onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
+        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
+        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
+        playJSONArray = try {
+            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
+        } catch (_: Exception) {
+            JSONArray()
+        }
+
+        setupActivity()
+        setupBrowser()
+        setupUI()
+        setupIntents()
+
+        if (this.firstRun) {
+            CoroutineScope(Dispatchers.IO).launch {
+                printLog("First run scheduleUpdate(sync: true)")
+                Scheduler.scheduleUpdate(true)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        printLog("onNewIntent() processIntent")
+        setIntent(intent) // getIntent() should always return the most recent
+        processIntent(intent)
+    }
+
+    override fun onBrowserInitCompleted() {
+        browserInit = true
+        HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
+        browser?.apply {
+            setUserAgentString(HttpHelper.userAgent)
+            setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
+            addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
+        }
+        printLog("onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
+        if (LAMPA_URL.isEmpty()) {
+            showUrlInputDialog()
+        } else {
+            browser?.loadUrl(LAMPA_URL)
+        }
+    }
+
+    override fun onBrowserPageFinished(view: ViewGroup, url: String) {
+        printLog("onBrowserPageFinished url: $url")
+        // Restore Lampa settings and reload if migrate flag set
+        if (migrate) {
+            migrateSettings()
+        }
+        // Switch Loader
+        if (view.visibility != View.VISIBLE) {
+            view.visibility = View.VISIBLE
+        }
+        loaderView?.visibility = View.GONE
+
+        Log.d(TAG, "LAMPA onLoadFinished $url")
+        // Dirty hack to skip reload from Back history
+        if (url.trimEnd('/').equals(LAMPA_URL, true)) {
+            // Lazy Load Intent
+            processIntent(intent, 500) // 1000
+            // Sync with Lampa localStorage
+            lifecycleScope.launch {
+                delay(3000)
+                syncStorage()
+                changeTmdbUrls()
+                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+                delayedVoidJsFunc.clear()
+            }
+            // Background update Android TV channels and Recommendations
+            syncBookmarks()
+            CoroutineScope(Dispatchers.IO).launch {
+                Scheduler.scheduleUpdate(false)
+            }
+        }
     }
 
     private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
@@ -168,9 +268,8 @@ class MainActivity : AppCompatActivity(),
         return positionMillis >= durationMillis
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private fun setupActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         @Suppress("DEPRECATION")
         if (VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU)
@@ -188,250 +287,10 @@ class MainActivity : AppCompatActivity(),
                 runVoidJsFunc("window.history.back", "")
             }
         }
-        LAMPA_URL = this.appUrl
-        SELECTED_PLAYER = this.appPlayer
-        Helpers.setLocale(this, this.appLang)
+    }
 
-        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
-        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
-        playJSONArray = try {
-            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
-        } catch (_: Exception) {
-            JSONArray()
-        }
-        // Some external video player api specs:
-        // vlc https://wiki.videolan.org/Android_Player_Intents/
-        // justplayer https://github.com/moneytoo/Player/issues/203
-        // mxplayer https://mx.j2inter.com/api
-        // mpv http://mpv-android.github.io/mpv-android/intent.html
-        // vimu https://www.vimu.tv/player-api
-        resultLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            val data: Intent? = result.data
-//            if (BuildConfig.DEBUG) {
-//                val bundle = data?.extras
-//                bundle?.let { b ->
-//                    for (key in b.keySet()) {
-//                        Log.d(
-//                            TAG,
-//                            ("onActivityResult: $key : ${b.get(key) ?: "NULL"}")
-//                        )
-//                    }
-//                }
-//            }
-            val videoUrl: String = data?.data.toString()
-            val resultCode = result.resultCode
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Returned intent url: $videoUrl")
-                when (resultCode) { // just for debug
-                    RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}") // -1
-                    RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}") // 0
-                    RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}") // 1
-                    RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}") // 2
-                    RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}") // 3
-                    RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}") // 4
-                    else -> Log.w(
-                        TAG,
-                        "Undefined result code ($resultCode): ${data?.toUri(0)}"
-                    )
-                }
-            }
-            data?.let {
-                if (it.action.equals("com.mxtech.intent.result.VIEW")) { // MX / Just
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            when (val endBy = it.getStringExtra("end_by")) {
-                                "playback_completion" -> {
-                                    Log.i(TAG, "Playback completed")
-                                    resultPlayer(videoUrl, 0, 0, true)
-                                }
-
-                                "user" -> {
-                                    val pos = it.getIntExtra("position", 0)
-                                    val dur = it.getIntExtra("duration", 0)
-                                    if (pos > 0 && dur > 0) {
-                                        val ended =
-                                            isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                        Log.i(
-                                            TAG,
-                                            "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                        )
-                                        resultPlayer(videoUrl, pos, dur, ended)
-                                    } else {
-                                        Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
-                                    }
-                                }
-
-                                else -> {
-                                    Log.e(TAG, "Invalid state [endBy=$endBy]")
-                                }
-                            }
-                        }
-
-                        RESULT_CANCELED -> {
-                            Log.i(TAG, "Playback stopped by user")
-                        }
-
-                        RESULT_FIRST_USER -> {
-                            Log.e(TAG, "Playback stopped by unknown error")
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("org.videolan.vlc.player.result")) { // VLC
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getLongExtra("extra_position", 0L)
-                            val dur = it.getLongExtra("extra_duration", 0L)
-                            val url =
-                                if (videoUrl.isEmpty() || videoUrl == "null") it.getStringExtra("extra_uri")
-                                    .toString()
-                                else videoUrl
-                            if (pos > 0L && dur > 0L) {
-                                val ended = isAfterEndCreditsPosition(pos, dur)
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                )
-                                resultPlayer(url, pos.toInt(), dur.toInt(), ended)
-                            } else if (pos == 0L && dur == 0L) {
-                                Log.i(TAG, "Playback completed")
-                                resultPlayer(url, 0, 0, true)
-                            } else if (pos > 0L) {
-                                Log.i(TAG, "Playback stopped with no duration! Playback Error?")
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("is.xyz.mpv.MPVActivity.result")) { // MPV
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (dur > 0) {
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
-                                )
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            } else if (dur == 0 && pos == 0) {
-                                Log.i(TAG, "Playback completed")
-                                resultPlayer(videoUrl, 0, 0, true)
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("com.uapplication.uplayer.result") ||
-                    it.action.equals("com.uapplication.uplayer.beta.result")
-                ) { // UPlayer
-                    when (resultCode) {
-                        RESULT_OK -> {
-                            val pos = it.getLongExtra("position", 0L)
-                            val dur = it.getLongExtra("duration", 0L)
-                            if (pos > 0L && dur > 0L) {
-                                val ended = it.getBooleanExtra(
-                                    "isEnded",
-                                    pos == dur
-                                ) || isAfterEndCreditsPosition(pos, dur)
-                                Log.i(
-                                    TAG,
-                                    "Playback stopped [position=$pos, duration=$dur, ended=$ended]"
-                                )
-                                resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
-                            }
-                        }
-
-                        RESULT_CANCELED -> {
-                            Log.e(
-                                TAG,
-                                "Playback Error. It isn't possible to get the duration or create the playlist."
-                            )
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else if (it.action.equals("net.gtvbox.videoplayer.result") ||
-                    it.action.equals("net.gtvbox.vimuhd.result")
-                ) { // ViMu >= 930
-                    when (resultCode) {
-                        RESULT_FIRST_USER -> {
-                            Log.i(TAG, "Playback completed")
-                            resultPlayer(videoUrl, 0, 0, true)
-                        }
-
-                        RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            }
-                        }
-
-                        RESULT_VIMU_ERROR -> {
-                            Log.e(TAG, "Playback error")
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                } else { // ViMu < 930 (875 first with duration) and others
-                    when (resultCode) {
-                        RESULT_FIRST_USER -> {
-                            Log.i(TAG, "Playback completed")
-                            resultPlayer(videoUrl, 0, 0, true)
-                        }
-
-                        RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
-                            val pos = it.getIntExtra("position", 0)
-                            val dur = it.getIntExtra("duration", 0)
-                            if (pos > 0 && dur > 0) {
-                                Log.i(TAG, "Playback stopped [position=$pos, duration=$dur]")
-                                val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                                resultPlayer(videoUrl, pos, dur, ended)
-                            }
-                        }
-
-                        else -> {
-                            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-                        }
-                    }
-                }
-            }
-        }
-
-        speechLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == RESULT_OK) {
-                // There are no request codes
-                val data: Intent? = result.data
-                val spokenText: String? =
-                    data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-                        results[0]
-                    }
-                // Do something with spokenText.
-                if (spokenText != null) {
-                    runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
-                }
-            }
-        }
-
-        SELECTED_BROWSER = this.appBrowser
+    private fun setupBrowser() {
+        SELECTED_BROWSER = appBrowser
         if (!Helpers.isWebViewAvailable(this)
             || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
         ) {
@@ -439,20 +298,18 @@ class MainActivity : AppCompatActivity(),
             // then the user used Crosswalk in previous versions of the application
             SELECTED_BROWSER = "XWalk"
         }
-        val wvv = Helpers.getWebViewVersion(this)
         val wvvMajorVersion: Double = try {
-            wvv.substringBefore(".").toDouble()
-        } catch (npe: NumberFormatException) {
+            Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
+        } catch (_: NumberFormatException) {
             0.0
         }
-        // Hide XWalk chooser on RuStore builds and modern Android WebView
+        // Hide Browser chooser on RuStore builds and modern Android WebView
         if (Helpers.isWebViewAvailable(this)
             && SELECTED_BROWSER.isNullOrEmpty()
             && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
         ) {
             SELECTED_BROWSER = "SysView"
         }
-        if (BuildConfig.DEBUG) Log.d(TAG, "onCreate() SELECTED_BROWSER: $SELECTED_BROWSER")
         when (SELECTED_BROWSER) {
             "XWalk" -> {
                 // Must call initAsync() before anything that involves the embedding
@@ -460,7 +317,6 @@ class MainActivity : AppCompatActivity(),
                 // holds the XWalkView object.
                 mXWalkInitializer = XWalkInitializer(this, this)
                 mXWalkInitializer?.initAsync()
-
                 // Until onXWalkInitCompleted() is invoked, you should do nothing with the
                 // embedding API except the following:
                 // 1. Instantiate the XWalkView object
@@ -470,8 +326,6 @@ class MainActivity : AppCompatActivity(),
                 // 5. Call mXWalkView.addJavascriptInterface()
                 XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
                 XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-                // maybe this fixes crashes on mitv2?
-                // XWalkPreferences.setValue(XWalkPreferences.ANIMATABLE_XWALK_VIEW, true);
                 setContentView(R.layout.activity_xwalk)
             }
 
@@ -485,38 +339,286 @@ class MainActivity : AppCompatActivity(),
                 showBrowserInputDialog()
             }
         }
-        hideSystemUI()
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        progressBar = findViewById(R.id.progressBar_cyclic)
+        loaderView = findViewById(R.id.loaderView)
         browser?.init()
+    }
 
-        if (this.firstRun) {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d("*****", "First run scheduleUpdate(sync)")
-                Scheduler.scheduleUpdate(true)
+    private fun handleSpeechResult(result: androidx.activity.result.ActivityResult) {
+        if (result.resultCode == RESULT_OK) {
+            // There are no request codes
+            val data: Intent? = result.data
+            val spokenText: String? =
+                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+                    results[0]
+                }
+            // Do something with spokenText.
+            if (spokenText != null) {
+                runVoidJsFunc("window.voiceResult", "'" + spokenText.replace("'", "\\'") + "'")
             }
         }
     }
 
+    // Some external video player api specs:
+    // vlc https://wiki.videolan.org/Android_Player_Intents/
+    // justplayer https://github.com/moneytoo/Player/issues/203
+    // mxplayer https://mx.j2inter.com/api
+    // mpv http://mpv-android.github.io/mpv-android/intent.html
+    // vimu https://www.vimu.tv/player-api
+    private fun handlePlayerResult(result: androidx.activity.result.ActivityResult) {
+        val data: Intent? = result.data
+        val videoUrl: String = data?.data?.toString() ?: "null"
+        val resultCode = result.resultCode
+
+        if (BuildConfig.DEBUG) {
+            logDebugInfo(data, resultCode, videoUrl)
+        }
+
+        data?.let { intent ->
+            when (intent.action) {
+                "com.mxtech.intent.result.VIEW" -> handleMxPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "org.videolan.vlc.player.result" -> handleVlcPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "is.xyz.mpv.MPVActivity.result" -> handleMpvPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" -> handleUPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" -> handleViMuPlayerResult(
+                    intent,
+                    resultCode,
+                    videoUrl
+                )
+
+                else -> handleGenericPlayerResult(intent, resultCode, videoUrl)
+            }
+        }
+    }
+
+    private fun logDebugInfo(data: Intent?, resultCode: Int, videoUrl: String) {
+        Log.d(TAG, "Returned intent url: $videoUrl")
+        when (resultCode) {
+            RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}")
+            RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}")
+            RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}")
+            RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}")
+            RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}")
+            RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}")
+            else -> Log.w(TAG, "Undefined result code ($resultCode): ${data?.toUri(0)}")
+        }
+    }
+
+    private fun handleMxPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_OK -> {
+                when (intent.getStringExtra("end_by")) {
+                    "playback_completion" -> {
+                        Log.i(TAG, "Playback completed")
+                        resultPlayer(videoUrl, 0, 0, true)
+                    }
+
+                    "user" -> {
+                        val pos = intent.getIntExtra("position", 0)
+                        val dur = intent.getIntExtra("duration", 0)
+                        if (pos > 0 && dur > 0) {
+                            val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                            Log.i(
+                                TAG,
+                                "Playback stopped [position=$pos, duration=$dur, ended:$ended]"
+                            )
+                            resultPlayer(videoUrl, pos, dur, ended)
+                        } else {
+                            Log.e(TAG, "Invalid state [position=$pos, duration=$dur]")
+                        }
+                    }
+
+                    else -> Log.e(TAG, "Invalid state [endBy=${intent.getStringExtra("end_by")}]")
+                }
+            }
+
+            RESULT_CANCELED -> Log.i(TAG, "Playback stopped by user")
+            RESULT_FIRST_USER -> Log.e(TAG, "Playback stopped by unknown error")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleVlcPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        if (resultCode == RESULT_OK) {
+            val pos = intent.getLongExtra("extra_position", 0L)
+            val dur = intent.getLongExtra("extra_duration", 0L)
+            val url =
+                if (videoUrl.isEmpty() || videoUrl == "null") intent.getStringExtra("extra_uri")
+                    ?: videoUrl else videoUrl
+            when {
+                pos > 0L && dur > 0L -> {
+                    val ended = isAfterEndCreditsPosition(pos, dur)
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(url, pos.toInt(), dur.toInt(), ended)
+                }
+
+                pos == 0L && dur == 0L -> {
+                    Log.i(TAG, "Playback completed")
+                    resultPlayer(url, 0, 0, true)
+                }
+
+                pos > 0L -> Log.i(TAG, "Playback stopped with no duration! Playback Error?")
+            }
+        } else {
+            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleMpvPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        if (resultCode == RESULT_OK) {
+            val pos = intent.getIntExtra("position", 0)
+            val dur = intent.getIntExtra("duration", 0)
+            when {
+                dur > 0 -> {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+
+                dur == 0 && pos == 0 -> {
+                    Log.i(TAG, "Playback completed")
+                    resultPlayer(videoUrl, 0, 0, true)
+                }
+            }
+        } else {
+            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleUPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_OK -> {
+                val pos = intent.getLongExtra("position", 0L)
+                val dur = intent.getLongExtra("duration", 0L)
+                if (pos > 0L && dur > 0L) {
+                    val ended =
+                        intent.getBooleanExtra("isEnded", pos == dur) || isAfterEndCreditsPosition(
+                            pos,
+                            dur
+                        )
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended=$ended]")
+                    resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
+                }
+            }
+
+            RESULT_CANCELED -> Log.e(
+                TAG,
+                "Playback Error. It isn't possible to get the duration or create the playlist."
+            )
+
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleViMuPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_FIRST_USER -> {
+                Log.i(TAG, "Playback completed")
+                resultPlayer(videoUrl, 0, 0, true)
+            }
+
+            RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
+                val pos = intent.getIntExtra("position", 0)
+                val dur = intent.getIntExtra("duration", 0)
+                if (pos > 0 && dur > 0) {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+            }
+
+            RESULT_VIMU_ERROR -> Log.e(TAG, "Playback error")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun handleGenericPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_FIRST_USER -> {
+                Log.i(TAG, "Playback completed")
+                resultPlayer(videoUrl, 0, 0, true)
+            }
+
+            RESULT_OK, RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
+                val pos = intent.getIntExtra("position", 0)
+                val dur = intent.getIntExtra("duration", 0)
+                if (pos > 0 && dur > 0) {
+                    val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos, dur, ended)
+                }
+            }
+
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
+
+    private fun setupIntents() {
+        resultLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                handlePlayerResult(result)
+            }
+        speechLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                handleSpeechResult(result)
+            }
+    }
+
+    private fun setupUI() {
+        Helpers.setLocale(this, this.appLang)
+        hideSystemUI() // Must be invoked after setContentView!
+    }
+
     override fun onXWalkInitStarted() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitStarted()")
+        printLog("onXWalkInitStarted()")
     }
 
     override fun onXWalkInitCancelled() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCancelled()")
+        printLog("onXWalkInitCancelled()")
         // Perform error handling here
         finish()
     }
 
     override fun onXWalkInitFailed() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitFailed()")
+        printLog("onXWalkInitFailed()")
         if (mXWalkUpdater == null) {
             mXWalkUpdater = MyXWalkUpdater(this, this)
         }
         setupXWalkApkUrl()
         mXWalkUpdater?.updateXWalkRuntime()
+    }
+
+    override fun onXWalkInitCompleted() {
+        printLog("onXWalkInitCompleted()")
+        browser = XWalk(this, R.id.xWalkView)
+        browser?.init()
+    }
+
+    override fun onXWalkUpdateCancelled() {
+        printLog("onXWalkUpdateCancelled()")
+        // Perform error handling here
+        finish()
     }
 
     private fun setupXWalkApkUrl() {
@@ -525,170 +627,158 @@ class MainActivity : AppCompatActivity(),
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
-    override fun onXWalkInitCompleted() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCompleted()")
-        browser = XWalk(this, R.id.xWalkView)
-        browser?.init()
-    }
-
-    override fun onXWalkUpdateCancelled() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkUpdateCancelled()")
-        // Perform error handling here
-        finish()
-    }
-
-    override fun onBrowserPageFinished(view: ViewGroup, url: String) {
-        if (view.visibility != View.VISIBLE) {
-            view.visibility = View.VISIBLE
-            progressBar?.visibility = View.GONE
-            Log.d("*****", "LAMPA onLoadFinished $url")
-            if (BuildConfig.DEBUG) Log.d("*****", "onBrowserPageFinished() processIntent")
-            processIntent(intent, 1000)
-            lifecycleScope.launch {
-                delay(3000)
-                runVoidJsFunc(
-                    "Lampa.Storage.listener.add",
-                    "'change'," +
-                            "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-                )
-                runJsStorageChangeField("activity", "{}") // get current lampaActivity
-                runJsStorageChangeField("player_timecode")
-                runJsStorageChangeField("playlist_next")
-                runJsStorageChangeField("torrserver_preload")
-                runJsStorageChangeField("internal_torrclient")
-                runJsStorageChangeField("language")
-                runJsStorageChangeField("source")
-                runJsStorageChangeField("account_use") // get sync state
-                runJsStorageChangeField("recomends_list", "[]") // force update recs var
-                changeTmdbUrls()
-                syncBookmarks()
-                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-                delayedVoidJsFunc.clear()
+    fun migrateSettings() {
+        lifecycleScope.launch {
+            restoreStorage { callback ->
+                if (callback.contains("SUCCESS", true)) {
+                    Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
+                    recreate()
+                } else {
+                    App.toast(R.string.settings_rest_fail)
+                }
             }
-            CoroutineScope(Dispatchers.IO).launch {
-                Scheduler.scheduleUpdate(false)
-            }
+            this@MainActivity.migrate = false
         }
     }
 
-    override fun onBrowserInitCompleted() {
-        browserInit = true
-        HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
-        browser?.apply {
-            setUserAgentString(HttpHelper.userAgent)
-            setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
-            addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
-        }
-        if (LAMPA_URL.isEmpty()) {
-            showUrlInputDialog()
-        } else {
-            browser?.loadUrl(LAMPA_URL)
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        if (BuildConfig.DEBUG) Log.d("*****", "onNewIntent() processIntent")
-        processIntent(intent)
+    fun syncStorage() {
+        runVoidJsFunc(
+            "Lampa.Storage.listener.add",
+            "'change'," +
+                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
+        )
+        runJsStorageChangeField("activity", "{}") // get current lampaActivity
+        runJsStorageChangeField("player_timecode")
+        runJsStorageChangeField("playlist_next")
+        runJsStorageChangeField("torrserver_preload")
+        runJsStorageChangeField("internal_torrclient")
+        runJsStorageChangeField("language")
+        runJsStorageChangeField("source")
+        runJsStorageChangeField("account_use") // get sync state
+        runJsStorageChangeField("recomends_list", "[]") // force update recs
     }
 
     fun changeTmdbUrls() {
         lifecycleScope.launch {
             runVoidJsFunc(
-                "AndroidJS.StorageChange",
+                "AndroidJS.storageChange",
                 "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
             )
             runVoidJsFunc(
-                "AndroidJS.StorageChange",
+                "AndroidJS.storageChange",
                 "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
             )
         }
     }
 
+    // Function to sync bookmarks (Required only for Android TV 8+)
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
     private fun syncBookmarks() {
-        // initialize if no favorite (undefined)
-        runVoidJsFunc("Lampa.Favorite.init", "")
-
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToAdd: ${this.wathToAdd}")
-        this.wathToAdd.forEach { // we need full card data here to add
-            val lampaCard = App.context.FAV?.card?.find { card -> card.id == it.id }
-                ?: it.card // js from intent
-            lampaCard?.let { card ->
-                card.fixCard()
-                if (BuildConfig.DEBUG) Log.d(
-                    "*****",
-                    "syncBookmarks() wathToAdd $card"
-                )
-                val id = card.id?.toIntOrNull()
-                id?.let {
-                    val params =
-                        if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
-                    runVoidJsFunc(
-                        "Lampa.Favorite.add",
-                        "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
-                    )
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
+            }
+            printLog("syncBookmarks() add to wath: ${App.context.wathToAdd}")
+            App.context.wathToAdd.forEach { item ->
+                val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
+                lampaCard?.let { card ->
+                    card.fixCard()
+                    val id = card.id?.toIntOrNull()
+                    id?.let {
+                        val params =
+                            if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
+                        withContext(Dispatchers.Main) {
+                            runVoidJsFunc(
+                                "Lampa.Favorite.add",
+                                "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                            )
+                        }
+                    }
+                }
+                delay(500) // don't do it too fast
+            }
+            // Remove items from various categories
+            listOf(
+                LampaProvider.LATE to App.context.wathToRemove,
+                LampaProvider.BOOK to App.context.bookToRemove,
+                LampaProvider.LIKE to App.context.likeToRemove,
+                LampaProvider.HIST to App.context.histToRemove,
+                LampaProvider.LOOK to App.context.lookToRemove,
+                LampaProvider.VIEW to App.context.viewToRemove,
+                LampaProvider.SCHD to App.context.schdToRemove,
+                LampaProvider.CONT to App.context.contToRemove,
+                LampaProvider.THRW to App.context.thrwToRemove
+            ).forEach { (category, items) ->
+                printLog("syncBookmarks() remove from $category: $items")
+                items.forEach { id ->
+                    withContext(Dispatchers.Main) {
+                        runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
+                    }
+                    delay(500) // don't do it too fast
                 }
             }
+            // don't do it again
+            App.context.clearPending()
         }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() wathToRemove: ${this.wathToRemove}")
-        this.wathToRemove.forEach {// delete items from later
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LATE}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() bookToRemove: ${this.bookToRemove}")
-        this.bookToRemove.forEach {// delete items from bookmarks
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.BOOK}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() likeToRemove: ${this.likeToRemove}")
-        this.likeToRemove.forEach {// delete items from likes
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LIKE}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() histToRemove: ${this.histToRemove}")
-        this.histToRemove.forEach {// delete items from history
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.HIST}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() lookToRemove: ${this.lookToRemove}")
-        this.lookToRemove.forEach {// delete items from look
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.LOOK}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() viewToRemove: ${this.viewToRemove}")
-        this.viewToRemove.forEach {// delete items from viewed
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.VIEW}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() schdToRemove: ${this.schdToRemove}")
-        this.schdToRemove.forEach {// delete items from scheduled
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.SCHD}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() contToRemove: ${this.contToRemove}")
-        this.contToRemove.forEach {// delete items from continued
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.CONT}', {id: $it}")
-        }
-        if (BuildConfig.DEBUG) Log.d("*****", "syncBookmarks() thrwToRemove: ${this.thrwToRemove}")
-        this.thrwToRemove.forEach {// delete items from thrown
-            runVoidJsFunc("Lampa.Favorite.remove", "'${LampaProvider.THRW}', {id: $it}")
-        }
-        // don't do it again
-        App.context.clearPending()
     }
 
-    private fun dumpStorage() {
-        val backupJavascript = "(function() {" +
-                "console.log('Backing up localStorage');" +
-                "AndroidJS.clear();" +
-                "for (var key in localStorage) { AndroidJS.set(key, localStorage.getItem(key)); }" +
-                "})()"
-        browser?.evaluateJavascript(backupJavascript) { Log.d(TAG, "localStorage backed up") }
+    private fun dumpStorage(callback: (String) -> Unit) {
+        val backupJavascript = """
+            (function() {
+                console.log('Backing up localStorage to App Prefs');
+                try {
+                    AndroidJS.clear();
+                    let count = 0;
+                    for (var key in localStorage) {
+                        AndroidJS.set(key, localStorage.getItem(key));
+                        count++;
+                    }
+                    return 'SUCCESS. ' + count + ' items backed up.';
+                } catch (error) {
+                    return 'FAILED: ' + error.message;
+                }
+            })()
+            """.trimIndent()
+        browser?.evaluateJavascript(backupJavascript) { result ->
+            if (result != null) {
+                Log.d(TAG, "localStorage backed up. Result $result")
+                callback(result) // Success
+            } else {
+                Log.e(TAG, "Failed to backup localStorage.")
+                callback(result) // Failure
+            }
+        }
     }
 
-    private fun restoreStorage() {
-        val restoreJavascript = "(function() {" +
-                "console.log('Restoring localStorage');" +
-                "AndroidJS.dump();" +
-                "var len = AndroidJS.size();" +
-                "for (i = 0; i < len; i++) { var key = AndroidJS.key(i);  console.log(key); localStorage.setItem(key, AndroidJS.get(key)); }" +
-                "})()"
-        browser?.evaluateJavascript(restoreJavascript) { Log.d(TAG, "localStorage restored") }
+    private fun restoreStorage(callback: (String) -> Unit) {
+        val restoreJavascript = """
+            (function() {
+                console.log('Restoring localStorage from App Prefs');
+                try {
+                    AndroidJS.dump();
+                    var len = AndroidJS.size();
+                    for (i = 0; i < len; i++) {
+                        var key = AndroidJS.key(i);
+                        console.log('[' + key + ']');
+                        localStorage.setItem(key, AndroidJS.get(key));
+                    }
+                    return 'SUCCESS. ' + len + ' items restored.';
+                } catch (error) {
+                    return 'FAILED: ' + error.message;
+                }
+            })()
+            """.trimIndent()
+        browser?.evaluateJavascript(restoreJavascript) { result ->
+            if (result != null) {
+                Log.d(TAG, "localStorage restored. Result $result")
+                callback(result) // Success
+            } else {
+                Log.e(TAG, "Failed to restore localStorage.")
+                callback(result) // Failure
+            }
+        }
     }
 
     private fun clearStorage() {
@@ -701,13 +791,10 @@ class MainActivity : AppCompatActivity(),
         var source = ""
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "***** processIntent data: " + intent?.toUri(0))
+            printLog("processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
                 for (key in it.keySet()) {
-                    Log.d(
-                        TAG,
-                        ("***** processIntent: data extras $key : ${it.get(key) ?: "NULL"}")
-                    )
+                    printLog("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
                 }
             }
         }
@@ -750,7 +837,7 @@ class MainActivity : AppCompatActivity(),
                         intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
                             LampaProvider.RECS -> {
-                                // Open Main
+                                // Open Main Page
                                 "{" +
                                         "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
                                     Locale.getDefault()
@@ -804,8 +891,8 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
             }
-        } else
-        // open card
+        } else {
+            // open card
             if (intID >= 0 && mediaType.isNotEmpty()) {
 //                var source = intent?.getStringExtra("source")
                 if (source.isEmpty())
@@ -829,6 +916,7 @@ class MainActivity : AppCompatActivity(),
                     )
                 }
             }
+        }
         // process search cmd
         val cmd = intent?.getStringExtra("cmd")
         if (!cmd.isNullOrBlank()) {
@@ -844,40 +932,68 @@ class MainActivity : AppCompatActivity(),
 
     private fun showMenuDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(5)
-        val menuItemsAction = arrayOfNulls<String?>(5)
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
 
-        menuItemsTitle[0] =
-            if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) getString(R.string.update_chan_title)
-            else if (isAndroidTV) getString(R.string.update_home_title) else getString(R.string.close_menu_title)
-        menuItemsAction[0] = "closeMenu"
-        menuItemsTitle[1] = getString(R.string.change_url_title)
-        menuItemsAction[1] = "showUrlInputDialog"
-        menuItemsTitle[2] = getString(R.string.change_engine)
-        menuItemsAction[2] = "showBrowserInputDialog"
-        menuItemsTitle[3] = getString(R.string.backup_restore_title)
-        menuItemsAction[3] = "showBackupDialog"
-        menuItemsTitle[4] = getString(R.string.exit)
-        menuItemsAction[4] = "appExit"
-
-        val icons = arrayOf(
-            if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24,
-            R.drawable.round_link_24,
-            R.drawable.round_explorer_24,
-            R.drawable.round_settings_backup_restore_24,
-            R.drawable.round_exit_to_app_24,
+        // Define menu items
+        val menuItems = mutableListOf(
+            MenuItem(
+                title = if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    getString(R.string.update_chan_title)
+                } else if (isAndroidTV) {
+                    getString(R.string.update_home_title)
+                } else {
+                    getString(R.string.close_menu_title)
+                },
+                action = "updateOrClose",
+                icon = if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24
+            ),
+            MenuItem(
+                title = getString(R.string.change_url_title),
+                action = "showUrlInputDialog",
+                icon = R.drawable.round_link_24
+            ),
+            MenuItem(
+                title = getString(R.string.change_engine),
+                action = "showBrowserInputDialog",
+                icon = R.drawable.round_explorer_24
+            ),
+            MenuItem(
+                title = getString(R.string.backup_restore_title),
+                action = "showBackupDialog",
+                icon = R.drawable.round_settings_backup_restore_24
+            ),
+            MenuItem(
+                title = getString(R.string.exit),
+                action = "appExit",
+                icon = R.drawable.round_exit_to_app_24
+            )
         )
-        val adapter: ListAdapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
 
-        menu.setTitle(getString(R.string.menu_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        val wvvMajorVersion: Double = try {
+            Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
+        } catch (_: NumberFormatException) {
+            0.0
+        }
+        if (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
+            menuItems.removeAt(2)
+
+        // Set up the adapter
+        val adapter = ImgArrayAdapter(
+            mainActivity,
+            menuItems.map { it.title }.toList(),
+            menuItems.map { it.icon }.toList()
+        )
+
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.menu_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
-            when (menuItemsAction[which]) {
-                "closeMenu" ->
+            when (menuItems[which].action) {
+                "updateOrClose" -> {
                     if (isAndroidTV) {
                         Scheduler.scheduleUpdate(false)
                     }
+                }
 
                 "showUrlInputDialog" -> {
                     App.toast(R.string.change_note)
@@ -893,87 +1009,126 @@ class MainActivity : AppCompatActivity(),
                 "appExit" -> appExit()
             }
         }
-        menu.setOnDismissListener {
+
+        // Set dismiss listener
+        dialogBuilder.setOnDismissListener {
             isMenuVisible = false
             showFab(true)
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
+
+        // Show the dialog
+        showFullScreenDialog(dialogBuilder.create())
         isMenuVisible = true
+    }
+
+    // Function to handle backup all settings
+    private fun backupAllSettings() {
+        lifecycleScope.launch {
+            dumpStorage { callback ->
+                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                    // Proceed with saving settings if the backup was successful
+                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                        App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
+                    } else {
+                        App.toast(R.string.settings_save_fail)
+                    }
+                } else {
+                    App.toast(R.string.settings_save_fail)
+                }
+            }
+        }
+    }
+
+    // Function to handle restore app settings
+    private fun restoreAppSettings() {
+        if (loadFromBackup(Prefs.APP_PREFERENCES)) {
+            App.toast(R.string.settings_restored)
+            recreate()
+        } else {
+            App.toast(R.string.settings_rest_fail)
+        }
+    }
+
+    // Function to handle restore Lampa settings
+    private fun restoreLampaSettings() {
+        lifecycleScope.launch {
+            if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                restoreStorage { callback ->
+                    if (callback.contains("SUCCESS", true)) {
+                        App.toast(R.string.settings_restored)
+                        recreate()
+                    } else {
+                        App.toast(R.string.settings_rest_fail)
+                    }
+                }
+            } else {
+                App.toast(R.string.settings_rest_fail)
+            }
+        }
+    }
+
+    // Function to handle restore default settings
+    private fun restoreDefaultSettings() {
+        clearStorage()
+        clearUrlHistory()
+        appPrefs.edit().clear().apply()
+        //defPrefs.edit().clear().apply()
+        recreate()
     }
 
     private fun showBackupDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle = arrayOfNulls<String?>(4)
-        val menuItemsAction = arrayOfNulls<String?>(4)
-        val icons = arrayOf(
-            R.drawable.round_settings_backup_restore_24,
-            R.drawable.round_refresh_24,
-            R.drawable.round_refresh_24,
-            R.drawable.round_close_24
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
+
+        // Define menu items
+        val menuItems = listOf(
+            MenuItem(
+                title = getString(R.string.backup_all_title),
+                action = "backupAllSettings",
+                icon = R.drawable.round_settings_backup_restore_24
+            ),
+            MenuItem(
+                title = getString(R.string.restore_app_title),
+                action = "restoreAppSettings",
+                icon = R.drawable.round_refresh_24
+            ),
+            MenuItem(
+                title = getString(R.string.restore_storage_title),
+                action = "restoreLampaSettings",
+                icon = R.drawable.round_refresh_24
+            ),
+            MenuItem(
+                title = getString(R.string.default_setting_title),
+                action = "restoreDefaultSettings",
+                icon = R.drawable.round_close_24
+            )
         )
-        menuItemsTitle[0] = getString(R.string.backup_all_title)
-        menuItemsAction[0] = "backupAllSettings"
-        menuItemsTitle[1] = getString(R.string.restore_app_title)
-        menuItemsAction[1] = "restoreAppSettings"
-        menuItemsTitle[2] = getString(R.string.restore_storage_title)
-        menuItemsAction[2] = "restoreLampaSettings"
-        menuItemsTitle[3] = getString(R.string.default_setting_title)
-        menuItemsAction[3] = "restoreDefaultSettings"
 
+        // Set up the adapter
+        val adapter = ImgArrayAdapter(
+            mainActivity,
+            menuItems.map { it.title }.toList(),
+            menuItems.map { it.icon }.toList()
+        )
 
-        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
-        menu.setTitle(getString(R.string.backup_restore_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.backup_restore_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
-            when (menuItemsAction[which]) {
-                "backupAllSettings" -> {
-                    lifecycleScope.launch {
-                        dumpStorage() // fixme: add callback
-                        delay(3000)
-                        if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
-                            App.toast(
-                                getString(
-                                    R.string.settings_saved_toast,
-                                    Backup.DIR.toString()
-                                )
-                            )
-                        else
-                            App.toast(R.string.settings_save_fail)
-                    }
-                }
-
-                "restoreAppSettings" -> {
-                    if (loadFromBackup(Prefs.APP_PREFERENCES)) {
-                        App.toast(R.string.settings_restored)
-                        recreate()
-                    } else
-                        App.toast(R.string.settings_rest_fail)
-                }
-
-                "restoreLampaSettings" -> {
-                    lifecycleScope.launch {
-                        if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
-                            restoreStorage() // fixme: add callback
-                            App.toast(R.string.settings_restored)
-                            delay(3000)
-                            recreate()
-                        } else
-                            App.toast(R.string.settings_rest_fail)
-                    }
-                }
-
-                "restoreDefaultSettings" -> {
-                    clearStorage()
-                    appPrefs.edit().clear().apply()
-                    recreate()
-                }
+            when (menuItems[which].action) {
+                "backupAllSettings" -> backupAllSettings()
+                "restoreAppSettings" -> restoreAppSettings()
+                "restoreLampaSettings" -> restoreLampaSettings()
+                "restoreDefaultSettings" -> restoreDefaultSettings()
             }
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
+
+        // Show the dialog
+        showFullScreenDialog(dialogBuilder.create())
+        // Set active row
         adapter.setSelectedItem(0)
+
+        // Check storage permissions
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
         }
@@ -981,70 +1136,77 @@ class MainActivity : AppCompatActivity(),
 
     private fun showBrowserInputDialog() {
         val mainActivity = this
-        val menu = AlertDialog.Builder(mainActivity)
-        val menuItemsTitle: Array<String?>
-        val menuItemsAction: Array<String?>
-        val icons: Array<Int>
-        var current = 0
-        if (Helpers.isWebViewAvailable(this)) {
-            menuItemsTitle = arrayOfNulls(2)
-            menuItemsAction = arrayOfNulls(2)
-            val wvv = Helpers.getWebViewVersion(mainActivity)
-            val wvvMajorVersion: Double = try {
-                wvv.substringBefore(".").toDouble()
-            } catch (npe: NumberFormatException) {
+        val dialogBuilder = AlertDialog.Builder(mainActivity)
+        var selectedIndex = 0
+
+        // Determine available browser options
+        val (menuItemsTitle, menuItemsAction, icons) = if (Helpers.isWebViewAvailable(this)) {
+            val webViewVersion = Helpers.getWebViewVersion(mainActivity)
+            val webViewMajorVersion = try {
+                webViewVersion.substringBefore(".").toDouble()
+            } catch (_: NumberFormatException) {
                 0.0
             }
-            menuItemsAction[0] = "XWalk"
-            menuItemsAction[1] = "SysView"
-            if (menuItemsAction[0] == SELECTED_BROWSER) {
-                menuItemsTitle[0] =
-                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
-                menuItemsTitle[1] = "${getString(R.string.engine_webkit)} $wvv"
+
+            val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
+            val crosswalkTitle = if (isCrosswalkActive) {
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
             } else {
-                menuItemsTitle[0] =
-                    if (wvvMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
-                    else "${getString(R.string.engine_crosswalk)} 53.589.4"
-                menuItemsTitle[1] =
-                    "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $wvv"
-                current = 1
+                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
+                else "${getString(R.string.engine_crosswalk)} 53.589.4"
             }
-            icons = arrayOf(
-                R.drawable.round_explorer_24,
-                R.drawable.round_explorer_24
-            )
+
+            val webkitTitle = if (isCrosswalkActive) {
+                "${getString(R.string.engine_webkit)} $webViewVersion"
+            } else {
+                "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $webViewVersion"
+            }
+
+            val titles = listOf(crosswalkTitle, webkitTitle)
+            val actions = listOf("XWalk", "SysView")
+            val icons = listOf(R.drawable.round_explorer_24, R.drawable.round_explorer_24)
+            selectedIndex = if (isCrosswalkActive) 0 else 1
+
+            Triple(titles, actions, icons)
         } else {
-            menuItemsTitle = arrayOfNulls(1)
-            menuItemsAction = arrayOfNulls(1)
-            menuItemsAction[0] = "XWalk"
-            if (menuItemsAction[0] == SELECTED_BROWSER) {
-                menuItemsTitle[0] =
-                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
+            val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
             } else {
-                menuItemsTitle[0] = getString(R.string.engine_crosswalk)
+                getString(R.string.engine_crosswalk)
             }
-            icons = arrayOf(R.drawable.round_explorer_24)
+
+            val titles = listOf(crosswalkTitle)
+            val actions = listOf("XWalk")
+            val icons = listOf(R.drawable.round_explorer_24)
+            selectedIndex = 0
+
+            Triple(titles, actions, icons)
         }
+
+        // Set up the adapter
         val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
-        menu.setTitle(getString(R.string.change_engine_title))
-        menu.setAdapter(adapter) { dialog, which ->
+        adapter.setSelectedItem(selectedIndex)
+
+        // Configure the dialog
+        dialogBuilder.setTitle(getString(R.string.change_engine_title))
+        dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                menuItemsAction[which]?.let { this.appBrowser = it }
+                this.appBrowser = menuItemsAction[which]
                 mainActivity.recreate()
             }
         }
-        val menuDialog = menu.create()
-        menuDialog.show()
-        adapter.setSelectedItem(current)
+
+        // Show the dialog
+        showFullScreenDialog(dialogBuilder.create())
     }
 
     private class UrlAdapter(context: Context) :
         ArrayAdapter<String>(
             context,
-            R.layout.lampa_dropdown_item, // custom dropdown layout
+            R.layout.lampa_dropdown_item, // Custom dropdown layout
             android.R.id.text1, // ID of the TextView in the custom layout
-            context.urlHistory.toMutableList()
+            context.urlHistory.toMutableList() // Load URL history
         )
 
     fun showUrlInputDialog(msg: String = "") {
@@ -1052,112 +1214,198 @@ class MainActivity : AppCompatActivity(),
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
-        val builder = AlertDialog.Builder(mainActivity)
-        builder.setTitle(R.string.input_url_title)
+
+        // Inflate the dialog view
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val tilt = view.findViewById<TextInputLayout>(R.id.tiltLampaUrl)
         val input = view.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
-        // Set up the input
+
+        // Build the dialog
+        val builder = AlertDialog.Builder(mainActivity).apply {
+            setTitle(R.string.input_url_title)
+            setView(view)
+            setPositiveButton(R.string.save) { _, _ -> handleSaveButtonClick(input) }
+            setNegativeButton(R.string.cancel) { di, _ -> handleCancelButtonClick(di) }
+            setNeutralButton(R.string.migrate) { _, _ -> } // Override later
+        }
+
+        // Show the dialog
+        dialog = builder.create()
+
+        // Set up the input field
+        setupInputField(input, tilt, msg, dialog, inputManager)
+
+        showFullScreenDialog(dialog)
+
+        // Set up the migrate button
+        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
+            handleMigrateButtonClick(dialog)
+        }
+
+        // Automatically show the keyboard
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+    }
+
+    // Helper function to set up the input field
+    private fun setupInputField(
+        input: AutoCompleteTV?,
+        tilt: TextInputLayout?,
+        msg: String,
+        dialog: AlertDialog?,
+        inputManager: InputMethodManager
+    ) {
         input?.apply {
             setText(LAMPA_URL.ifEmpty { "http://lampa.mx" })
             if (msg.isNotEmpty()) {
-                tilt.isErrorEnabled = true
-                tilt.error = msg
+                tilt?.isErrorEnabled = true
+                tilt?.error = msg
             }
             setAdapter(urlAdapter)
+
             if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
                 setOnFocusChangeListener { _, hasFocus ->
-                    if (hasFocus && !this.isPopupShowing) {
-                        this.showDropDown()
+                    if (hasFocus && !isPopupShowing) {
+                        showDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
                     } else {
-                        this.dismissDropDown()
+                        dismissDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
                     }
                 }
                 setOnItemClickListener { _, _, _, _ ->
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
                 }
                 setOnClickListener {
-                    this.dismissDropDown()
+                    dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    inputManager.showSoftInput(this, 0) // SHOW_IMPLICIT
+                    inputManager.showSoftInput(this, 0)
                 }
             }
-            setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->
-                if (actionId == EditorInfo.IME_ACTION_NEXT) {
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
-                    return@OnEditorActionListener true
+
+            setOnEditorActionListener { _, actionId, _ ->
+                when (actionId) {
+                    EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
+                        inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
+                        dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                        true
+                    }
+
+                    else -> false
                 }
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus() // performClick()
-                    return@OnEditorActionListener true
-                }
-                false
-            })
+            }
         }
-        builder.setView(view)
-        // Set up the buttons
-        builder.setPositiveButton(R.string.save) { _: DialogInterface?, _: Int ->
-            LAMPA_URL = input?.text.toString()
-            if (URL_PATTERN.matcher(LAMPA_URL).matches()) {
-                println("URL '$LAMPA_URL' is valid")
-                if (this.appUrl != LAMPA_URL) {
-                    this.appUrl = LAMPA_URL
-                    this.addUrlHistory(LAMPA_URL)
-                    browser?.loadUrl(LAMPA_URL)
-                    App.toast(R.string.change_url_press_back)
+    }
+
+    // Helper function to handle the save button click
+    private fun handleSaveButtonClick(input: AutoCompleteTV?) {
+        LAMPA_URL = input?.text.toString()
+        if (isValidUrl(LAMPA_URL)) {
+            Log.d(TAG, "URL '$LAMPA_URL' is valid")
+            if (this.appUrl != LAMPA_URL) {
+                this.appUrl = LAMPA_URL
+                this.addUrlHistory(LAMPA_URL)
+                browser?.loadUrl(LAMPA_URL)
+                App.toast(R.string.change_url_press_back)
+            } else {
+                browser?.loadUrl(LAMPA_URL) // Reload current URL
+            }
+        } else {
+            Log.d(TAG, "URL '$LAMPA_URL' is invalid")
+            App.toast(R.string.invalid_url)
+            showUrlInputDialog()
+        }
+        // hideSystemUI()
+    }
+
+    // Helper function to handle the cancel button click
+    private fun handleCancelButtonClick(dialog: DialogInterface) {
+        dialog.cancel()
+        if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
+            appExit()
+        } else {
+            LAMPA_URL = this.appUrl
+            // hideSystemUI()
+        }
+    }
+
+    private fun addProgressIndicatorToDialog(dialog: AlertDialog) {
+        // Access the dialog's root view
+        val rootView = dialog.window?.decorView?.findViewById<ViewGroup>(android.R.id.content)
+        // Create a LinearProgressIndicator
+        progressIndicator = LinearProgressIndicator(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            isIndeterminate = true // Set to indeterminate mode
+            trackCornerRadius = dp2px(dialog.context, 2.0F)
+            trackThickness = dp2px(dialog.context, 4.0F)
+            visibility = LinearProgressIndicator.VISIBLE // Make it visible by default
+        }
+        // Add the progress indicator to the dialog's layout
+        if (rootView is LinearLayout) {
+            // rootView.addView(progressIndicator) // Add at the bottom
+            rootView.addView(progressIndicator, 0) // Add at the top of the layout
+        } else {
+            // If the root view is not a LinearLayout, wrap it in a new LinearLayout
+            val newLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+            // Remove the rootView from its current parent (if it has one)
+            (rootView?.parent as? ViewGroup)?.removeView(rootView)
+            // Add the progress indicator and the existing rootView to the new layout
+            newLayout.addView(progressIndicator) // Add to top
+            newLayout.addView(rootView)
+            // Set the new layout as the dialog's content view
+            dialog.window?.setContentView(newLayout)
+        }
+    }
+
+    // Function to control the visibility of the progress indicator
+    private fun setProgressIndicatorVisibility(isVisible: Boolean) {
+        if (::progressIndicator.isInitialized) {
+            progressIndicator.visibility =
+                if (isVisible) LinearProgressIndicator.VISIBLE else LinearProgressIndicator.GONE
+        }
+    }
+
+    private fun handleMigrateButtonClick(dialog: AlertDialog) {
+        // Add a LinearProgressIndicator to the dialog
+        addProgressIndicatorToDialog(dialog)
+        // Show the loader progress
+        setProgressIndicatorVisibility(true)
+        lifecycleScope.launch {
+            dumpStorage { callback ->
+                setProgressIndicatorVisibility(false) // Hide the progress indicator
+                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                    Log.d(TAG, "handleMigrateButtonClick: dumpStorage completed - $callback")
+                    this@MainActivity.migrate = true
+                    val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+                    handleSaveButtonClick(input)
+                    dialog.dismiss()
                 } else {
-                    browser?.loadUrl(LAMPA_URL) // reload current URL
+                    Log.e(TAG, "handleMigrateButtonClick: dumpStorage failed - $callback")
+                    // try use backup on Error
+                    if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
+                        Log.d(TAG, "handleMigrateButtonClick: do migrate from backup")
+                        this@MainActivity.migrate = true
+                        val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
+                        handleSaveButtonClick(input)
+                        dialog.dismiss()
+                    } else App.toast(R.string.settings_migrate_fail)
                 }
-            } else {
-                println("URL '$LAMPA_URL' is invalid")
-                App.toast(R.string.invalid_url)
-                showUrlInputDialog()
-            }
-            hideSystemUI()
-        }
-        builder.setNegativeButton(R.string.cancel) { di: DialogInterface, _: Int ->
-            di.cancel()
-            if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
-                appExit()
-            } else {
-                LAMPA_URL = this.appUrl
-                hideSystemUI()
             }
         }
-//        builder.setNeutralButton(R.string.exit) { di: DialogInterface, _: Int ->
-//            di.cancel()
-//            appExit()
-//        }
-        builder.setNeutralButton(R.string.backup_all) { _: DialogInterface, _: Int ->
-            //Do nothing here because we override this button later
-        }
-        // show dialog
-        dialog = builder.create()
-        dialog.show()
-        // setup backup button
-        dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
-            val wantToCloseDialog = false
-            // Do stuff, possibly set wantToCloseDialog to true then...
-            lifecycleScope.launch {
-                dumpStorage() // fixme: add callback
-                delay(3000)
-                if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES))
-                    App.toast(
-                        getString(
-                            R.string.settings_saved_toast,
-                            Backup.DIR.toString()
-                        )
-                    )
-                else
-                    App.toast(R.string.settings_save_fail)
-            }
-            if (wantToCloseDialog) dialog.dismiss()
-            // else dialog stays open
-        }
+    }
+
+    // Helper function to validate URLs
+    private fun isValidUrl(url: String): Boolean {
+        return Patterns.WEB_URL.matcher(url).matches()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -1165,7 +1413,7 @@ class MainActivity : AppCompatActivity(),
             || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
             || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
         ) {
-            println("Menu key pressed")
+            Log.d(TAG, "Menu key pressed")
             showMenuDialog()
             return true
         }
@@ -1174,7 +1422,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            println("Back button long pressed")
+            Log.d(TAG, "Back button long pressed")
             showMenuDialog()
             return true
         }
@@ -1201,6 +1449,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onResume() {
+        printLog("onResume()")
         super.onResume()
         hideSystemUI()
         if (!this.isTvBox) setupFab()
@@ -1210,13 +1459,14 @@ class MainActivity : AppCompatActivity(),
         mXWalkInitializer?.initAsync()
         if (browserInit) {
             browser?.resumeTimers()
+            printLog("onResume() syncBookmarks()")
             syncBookmarks()
         }
     }
 
     // handle user pressed Home
     override fun onUserLeaveHint() {
-        Log.d(TAG, "onUserLeaveHint()")
+        printLog("onUserLeaveHint()")
         if (browserInit) {
             browser?.pauseTimers()
             browser?.clearCache(true)
@@ -1226,7 +1476,7 @@ class MainActivity : AppCompatActivity(),
 
     // handle configuration changes (language / screen orientation)
     override fun onConfigurationChanged(newConfig: Configuration) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onConfigurationChanged()")
+        printLog("onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
         hideSystemUI()
         showFab(true)
@@ -1261,7 +1511,7 @@ class MainActivity : AppCompatActivity(),
             putString("playJSONArray", playJSONArray.toString())
             apply()
         }
-        Log.d("*****", "saveLastPlayed $playJSONArray")
+        Log.d(TAG, "saveLastPlayed $playJSONArray")
         // store to prefs for resume from WatchNext
         this.playActivityJS = lampaActivity
     }
@@ -1340,7 +1590,7 @@ class MainActivity : AppCompatActivity(),
                 runPlayer(jsonObject, SELECTED_PLAYER!!)
             }
             val playerChooserDialog = playerChooser.create()
-            playerChooserDialog.show()
+            showFullScreenDialog(playerChooserDialog)
             playerChooserDialog.listView.requestFocus()
         } else {
             var videoPosition: Long = 0
@@ -1502,7 +1752,10 @@ class MainActivity : AppCompatActivity(),
                             if (listUrls.isNotEmpty()) {
                                 intent.putStringArrayListExtra("videoList", listUrls)
                             } else {
-                                intent.putStringArrayListExtra("videoList", arrayListOf(videoUrl))
+                                intent.putStringArrayListExtra(
+                                    "videoList",
+                                    arrayListOf(videoUrl)
+                                )
                             }
                         }
                     }
@@ -1605,10 +1858,7 @@ class MainActivity : AppCompatActivity(),
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     val vimuVersionNumber =
                         getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
-                    if (BuildConfig.DEBUG) Log.d(
-                        "*****",
-                        "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber"
-                    )
+                    printLog("ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
@@ -1659,21 +1909,17 @@ class MainActivity : AppCompatActivity(),
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
                 if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+                    printLog("INTENT: " + intent.toUri(0))
                     intent.extras?.let {
                         for (key in it.keySet()) {
                             if (key == "headers")
-                                Log.d(
-                                    TAG,
-                                    ("INTENT: data extras $key : ${
+                                printLog(
+                                    "INTENT: data extras $key : ${
                                         it.getStringArray(key)?.toList()
-                                    }")
+                                    }"
                                 )
                             else
-                                Log.d(
-                                    TAG,
-                                    ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                                )
+                                printLog("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
                         }
                     }
                 }
@@ -1709,16 +1955,13 @@ class MainActivity : AppCompatActivity(),
                     card?.let {
                         it.fixCard()
                         try {
-                            if (BuildConfig.DEBUG) Log.d("*****", "resultPlayer PlayNext $it")
+                            printLog("resultPlayer PlayNext $it")
                             if (!ended)
                                 WatchNext.addLastPlayed(it)
                             else
                                 WatchNext.removeContinueWatch()
                         } catch (e: Exception) {
-                            if (BuildConfig.DEBUG) Log.d(
-                                "*****",
-                                "resultPlayer Error add $it to WatchNext: $e"
-                            )
+                            printLog("resultPlayer Error add $it to WatchNext: $e")
                         }
                     }
                 }
@@ -1771,10 +2014,7 @@ class MainActivity : AppCompatActivity(),
                 this.resumeJS = resumeio.toString()
             }
             if (i in playIndex until returnIndex) {
-                if (BuildConfig.DEBUG) Log.d(
-                    "*****",
-                    "mark complete index $i (in range from $playIndex to $returnIndex)"
-                )
+                printLog("mark complete index $i (in range from $playIndex to $returnIndex)")
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
                 newTimeline.put("percent", 100)
@@ -1789,9 +2029,9 @@ class MainActivity : AppCompatActivity(),
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
             if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
-                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer not available!")
+                printLog("SpeechRecognizer not available!")
             } else {
-                if (BuildConfig.DEBUG) Log.d("*****", "SpeechRecognizer available!")
+                printLog("SpeechRecognizer available!")
             }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1878,42 +2118,83 @@ class MainActivity : AppCompatActivity(),
                     dialog?.dismiss()
                     val query = etSearch.text.toString()
                     if (query.isNotEmpty()) {
-                        runVoidJsFunc("window.voiceResult", "'" + query.replace("'", "\\'") + "'")
+                        runVoidJsFunc(
+                            "window.voiceResult",
+                            "'" + query.replace("'", "\\'") + "'"
+                        )
                     } else { // notify user
                         App.toast(R.string.search_is_empty)
                     }
                 }
                 .create()
-
-            // top position (no keyboard overlap)
-            val lp = dialog.window?.attributes
-            lp?.apply {
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                verticalMargin = 0.1F
-            }
+                .apply {
+                    window?.apply {
+                        // top position (no keyboard overlap)
+                        attributes = attributes.apply {
+                            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                            verticalMargin = 0.1F
+                        }
+                    }
+                }
             // show fullscreen dialog
-            dialog.window?.setFlags(
+            showFullScreenDialog(dialog)
+            // run voice search
+            btnVoice?.performClick()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun showFullScreenDialog(dialog: AlertDialog?) {
+        dialog?.apply {
+            // Set the dialog to be not focusable initially
+            window?.setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             )
-            // set fullscreen mode (immersive sticky):
-            @Suppress("DEPRECATION")
-            var uiFlags: Int = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
-            if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                @Suppress("DEPRECATION")
-                uiFlags = uiFlags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            if (VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                // Use systemUiVisibility for older APIs
+                window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                } else {
+                    0
+                })
+                // make navbar translucent
+                if (VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    window?.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+                }
             }
-            @Suppress("DEPRECATION")
-            dialog.window?.decorView?.systemUiVisibility = uiFlags
-            dialog.show()
-            dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            // Show the dialog
+            show()
+            // Ensure the window is ready before accessing WindowInsetsController
+            window?.decorView?.let { decorView ->
+                if (VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Use WindowInsetsController for API 30+
+                    decorView.viewTreeObserver.addOnWindowAttachListener(object :
+                        ViewTreeObserver.OnWindowAttachListener {
+                        override fun onWindowAttached() {
+                            // Window is attached, now it's safe to access WindowInsetsController
+                            decorView.windowInsetsController?.let { controller ->
+                                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                                controller.systemBarsBehavior =
+                                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            }
+                            // Remove the listener to avoid memory leaks
+                            decorView.viewTreeObserver.removeOnWindowAttachListener(this)
+                        }
 
-            // run voice search
-            btnVoice?.performClick()
+                        override fun onWindowDetached() {
+                            // No-op
+                        }
+                    })
+                }
+            }
+            // Clear the not focusable flag after the dialog is shown
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         }
     }
 
@@ -1950,9 +2231,9 @@ class MainActivity : AppCompatActivity(),
                         langTag.split("-")[0],
                         langTag.split("-")[1]
                     ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
-                    if (BuildConfig.DEBUG) Log.d("*****", "appLang = $appLang")
-                    if (BuildConfig.DEBUG) Log.d("*****", "langTag = $langTag")
-                    if (BuildConfig.DEBUG) Log.d("*****", "locale = $locale")
+                    printLog("appLang = $appLang")
+                    printLog("langTag = $langTag")
+                    printLog("locale = $locale")
                     setLocale(locale)
                     startListening(progress, object : SpeechDelegate {
                         private var success = true
@@ -1969,7 +2250,9 @@ class MainActivity : AppCompatActivity(),
                             for (res in results) {
                                 str.append(res).append(" ")
                             }
-                            Log.i("speech", "partial result: " + str.toString().trim { it <= ' ' })
+                            Log.i(
+                                "speech",
+                                "partial result: " + str.toString().trim { it <= ' ' })
                             onSpeech(str.toString().trim { it <= ' ' }, false, success)
                         }
 
@@ -2040,7 +2323,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun runJsStorageChangeField(name: String) {
         runVoidJsFunc(
-            "AndroidJS.StorageChange",
+            "AndroidJS.storageChange",
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.field('${name}')" +
@@ -2050,7 +2333,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun runJsStorageChangeField(name: String, default: String) {
         runVoidJsFunc(
-            "AndroidJS.StorageChange",
+            "AndroidJS.storageChange",
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.get('${name}', '$default')" +
@@ -2059,13 +2342,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && progressBar?.visibility == View.GONE) {
+        if (browserInit && loaderView?.visibility == View.GONE) {
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
-                    + "return 'ok';"
+                    + "return 'OK';"
                     + "} catch (e) {"
-                    + "return 'error: ' + e.message;"
+                    + "return 'Error: ' + e.message;"
                     + "}"
                     + "})();")
             browser?.evaluateJavascript(
@@ -2073,7 +2356,7 @@ class MainActivity : AppCompatActivity(),
             ) { r: String ->
                 Log.i(
                     "runVoidJsFunc",
-                    "$funcName($params) $r"
+                    "$funcName($params) Result $r"
                 )
             }
         } else {

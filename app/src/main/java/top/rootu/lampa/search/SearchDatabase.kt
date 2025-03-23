@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.tmdb.TMDB
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.io.IOException
@@ -126,12 +127,7 @@ object SearchDatabase {
         // rating
         ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
         // poster
-        val resourceId = R.drawable.empty_poster // in-app poster
-        val emptyPoster = Uri.Builder().scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-            .authority(App.context.resources.getResourcePackageName(resourceId))
-            .appendPath(App.context.resources.getResourceTypeName(resourceId))
-            .appendPath(App.context.resources.getResourceEntryName(resourceId)).build()
-        val poster = ent.backdrop_path ?: ent.poster_path ?: emptyPoster
+        val poster = ent.backdrop_path ?: ent.poster_path ?: getDefaultPosterUri()
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) arrayOf(
             ent.id ?: "", // id
             ent.title ?: "", // name

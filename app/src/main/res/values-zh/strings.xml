@@ -84,8 +84,10 @@
     <string name="change_note">此操作可以将 Lampa 设置重置为其默认值。 在此更改之前，建议对您的设置进行备份！</string>
     <string name="settings_saved_toast">所有设置已保存到 %s</string>
     <string name="settings_save_fail">无法备份设置</string>
+    <string name="settings_migrate_fail">无法迁移设置</string>
     <string name="settings_rest_fail">无法恢复设置</string>
     <string name="settings_restored">设置已恢复</string>
+    <string name="migrate">迁移</string>
     <!--App Errors-->
     <string name="app_crash_title">抱歉给您带来不便</string>
     <string name="app_crash_message">Lampa 有时会出现故障，但不必担心。我们将在下次更新中修复此问题。您可以在我们的 Telegram 频道 - @lampa_group 中报告此错误。请点击“重启应用”按钮继续。</string>    <string name="app_crash_copy">将日志复制到剪贴板</string>

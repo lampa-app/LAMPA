@@ -1,14 +1,18 @@
 package top.rootu.lampa.content
 
+import android.util.Log
 import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
+import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.models.LampaCard
 
-abstract class LampaProviderI : Any() {
-    abstract fun get(): ReleaseID?
+abstract class LampaProviderI {
+    abstract fun get(): LampaContent?
 }
 
-data class ReleaseID(
+data class LampaContent(
     val items: List<LampaCard>?
 )
 
@@ -25,6 +29,7 @@ object LampaProvider {
     const val CONT = "continued"
     const val THRW = "thrown"
 
+    // Map of provider names to provider instances
     private val providers = mapOf(
         RECS to Recs(),
         BOOK to Bookmarks(),
@@ -37,29 +42,65 @@ object LampaProvider {
         THRW to Thrown(),
     )
 
-    fun get(name: String, filter: Boolean): ReleaseID? {
-        providers[name]?.let { provider ->
-            synchronized(provider) {
-                try {
-                    provider.get()?.let { rls ->
-                        if (filter)
-                            return ReleaseID(filterViewed(rls.items.orEmpty()))
-                        return rls
-                    }
-                    return null
-                } catch (e: Exception) {
-                    return null
+    /**
+     * Retrieves content from the specified provider.
+     *
+     * @param name The name of the provider.
+     * @param filter Whether to filter out viewed or historical content.
+     * @return A LampaContent object containing the content, or null if an error occurs.
+     */
+    fun get(name: String, filter: Boolean): LampaContent? {
+        val provider = providers[name] ?: return null
+        return synchronized(provider) {
+            try {
+                val release = provider.get() ?: return@synchronized null
+                if (filter) {
+                    LampaContent(filterViewed(release.items.orEmpty()))
+                } else {
+                    release
                 }
+            } catch (e: Exception) {
+                Log.e("LampaProvider", "Error retrieving content from provider $name", e)
+                null
             }
-        } ?: let {
-            return null
         }
     }
 
+    /**
+     * Filters out content that has been viewed or is in the history.
+     *
+     * @param lst The list of LampaCard objects to filter.
+     * @return A filtered list of LampaCard objects.
+     */
     private fun filterViewed(lst: List<LampaCard>): List<LampaCard> {
+        val fav = App.context.FAV
+        val cub = App.context.CUB
+        val syncEnabled = App.context.syncEnabled
+
+        // Precompute sets of IDs for faster lookup
+        val favHistoryIds = if (!syncEnabled) fav?.history?.toSet() ?: emptySet() else emptySet()
+        val favViewedIds = if (!syncEnabled) fav?.viewed?.toSet() ?: emptySet() else emptySet()
+        val cubHistoryIds =
+            if (syncEnabled) cub?.filter { it.type == HIST }?.mapNotNull { it.card_id }?.toSet()
+                ?: emptySet() else emptySet()
+        val cubViewedIds =
+            if (syncEnabled) cub?.filter { it.type == VIEW }?.mapNotNull { it.card_id }?.toSet()
+                ?: emptySet() else emptySet()
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "favHistoryIds: $favHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "favViewedIds: $favViewedIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubHistoryIds: $cubHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubViewedIds: $cubViewedIds")
+
         return lst.filter { card ->
-            App.context.FAV?.viewed?.contains(card.id) != true &&
-                    App.context.FAV?.history?.contains(card.id) != true
+            val isInHistory = card.id in favHistoryIds || card.id in cubHistoryIds
+            val isInViewed = card.id in favViewedIds || card.id in cubViewedIds
+            if (isInHistory || isInViewed) {
+                if (BuildConfig.DEBUG) Log.d(
+                    "filterViewed",
+                    "Excluded card: ${card.id} (in history: $isInHistory, in viewed: $isInViewed)"
+                )
+            }
+            !isInHistory && !isInViewed
         }
     }
 }
