@@ -84,6 +84,7 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
@@ -184,11 +185,7 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         LAMPA_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
-        if (BuildConfig.DEBUG) Log.d(
-            TAG,
-            "onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER"
-        )
-
+        printLog("onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
         playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
@@ -204,7 +201,7 @@ class MainActivity : AppCompatActivity(),
 
         if (this.firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
-                if (BuildConfig.DEBUG) Log.d(TAG, "First run scheduleUpdate(sync: true)")
+                printLog("First run scheduleUpdate(sync: true)")
                 Scheduler.scheduleUpdate(true)
             }
         }
@@ -212,7 +209,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (BuildConfig.DEBUG) Log.d(TAG, "onNewIntent() processIntent")
+        printLog("onNewIntent() processIntent")
         processIntent(intent)
     }
 
@@ -224,7 +221,7 @@ class MainActivity : AppCompatActivity(),
             setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
-        if (BuildConfig.DEBUG) Log.d(TAG, "onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
+        printLog("onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
         if (LAMPA_URL.isEmpty()) {
             showUrlInputDialog()
         } else {
@@ -590,17 +587,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onXWalkInitStarted() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitStarted()")
+        printLog("onXWalkInitStarted()")
     }
 
     override fun onXWalkInitCancelled() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCancelled()")
+        printLog("onXWalkInitCancelled()")
         // Perform error handling here
         finish()
     }
 
     override fun onXWalkInitFailed() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitFailed()")
+        printLog("onXWalkInitFailed()")
         if (mXWalkUpdater == null) {
             mXWalkUpdater = MyXWalkUpdater(this, this)
         }
@@ -609,13 +606,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onXWalkInitCompleted() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkInitCompleted()")
+        printLog("onXWalkInitCompleted()")
         browser = XWalk(this, R.id.xWalkView)
         browser?.init()
     }
 
     override fun onXWalkUpdateCancelled() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onXWalkUpdateCancelled()")
+        printLog("onXWalkUpdateCancelled()")
         // Perform error handling here
         finish()
     }
@@ -679,10 +676,7 @@ class MainActivity : AppCompatActivity(),
             withContext(Dispatchers.Main) {
                 runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
             }
-            if (BuildConfig.DEBUG) Log.d(
-                TAG,
-                "syncBookmarks() add to wath: ${App.context.wathToAdd}"
-            )
+            printLog("syncBookmarks() add to wath: ${App.context.wathToAdd}")
             App.context.wathToAdd.forEach { item ->
                 val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
                 lampaCard?.let { card ->
@@ -713,7 +707,7 @@ class MainActivity : AppCompatActivity(),
                 LampaProvider.CONT to App.context.contToRemove,
                 LampaProvider.THRW to App.context.thrwToRemove
             ).forEach { (category, items) ->
-                if (BuildConfig.DEBUG) Log.d(TAG, "syncBookmarks() remove from $category: $items")
+                printLog("syncBookmarks() remove from $category: $items")
                 items.forEach { id ->
                     withContext(Dispatchers.Main) {
                         runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
@@ -792,17 +786,12 @@ class MainActivity : AppCompatActivity(),
         var mediaType = ""
         var source = ""
 
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "processIntent data: " + intent?.toUri(0))
+            printLog("processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
                 for (key in it.keySet()) {
-                    Log.d(
-                        TAG,
-                        ("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
-                    )
+                    printLog("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
                 }
             }
-        }
 
         if (intent?.hasExtra("id") == true)
             intID = intent.getIntExtra("id", -1)
@@ -933,7 +922,6 @@ class MainActivity : AppCompatActivity(),
         }
         // fix focus
         browser?.setFocus()
-        // clear Intent
     }
 
     private fun showMenuDialog() {
@@ -1480,7 +1468,7 @@ class MainActivity : AppCompatActivity(),
 
     // handle configuration changes (language / screen orientation)
     override fun onConfigurationChanged(newConfig: Configuration) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "onConfigurationChanged()")
+        printLog("onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
         hideSystemUI()
         showFab(true)
@@ -1862,10 +1850,7 @@ class MainActivity : AppCompatActivity(),
                 "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                     val vimuVersionNumber =
                         getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
-                    if (BuildConfig.DEBUG) Log.d(
-                        TAG,
-                        "ViMu ($SELECTED_PLAYER) version $vimuVersionNumber"
-                    )
+                    printLog("ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
                     intent.setPackage(SELECTED_PLAYER)
                     intent.putExtra("headers", headers.toTypedArray())
                     // see https://vimu.tv/player-api
@@ -1916,21 +1901,13 @@ class MainActivity : AppCompatActivity(),
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
                 if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "INTENT: " + intent.toUri(0))
+                    printLog("INTENT: " + intent.toUri(0))
                     intent.extras?.let {
                         for (key in it.keySet()) {
                             if (key == "headers")
-                                Log.d(
-                                    TAG,
-                                    ("INTENT: data extras $key : ${
-                                        it.getStringArray(key)?.toList()
-                                    }")
-                                )
+                                printLog("INTENT: data extras $key : ${it.getStringArray(key)?.toList()}")
                             else
-                                Log.d(
-                                    TAG,
-                                    ("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                                )
+                                printLog("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
                         }
                     }
                 }
@@ -1966,16 +1943,13 @@ class MainActivity : AppCompatActivity(),
                     card?.let {
                         it.fixCard()
                         try {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "resultPlayer PlayNext $it")
+                            printLog("resultPlayer PlayNext $it")
                             if (!ended)
                                 WatchNext.addLastPlayed(it)
                             else
                                 WatchNext.removeContinueWatch()
                         } catch (e: Exception) {
-                            if (BuildConfig.DEBUG) Log.d(
-                                TAG,
-                                "resultPlayer Error add $it to WatchNext: $e"
-                            )
+                            printLog("resultPlayer Error add $it to WatchNext: $e")
                         }
                     }
                 }
@@ -2028,10 +2002,7 @@ class MainActivity : AppCompatActivity(),
                 this.resumeJS = resumeio.toString()
             }
             if (i in playIndex until returnIndex) {
-                if (BuildConfig.DEBUG) Log.d(
-                    TAG,
-                    "mark complete index $i (in range from $playIndex to $returnIndex)"
-                )
+                printLog("mark complete index $i (in range from $playIndex to $returnIndex)")
                 val newTimeline = JSONObject()
                 newTimeline.put("hash", hash)
                 newTimeline.put("percent", 100)
@@ -2046,9 +2017,9 @@ class MainActivity : AppCompatActivity(),
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
             if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "SpeechRecognizer not available!")
+                printLog("SpeechRecognizer not available!")
             } else {
-                if (BuildConfig.DEBUG) Log.d(TAG, "SpeechRecognizer available!")
+                printLog("SpeechRecognizer available!")
             }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -2248,9 +2219,9 @@ class MainActivity : AppCompatActivity(),
                         langTag.split("-")[0],
                         langTag.split("-")[1]
                     ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
-                    if (BuildConfig.DEBUG) Log.d(TAG, "appLang = $appLang")
-                    if (BuildConfig.DEBUG) Log.d(TAG, "langTag = $langTag")
-                    if (BuildConfig.DEBUG) Log.d(TAG, "locale = $locale")
+                    printLog("appLang = $appLang")
+                    printLog("langTag = $langTag")
+                    printLog("locale = $locale")
                     setLocale(locale)
                     startListening(progress, object : SpeechDelegate {
                         private var success = true
