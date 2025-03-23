@@ -221,7 +221,11 @@ object ChannelManager {
         card: LampaCard,
         weight: Int
     ): PreviewProgram? {
-        val title = card.name ?: card.title ?: return null
+        val title = when {
+            !card.name.isNullOrEmpty() -> card.name
+            !card.title.isNullOrEmpty() -> card.title
+            else -> return null // or provide a default value like "Unknown"
+        }
         val info = mutableListOf<String>()
 
         card.vote_average?.takeIf { it > 0.0 }?.let { info.add("%.1f".format(it)) }
@@ -235,15 +239,22 @@ object ChannelManager {
         }
 
         card.genres?.mapNotNull {
-            it?.name?.replaceFirstChar { ch ->
+            it.name?.replaceFirstChar { ch ->
                 if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
             }
         }?.joinToString(", ")?.let { info.add(it) }
 
-        val country = card.production_countries?.joinToString(", ") { it.iso_3166_1.toString() }
+        val country = card.production_countries?.mapNotNull { country ->
+            when {
+                !country.iso_3166_1.isNullOrEmpty() -> country.iso_3166_1
+                !country.name.isNullOrEmpty() -> country.name.trim()
+                else -> null
+            }
+        }?.joinToString(", ")
             ?: card.origin_country?.joinToString(", ")
             ?: card.original_language?.uppercase()
             ?: ""
+
         if (country.isNotEmpty()) info.add(country)
 
         val releaseYear = card.release_year ?: when {

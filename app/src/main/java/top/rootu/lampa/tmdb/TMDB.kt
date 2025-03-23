@@ -85,30 +85,21 @@ object TMDB {
         }
     }
 
+    private fun populateGenres(genreList: List<Genre?>, ret: HashMap<Int, String>) {
+        for (g in genreList) {
+            g?.let {
+                if (!g.name.isNullOrEmpty()) {
+                    ret[g.id] = g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                }
+            }
+        }
+    }
+
     val genres: Map<Int, String>
         get() {
             val ret = hashMapOf<Int, String>()
-
-            if (movieGenres.isNotEmpty())
-                for (g in movieGenres) {
-                    g?.let {
-                        if (!g.name.isNullOrEmpty()) {
-                            ret[g.id] =
-                                g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                        }
-                    }
-                }
-
-            if (tvGenres.isNotEmpty())
-                for (g in tvGenres) {
-                    g?.let {
-                        if (!g.name.isNullOrEmpty()) {
-                            ret[g.id] =
-                                g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                        }
-                    }
-                }
-
+            populateGenres(movieGenres, ret)
+            populateGenres(tvGenres, ret)
             return ret
         }
 

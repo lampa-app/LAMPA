@@ -60,10 +60,10 @@ data class LampaCard(
     val backdrop_path: String?, // "/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg",
     var img: String?, // "https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
     var background_image: String?,
-    val genre_ids: List<String?>?, // [28,80,53],
-    var genres: List<Genre?>?,
+    val genre_ids: List<String>?, // [28,80,53],
+    var genres: List<Genre>?,
     val popularity: Double?,
-    val origin_country: List<String?>?, // [ "GB" ]
+    val origin_country: List<String>?, // [ "GB" ]
     val production_companies: List<ProductionCompany>?,
     val production_countries: List<ProductionCountry>?,
     val vote_average: Double?, // 9.1,
@@ -113,10 +113,13 @@ data class LampaCard(
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
         }
     }
-
+    
     private fun fixGenres() {
         if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty()) {
-            genres = genre_ids.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
+            genres = genre_ids.mapNotNull { id ->
+                val genreId = id.toIntOrNull()
+                if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "Unknown Genre", "") else null
+            }
         }
     }
 
@@ -147,9 +150,9 @@ data class LampaRec(
     val poster_path: String?, // "/82HaUMIagdh5PLflUOVrHn5GsI9.jpg"
     val backdrop_path: String?, // "/aRKQdF6AGbhnF9IAyJbte5epH5R.jpg"
     val media_type: String?, // "movie" | "tv"
-    val genre_ids: List<String?>?, // [28,80,53],
+    val genre_ids: List<String>?, // [28,80,53],
     val popularity: Double?, // 126.38
-    val origin_country: List<String?>?, // [ "GB" ]
+    val origin_country: List<String>?, // [ "GB" ]
     val release_date: String?, // "2023-06-09"
     val first_air_date: String?, // "2022-05-05"
     val vote_average: Double?, // 8.239
@@ -161,7 +164,7 @@ data class LampaRec(
         // fix media_type
         val mt = media_type ?: "movie"
         // fix genres
-        val genres = genre_ids?.map { Genre(it, TMDB.genres[it?.toIntOrNull()], "") }
+        val genres = genre_ids?.map { Genre(it, TMDB.genres[it.toIntOrNull()], "") }
         // fix images
         val img =
             if (!poster_path.isNullOrEmpty() && poster_path.startsWith("/")) TMDB.imageUrl(
