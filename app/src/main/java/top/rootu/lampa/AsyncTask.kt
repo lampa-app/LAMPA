@@ -1,7 +1,7 @@
 package top.rootu.lampa
 
-import android.util.Log
 import kotlinx.coroutines.*
+import top.rootu.lampa.helpers.Helpers.printLog
 import java.util.concurrent.Executors
 
 enum class Status {
@@ -12,11 +12,8 @@ enum class Status {
 
 abstract class AsyncTask<Params, Progress, Result>(private val taskName: String) {
 
-    private val TAG by lazy {
-        javaClass.simpleName
-    }
-
     companion object {
+        private const val TAG = "AsyncTask"
         private var threadPoolExecutor: CoroutineDispatcher? = null
     }
 
@@ -59,7 +56,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
             when (status) {
                 Status.RUNNING -> throw IllegalStateException("Cannot execute task: the task is already running.")
                 Status.FINISHED -> throw IllegalStateException("Cannot execute task: the task has already been executed (a task can be executed only once).")
-                else -> { }
+                else -> {}
             }
         }
 
@@ -69,15 +66,15 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
             try {
                 // Execute onPreExecute on the main thread
                 preJob = launch(Dispatchers.Main) {
-                    printLog("$taskName onPreExecute started")
+                    printLog("$taskName onPreExecute started", TAG)
                     onPreExecute()
-                    printLog("$taskName onPreExecute finished")
+                    printLog("$taskName onPreExecute finished", TAG)
                 }
                 preJob!!.join()
 
                 // Execute doInBackground on the specified dispatcher
                 bgJob = async(dispatcher) {
-                    printLog("$taskName doInBackground started")
+                    printLog("$taskName doInBackground started", TAG)
                     doInBackground(*params)
                 }
 
@@ -87,19 +84,19 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
                 // Execute onPostExecute on the main thread
                 if (!isCancelled) {
                     withContext(Dispatchers.Main) {
-                        printLog("$taskName doInBackground finished")
+                        printLog("$taskName doInBackground finished", TAG)
                         onPostExecute(result)
                         status = Status.FINISHED
                     }
                 }
             } catch (e: CancellationException) {
-                printLog("$taskName was cancelled: ${e.message}")
+                printLog("$taskName was cancelled: ${e.message}", TAG)
                 status = Status.FINISHED
                 withContext(Dispatchers.Main) {
                     onCancelled(bgJob?.getCompleted())
                 }
             } catch (e: Exception) {
-                printLog("$taskName encountered an error: ${e.message}")
+                printLog("$taskName encountered an error: ${e.message}", TAG)
                 status = Status.FINISHED
                 withContext(Dispatchers.Main) {
                     onCancelled(null)
@@ -110,7 +107,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
 
     fun cancel(mayInterruptIfRunning: Boolean) {
         if (preJob == null || bgJob == null) {
-            printLog("$taskName has already been cancelled/finished/not yet started.")
+            printLog("$taskName has already been cancelled/finished/not yet started.", TAG)
             return
         }
 
@@ -126,7 +123,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
 
             preJob?.cancel(CancellationException("PreExecute: Coroutine Task cancelled"))
             bgJob?.cancel(CancellationException("doInBackground: Coroutine Task cancelled"))
-            printLog("$taskName has been cancelled.")
+            printLog("$taskName has been cancelled.", TAG)
         }
     }
 
@@ -135,12 +132,6 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
             if (!isCancelled) {
                 onProgressUpdate(*progress)
             }
-        }
-    }
-
-    private fun printLog(message: String) {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, message)
         }
     }
 }

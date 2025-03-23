@@ -372,5 +372,10 @@ object Helpers {
             }
         }
     }
-}
 
+    fun printLog(message: String, tag: String = "DEBUG") {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, message)
+        }
+    }
+}

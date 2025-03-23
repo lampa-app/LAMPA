@@ -252,11 +252,11 @@ class MainActivity : AppCompatActivity(),
             delay(3000)
             syncStorage()
             changeTmdbUrls()
-            syncBookmarks()
             for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
             delayedVoidJsFunc.clear()
         }
         // Background update Android TV channels and Recommendations
+        syncBookmarks()
         CoroutineScope(Dispatchers.IO).launch {
             Scheduler.scheduleUpdate(false)
         }
@@ -660,11 +660,11 @@ class MainActivity : AppCompatActivity(),
     fun changeTmdbUrls() {
         lifecycleScope.launch {
             runVoidJsFunc(
-                "AndroidJS.StorageChange",
+                "AndroidJS.storageChange",
                 "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
             )
             runVoidJsFunc(
-                "AndroidJS.StorageChange",
+                "AndroidJS.storageChange",
                 "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
             )
         }
@@ -933,6 +933,7 @@ class MainActivity : AppCompatActivity(),
         }
         // fix focus
         browser?.setFocus()
+        // clear Intent
     }
 
     private fun showMenuDialog() {
@@ -2339,7 +2340,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun runJsStorageChangeField(name: String) {
         runVoidJsFunc(
-            "AndroidJS.StorageChange",
+            "AndroidJS.storageChange",
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.field('${name}')" +
@@ -2349,7 +2350,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun runJsStorageChangeField(name: String, default: String) {
         runVoidJsFunc(
-            "AndroidJS.StorageChange",
+            "AndroidJS.storageChange",
             "JSON.stringify({" +
                     "name: '${name}'," +
                     "value: Lampa.Storage.get('${name}', '$default')" +
