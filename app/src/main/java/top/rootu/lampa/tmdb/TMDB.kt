@@ -28,6 +28,12 @@ object TMDB {
     const val APIKEY = "4ef0d7355d9ffb5151e987764708ce96"
     private var movieGenres: List<Genre?> = emptyList()
     private var tvGenres: List<Genre?> = emptyList()
+    private val _genres by lazy {
+        val ret = hashMapOf<Int, String>()
+        populateGenres(movieGenres, ret)
+        populateGenres(tvGenres, ret)
+        ret
+    }
 
     /* return lowercase 2-digit lang tag */
     fun getLang(): String {
@@ -68,21 +74,19 @@ object TMDB {
         }
     }
 
+    // https://developers.themoviedb.org/3/genres/get-movie-list
+    // https://developers.themoviedb.org/3/genres/get-tv-list
     fun initGenres() {
         try {
-            // https://developers.themoviedb.org/3/genres/get-movie-list
-            var ent = video("genre/movie/list")
-            ent?.genres?.let {
-                movieGenres = it
-            }
-            // https://developers.themoviedb.org/3/genres/get-tv-list
-            ent = video("genre/tv/list")
-            ent?.genres?.let {
-                tvGenres = it
-            }
+            movieGenres = fetchGenres("genre/movie/list") ?: emptyList()
+            tvGenres = fetchGenres("genre/tv/list") ?: emptyList()
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun fetchGenres(endpoint: String): List<Genre>? {
+        return video(endpoint)?.genres as List<Genre>?
     }
 
     private fun populateGenres(genreList: List<Genre?>, ret: HashMap<Int, String>) {
@@ -95,13 +99,7 @@ object TMDB {
         }
     }
 
-    val genres: Map<Int, String>
-        get() {
-            val ret = hashMapOf<Int, String>()
-            populateGenres(movieGenres, ret)
-            populateGenres(tvGenres, ret)
-            return ret
-        }
+    val genres: Map<Int, String> get() = _genres
 
     // Quad9 over HTTPS resolver
     fun startWithQuad9DNS(): OkHttpClient {
