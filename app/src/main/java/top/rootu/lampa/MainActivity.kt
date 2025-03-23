@@ -210,6 +210,7 @@ class MainActivity : AppCompatActivity(),
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         printLog("onNewIntent() processIntent")
+        setIntent(intent) // getIntent() should always return the most recent
         processIntent(intent)
     }
 
@@ -230,6 +231,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
+        printLog("onBrowserPageFinished url: $url")
         // Restore Lampa settings and reload if migrate flag set
         if (migrate) {
             migrateSettings()
@@ -241,21 +243,23 @@ class MainActivity : AppCompatActivity(),
         loaderView?.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
-
-        // Lazy Load Intent
-        processIntent(intent, 500) // 1000
-        // Sync with Lampa localStorage
-        lifecycleScope.launch {
-            delay(3000)
-            syncStorage()
-            changeTmdbUrls()
-            for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-            delayedVoidJsFunc.clear()
-        }
-        // Background update Android TV channels and Recommendations
-        syncBookmarks()
-        CoroutineScope(Dispatchers.IO).launch {
-            Scheduler.scheduleUpdate(false)
+        // Dirty hack to skip reload from Back history
+        if (url.trimEnd('/').equals(LAMPA_URL, true)) {
+            // Lazy Load Intent
+            processIntent(intent, 500) // 1000
+            // Sync with Lampa localStorage
+            lifecycleScope.launch {
+                delay(3000)
+                syncStorage()
+                changeTmdbUrls()
+                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
+                delayedVoidJsFunc.clear()
+            }
+            // Background update Android TV channels and Recommendations
+            syncBookmarks()
+            CoroutineScope(Dispatchers.IO).launch {
+                Scheduler.scheduleUpdate(false)
+            }
         }
     }
 
@@ -786,12 +790,14 @@ class MainActivity : AppCompatActivity(),
         var mediaType = ""
         var source = ""
 
+        if (BuildConfig.DEBUG) {
             printLog("processIntent data: " + intent?.toUri(0))
             intent?.extras?.let {
                 for (key in it.keySet()) {
                     printLog("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
                 }
             }
+        }
 
         if (intent?.hasExtra("id") == true)
             intID = intent.getIntExtra("id", -1)
@@ -831,7 +837,7 @@ class MainActivity : AppCompatActivity(),
                         intID = -1
                         val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
                             LampaProvider.RECS -> {
-                                // Open Main
+                                // Open Main Page
                                 "{" +
                                         "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
                                     Locale.getDefault()
@@ -1443,6 +1449,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onResume() {
+        printLog("onResume()")
         super.onResume()
         hideSystemUI()
         if (!this.isTvBox) setupFab()
@@ -1452,13 +1459,14 @@ class MainActivity : AppCompatActivity(),
         mXWalkInitializer?.initAsync()
         if (browserInit) {
             browser?.resumeTimers()
+            printLog("onResume() syncBookmarks()")
             syncBookmarks()
         }
     }
 
     // handle user pressed Home
     override fun onUserLeaveHint() {
-        Log.d(TAG, "onUserLeaveHint()")
+        printLog("onUserLeaveHint()")
         if (browserInit) {
             browser?.pauseTimers()
             browser?.clearCache(true)
@@ -1905,7 +1913,11 @@ class MainActivity : AppCompatActivity(),
                     intent.extras?.let {
                         for (key in it.keySet()) {
                             if (key == "headers")
-                                printLog("INTENT: data extras $key : ${it.getStringArray(key)?.toList()}")
+                                printLog(
+                                    "INTENT: data extras $key : ${
+                                        it.getStringArray(key)?.toList()
+                                    }"
+                                )
                             else
                                 printLog("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
                         }
