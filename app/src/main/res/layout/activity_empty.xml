@@ -8,7 +8,7 @@
     tools:context=".MainActivity">
 
     <com.airbnb.lottie.LottieAnimationView
-        android:id="@+id/progressBar_cyclic"
+        android:id="@+id/loaderView"
         android:layout_width="640dp"
         android:layout_height="640dp"
         app:layout_constraintBottom_toBottomOf="parent"

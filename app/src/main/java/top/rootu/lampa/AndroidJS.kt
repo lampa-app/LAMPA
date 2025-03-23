@@ -8,6 +8,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -19,8 +20,10 @@ import top.rootu.lampa.channels.LampaChannels
 import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
+import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
@@ -36,7 +39,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun StorageChange(str: String) {
+    fun storageChange(str: String) {
         val eo: JSONObject = if (str == "\"\"") {
             JSONObject()
         } else {
@@ -46,35 +49,38 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
         when (eo.optString("name")) {
             "activity" -> {
-                if (BuildConfig.DEBUG) Log.d(
-                    TAG,
-                    "activity changed: ${eo.optString("value", "")}"
-                )
                 MainActivity.lampaActivity = eo.optString("value", "{}")
+                printLog("lampaActivity stored: ${MainActivity.lampaActivity}", TAG)
             }
 
             "player_timecode" -> {
                 MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
+                printLog("playerTimeCode stored: ${MainActivity.playerTimeCode}", TAG)
             }
 
             "playlist_next" -> {
                 MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
+                printLog("playerAutoNext stored: ${MainActivity.playerAutoNext}", TAG)
             }
 
             "torrserver_preload" -> {
                 MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
+                printLog("torrserverPreload stored: ${MainActivity.torrserverPreload}", TAG)
             }
 
             "internal_torrclient" -> {
                 MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
+                printLog("internalTorrserve stored: ${MainActivity.internalTorrserve}", TAG)
             }
 
             "language" -> {
                 mainActivity.setLang(eo.optString("value", "ru"))
+                printLog("language set to ${eo.optString("value", "ru")}", TAG)
             }
 
             "source" -> {
                 mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
+                printLog("lampaSource stored: ${mainActivity.lampaSource}", TAG)
             }
 
             "proxy_tmdb", "protocol" -> {
@@ -83,25 +89,19 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "baseUrlApiTMDB" -> {
                 mainActivity.tmdbApiUrl = eo.optString("value", mainActivity.tmdbApiUrl)
-                if (BuildConfig.DEBUG) Log.d(
-                    TAG,
-                    "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}"
-                )
+                printLog("baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}", TAG)
             }
 
             "baseUrlImageTMDB" -> {
                 mainActivity.tmdbImgUrl = eo.optString("value", mainActivity.tmdbImgUrl)
-                if (BuildConfig.DEBUG) Log.d(
-                    TAG,
-                    "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}"
-                )
+                printLog("baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}", TAG)
             }
 
             "favorite" -> {
-                if (BuildConfig.DEBUG) Log.d(TAG, "favorite JSON changed")
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveFavorite(json)
+                    printLog("favorite JSON saved to prefs", TAG)
                 } else {
                     Log.e(TAG, "Not valid JSON in favorite")
                 }
@@ -109,15 +109,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "account_use" -> {
                 val use = eo.optBoolean("value", false)
-                if (BuildConfig.DEBUG) Log.d(TAG, "account_use $use")
+                printLog("set syncEnabled $use", TAG)
                 App.context.syncEnabled = use
             }
 
             "recomends_list" -> {
-                if (BuildConfig.DEBUG) Log.d(TAG, "recomends_list JSON changed")
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
                     App.context.saveRecs(json)
+                    printLog("recomends_list JSON saved to prefs", TAG)
                 } else {
                     Log.e(TAG, "Not valid JSON in recomends_list")
                 }
@@ -181,7 +181,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                if (BuildConfig.DEBUG) Log.d(TAG, e.message, e)
+                Log.e(TAG, e.message, e)
                 App.toast(R.string.no_torrent_activity_found, true)
             }
         }
@@ -206,7 +206,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                if (BuildConfig.DEBUG) Log.d(TAG, e.message, e)
+                Log.e(TAG, e.message, e)
                 App.toast(R.string.no_youtube_activity_found, true)
             }
         }
@@ -225,7 +225,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String, returnI: Int) {
-        if (BuildConfig.DEBUG) Log.d("JS", str)
+        printLog("httpReq JSON $str", TAG)
         val jSONObject: JSONObject?
         try {
             jSONObject = JSONObject(str)
@@ -345,7 +345,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun openPlayer(link: String, jsonStr: String) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "openPlayer: $link json:$jsonStr")
+        printLog("openPlayer: $link json:$jsonStr", TAG)
         val jsonObject: JSONObject = try {
             JSONObject(jsonStr.ifEmpty { "{}" })
         } catch (e: Exception) {
@@ -354,7 +354,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         if (!jsonObject.has("url")) {
             try {
                 jsonObject.put("url", link)
-            } catch (ignored: JSONException) {
+            } catch (_: JSONException) {
             }
         }
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
@@ -394,14 +394,26 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
     }
 
+
+    /**
+     * Saves valid bookmarks after filtering out invalid ones.
+     *
+     * @param json The JSON string containing bookmarks.
+     */
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun saveBookmarks(json: String?) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "saveBookmarks fired! json: $json")
-        if (isValidJson(json)) {
-            App.context.saveAccountBookmarks(json.toString())
-        } else {
-            Log.e(TAG, "Not valid JSON in saveBookmarks")
+        printLog("saveBookmarks fired!", TAG)
+        CoroutineScope(Dispatchers.IO).launch {
+            // Filter out invalid CubBookmark objects
+            val validBookmarks = filterValidCubBookmarks(json)
+            if (validBookmarks.isNotEmpty()) {
+                printLog("saveBookmarks - found ${validBookmarks.size} valid elements", TAG)
+                // Save the valid bookmarks
+                App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
+            } else {
+                Log.e(TAG, "saveBookmarks - no valid CUB bookmarks found in the JSON")
+            }
         }
     }
 
@@ -411,7 +423,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
         if (where != null && isAndroidTV) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "updateChannel [$where]")
+            printLog("updateChannel [$where]", TAG)
             when (where) {
                 LampaProvider.HIST,
                 LampaProvider.BOOK,
@@ -426,7 +438,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         updateChanByName(where)
                     }
                 }
-
                 LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
                     CoroutineScope(Dispatchers.IO).launch {

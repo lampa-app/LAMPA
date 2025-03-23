@@ -9,29 +9,27 @@ import top.rootu.lampa.models.LampaCard
 
 class Look : LampaProviderI() {
 
-    override fun get(): ReleaseID {
-        return ReleaseID(Look.get())
+    override fun get(): LampaContent {
+        return LampaContent(Look.get())
     }
 
     companion object {
         fun get(): List<LampaCard> {
             val lst = mutableListOf<LampaCard>()
-            // CUB
-            if (App.context.syncEnabled) {
+            if (App.context.syncEnabled) { // CUB
                 App.context.CUB
                     ?.filter { it.type == LampaProvider.LOOK }
-                    ?.reversed()
                     ?.mapNotNull { it.data?.apply { fixCard() } }
                     ?.let { lst.addAll(it) }
+            } else { // FAV
+                App.context.FAV?.card
+                    ?.filter { App.context.FAV?.look?.contains(it.id.toString()) == true }
+                    ?.sortedBy { App.context.FAV?.look?.indexOf(it.id) }
+                    ?.let { lst.addAll(it) }
             }
-            // FAV
-            App.context.FAV?.card
-                ?.filter { App.context.FAV?.look?.contains(it.id.toString()) == true }
-                ?.let { lst.addAll(it) }
-            // Exclude pending and reverse the final list
+            // Exclude pending
             return lst
                 .filterNot { App.context.lookToRemove.contains(it.id.toString()) }
-                .reversed()
         }
     }
 }

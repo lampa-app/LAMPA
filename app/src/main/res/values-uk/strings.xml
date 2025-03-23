@@ -84,8 +84,10 @@
     <string name="change_note">Ця дія поверне типові налаштування Lampa. Рекомендується створити резервну копію налаштувань!</string>
     <string name="settings_saved_toast">Всі налаштування збережено в %s</string>
     <string name="settings_save_fail">Неможливо виконати резервне копіювання</string>
+    <string name="settings_migrate_fail">Неможливо перенести налаштування</string>
     <string name="settings_rest_fail">Неможливо відновити налаштування</string>
     <string name="settings_restored">Налаштування відновлено</string>
+    <string name="migrate">Міграція</string>
     <!--App Errors-->
     <string name="app_crash_title">Перепрошуємо за незручності</string>
     <string name="app_crash_message">Іноді у Lampa трапляються помилки, але не хвилюйтеся. У наступному оновленні ми це виправимо. Ви можете повідомити про цю помилку в нашому Telegram-каналі - @lampa_group. Натисніть кнопку «Перезапустити», щоб продовжити.</string>

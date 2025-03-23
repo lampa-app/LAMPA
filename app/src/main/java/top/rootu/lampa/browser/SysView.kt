@@ -1,7 +1,11 @@
 package top.rootu.lampa.browser
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.util.Log
@@ -21,6 +25,7 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.getAppVersion
 
 
 // https://developer.android.com/develop/ui/views/layout/webapps/webview#kotlin
@@ -69,12 +74,80 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
             // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20java.lang.String)
             @Deprecated("Deprecated in Java")
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 if (BuildConfig.DEBUG) Log.d(
                     TAG,
-                    "shouldOverrideUrlLoading(url) wv $view loadUrl($url)"
+                    "shouldOverrideUrlLoading(view, url) view $view url $url"
                 )
-                return false
+                url?.let {
+                    if (it.startsWith("tg://")) {
+                        // Handle Telegram link
+                        if (isTelegramAppInstalled()) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            mainActivity.startActivity(intent)
+                        } else {
+                            App.toast("Telegram app is not installed. Get in on Google Play.")
+                            redirectToTelegramPlayStore()
+                        }
+                        return true // Indicate that the URL has been handled
+                    }
+                }
+                return false // Load the URL in the WebView for other links
+                // this will fail for non-http(s) links like lampa:// intent:// etc
+                //return super.shouldOverrideUrlLoading(view, url)
+            }
+
+            // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20android.webkit.WebResourceRequest)
+            @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                if (BuildConfig.DEBUG) Log.d(
+                    TAG,
+                    "shouldOverrideUrlLoading(view, request) view $view request $request"
+                )
+                if (request.url.scheme.equals("tg", true)) {
+                    if (isTelegramAppInstalled()) {
+                        val intent = Intent(Intent.ACTION_VIEW, request.url)
+                        mainActivity.startActivity(intent)
+                    } else {
+                        App.toast("Telegram app is not installed. Get in on Google Play.")
+                        redirectToTelegramPlayStore()
+                    }
+                    return true // Indicate that the URL has been handled
+                }
+                return false // Load the URL in the WebView for other links
+                // this will fail for non-http(s) links like lampa:// intent:// etc
+                //return super.shouldOverrideUrlLoading(view, request)
+            }
+
+            private fun isTelegramAppInstalled(): Boolean {
+                return try {
+                    // Check if the Telegram app is installed by querying its package name
+                    mainActivity.packageManager.getPackageInfo(
+                        "org.telegram.messenger",
+                        PackageManager.GET_ACTIVITIES
+                    )
+                    true
+                } catch (_: PackageManager.NameNotFoundException) {
+                    // Telegram app is not installed
+                    false
+                }
+            }
+
+            private fun redirectToTelegramPlayStore() {
+                // Open the Telegram app page on the Play Store
+                val playStoreIntent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
+                )
+                try {
+                    if ((getAppVersion(mainActivity, "com.android.vending")?.versionNumber
+                            ?: 0L) > 0L
+                    ) mainActivity.startActivity(playStoreIntent)
+                } catch (_: ActivityNotFoundException) {
+                }
             }
 
             @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -102,8 +175,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         // net::ERR_NAME_NOT_RESOLVED [-2]
                         // net::ERR_TIMED_OUT [-8]
                         val reason = when {
-                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(R.string.error_no_internet)
-                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(R.string.error_dns)
+                            error.description == "net::ERR_INTERNET_DISCONNECTED" -> view.context.getString(
+                                R.string.error_no_internet
+                            )
+
+                            error.description == "net::ERR_NAME_NOT_RESOLVED" -> view.context.getString(
+                                R.string.error_dns
+                            )
+
                             error.description == "net::ERR_TIMED_OUT" -> view.context.getString(R.string.error_timeout)
                             else -> view.context.getString(R.string.error_unknown)
                         }
