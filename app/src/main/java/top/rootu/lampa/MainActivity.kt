@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity(),
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private var progressBar: LottieAnimationView? = null // CircularProgressIndicator
+    private var loaderView: LottieAnimationView? = null
     private var browserInit = false
     private var isMenuVisible = false
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
@@ -241,20 +241,15 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
         }
-        progressBar?.visibility = View.GONE
+        loaderView?.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
 
-        // Lazy Load Intents
-        processIntent(intent, 1000)
-        // Sync with Lampa
+        // Lazy Load Intent
+        processIntent(intent, 500) // 1000
+        // Sync with Lampa localStorage
         lifecycleScope.launch {
             delay(3000)
-            runVoidJsFunc(
-                "Lampa.Storage.listener.add",
-                "'change'," +
-                        "function(o){AndroidJS.StorageChange(JSON.stringify(o))}"
-            )
             syncStorage()
             changeTmdbUrls()
             syncBookmarks()
@@ -345,7 +340,7 @@ class MainActivity : AppCompatActivity(),
         }
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        progressBar = findViewById(R.id.progressBar_cyclic)
+        loaderView = findViewById(R.id.loaderView)
         browser?.init()
     }
 
@@ -646,15 +641,20 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun syncStorage() {
-            runJsStorageChangeField("activity", "{}") // get current lampaActivity
-            runJsStorageChangeField("player_timecode")
-            runJsStorageChangeField("playlist_next")
-            runJsStorageChangeField("torrserver_preload")
-            runJsStorageChangeField("internal_torrclient")
-            runJsStorageChangeField("language")
-            runJsStorageChangeField("source")
-            runJsStorageChangeField("account_use") // get sync state
-            runJsStorageChangeField("recomends_list", "[]") // force update recs
+        runVoidJsFunc(
+            "Lampa.Storage.listener.add",
+            "'change'," +
+                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
+        )
+        runJsStorageChangeField("activity", "{}") // get current lampaActivity
+        runJsStorageChangeField("player_timecode")
+        runJsStorageChangeField("playlist_next")
+        runJsStorageChangeField("torrserver_preload")
+        runJsStorageChangeField("internal_torrclient")
+        runJsStorageChangeField("language")
+        runJsStorageChangeField("source")
+        runJsStorageChangeField("account_use") // get sync state
+        runJsStorageChangeField("recomends_list", "[]") // force update recs
     }
 
     fun changeTmdbUrls() {
@@ -2358,7 +2358,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && progressBar?.visibility == View.GONE) {
+        if (browserInit && loaderView?.visibility == View.GONE) {
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"

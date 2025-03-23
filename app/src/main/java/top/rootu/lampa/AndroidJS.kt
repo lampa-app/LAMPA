@@ -38,7 +38,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun StorageChange(str: String) {
+    fun storageChange(str: String) {
         val eo: JSONObject = if (str == "\"\"") {
             JSONObject()
         } else {
