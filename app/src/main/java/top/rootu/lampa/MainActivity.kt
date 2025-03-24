@@ -314,10 +314,10 @@ class MainActivity : AppCompatActivity(),
         if (migrate) {
             migrateSettings()
         }
-        // Switch Loader
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
         }
+        // Switch Loader (Note it control delayedVoidJsFunc)
         loaderView.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
