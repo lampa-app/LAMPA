@@ -41,8 +41,12 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         browser?.apply {
             isFocusable = true
             isFocusableInTouchMode = true
-            scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
             keepScreenOn = true
+            scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
+            // No Scrollbars at ALL
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
+            isScrollContainer = false
         }
         setFocus()
         val settings = browser?.settings
@@ -174,7 +178,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         } ${MainActivity.LAMPA_URL} – $reason"
                         if (error.description == "net::ERR_INTERNET_DISCONNECTED") {
                             val htmlData =
-                                "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                                "<html><body style=\"margin:0;padding:0;overflow:hidden;\"><div style=\"display:table;width:100%;height:100vh;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
                                     view.context.getString(
                                         R.string.net_error_internet_disconnected
                                     )
@@ -202,7 +206,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
                     if (description == "net::ERR_INTERNET_DISCONNECTED") {
                         val htmlData =
-                            "<html><body><div style=\"display:table;width:100%;height:100%;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
+                            "<html><body style=\"margin:0;padding:0;overflow:hidden;\"><div style=\"display:table;width:100%;height:100vh;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
                                 App.context.getString(
                                     R.string.net_error_internet_disconnected
                                 )
