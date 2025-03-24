@@ -15,7 +15,7 @@ interface Browser {
         fun onBrowserPageFinished(view: ViewGroup, url: String)
     }
 
-    fun init()
+    fun initialize() // Renamed from init() to avoid conflict
 
     /**
      * Sets the WebView's user-agent string. If the string is `null` or empty,

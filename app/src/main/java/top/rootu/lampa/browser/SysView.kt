@@ -34,7 +34,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     val TAG = "WEBVIEW"
 
     @SuppressLint("SetJavaScriptEnabled")
-    override fun init() {
+    override fun initialize() {
         browser = mainActivity.findViewById(viewResId)
         browser?.apply {
             isFocusable = true

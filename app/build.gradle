@@ -180,8 +180,9 @@ dependencies {
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
     // lottie loaders
-    //noinspection GradleDependency 6.6.2 throw NullPointerException on build
-    implementation 'com.airbnb.android:lottie:6.4.1'
+    def lottieVersion = '6.4.1'
+    //noinspection GradleDependency 6.6.2+ throw NullPointerException on build
+    implementation "com.airbnb.android:lottie:$lottieVersion"
     // webkit
     def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
     //noinspection GradleDependency

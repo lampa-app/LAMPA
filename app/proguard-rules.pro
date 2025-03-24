@@ -22,3 +22,5 @@
 -keepclassmembers class top.rootu.lampa.AndroidJS {
    public *;
 }
+-keep class org.xwalk.core.** { *; }
+-dontwarn org.xwalk.core.**

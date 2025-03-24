@@ -9,7 +9,7 @@ import top.rootu.lampa.R
 
 class XWalk(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: XWalkView? = null
-    override fun init() {
+    override fun initialize() {
         if (browser == null) {
             browser = mainActivity.findViewById(viewResId)
             browser?.let { xWalkView ->

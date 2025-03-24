@@ -330,10 +330,7 @@ class MainActivity : AppCompatActivity(),
             }
 
             "SysView" -> {
-                setContentView(R.layout.activity_webview)
-                browser = SysView(this, R.id.webView)
-                browser?.init()
-
+                useSystemWebView()
             }
 
             else -> {
@@ -345,6 +342,12 @@ class MainActivity : AppCompatActivity(),
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         loaderView = findViewById(R.id.loaderView)
         // browser?.init()
+    }
+
+    private fun useSystemWebView() {
+        setContentView(R.layout.activity_webview)
+        browser = SysView(this, R.id.webView)
+        browser?.initialize()
     }
 
     private fun handleSpeechResult(result: androidx.activity.result.ActivityResult) {
@@ -614,8 +617,13 @@ class MainActivity : AppCompatActivity(),
     override fun onXWalkInitCompleted() {
         printLog("onXWalkInitCompleted() isXWalkReady: ${mXWalkInitializer?.isXWalkReady}")
         if (mXWalkInitializer?.isXWalkReady == true) {
-            browser = XWalk(this, R.id.xWalkView)
-            browser?.init()
+            try {
+                browser = XWalk(this, R.id.xWalkView)
+                browser?.initialize()
+            } catch (e: Exception) {
+                Log.e("XWalk", "Init failed. Fallback to WebView.", e)
+                useSystemWebView()
+            }
         }
     }
 
@@ -746,11 +754,11 @@ class MainActivity : AppCompatActivity(),
             })()
             """.trimIndent()
         browser?.evaluateJavascript(backupJavascript) { result ->
-            if (result != null) {
-                Log.d(TAG, "localStorage backed up. Result $result")
+            if (result.contains("SUCCESS", true)) {
+                printLog("localStorage backed up. Result $result")
                 callback(result) // Success
             } else {
-                Log.e(TAG, "Failed to backup localStorage.")
+                Log.e(TAG, "Failed to dump localStorage.")
                 callback(result) // Failure
             }
         }
@@ -775,8 +783,8 @@ class MainActivity : AppCompatActivity(),
             })()
             """.trimIndent()
         browser?.evaluateJavascript(restoreJavascript) { result ->
-            if (result != null) {
-                Log.d(TAG, "localStorage restored. Result $result")
+            if (result.contains("SUCCESS", true)) {
+                printLog("localStorage restored. Result $result")
                 callback(result) // Success
             } else {
                 Log.e(TAG, "Failed to restore localStorage.")
@@ -849,7 +857,7 @@ class MainActivity : AppCompatActivity(),
         }
         when (intent.action) {
             "GLOBALSEARCH" -> handleGlobalSearch(intent, uri, delay)
-            else -> handleChannelIntent(intent, uri, delay)
+            else -> handleChannelIntent(uri, delay)
         }
     }
 
@@ -887,7 +895,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     // Helper function to handle channel intents
-    private fun handleChannelIntent(intent: Intent, uri: Uri, delay: Long) {
+    private fun handleChannelIntent(uri: Uri, delay: Long) {
         if (uri.encodedPath?.contains("update_channel") == true) {
             val channel = uri.encodedPath?.substringAfterLast("/") ?: ""
             val params = when (channel) {
@@ -969,151 +977,6 @@ class MainActivity : AppCompatActivity(),
                 "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}"
             )
         }
-    }
-
-    private fun processIntentOld(intent: Intent?, delay: Long = 0) {
-        var intID = -1
-        var mediaType = ""
-        var source = ""
-
-        if (BuildConfig.DEBUG) {
-            printLog("processIntent data: " + intent?.toUri(0))
-            intent?.extras?.let {
-                for (key in it.keySet()) {
-                    printLog("processIntent: extras $key : ${it.get(key) ?: "NULL"}")
-                }
-            }
-        }
-
-        if (intent?.hasExtra("id") == true)
-            intID = intent.getIntExtra("id", -1)
-
-        if (intent?.hasExtra("media") == true)
-            mediaType = intent.getStringExtra("media") ?: ""
-
-        if (intent?.hasExtra("source") == true)
-            source = intent.getStringExtra("source") ?: ""
-
-        intent?.data?.let {
-            if (it.host?.contains("themoviedb.org") == true && it.pathSegments.size >= 2) {
-                val videoType = it.pathSegments[0]
-                var id = it.pathSegments[1]
-                if (videoType == "movie" || videoType == "tv") {
-                    id = "\\d+".toRegex().find(id)?.value ?: "-1"
-                    if (id.isNotEmpty()) {
-                        intID = id.toInt()
-                        mediaType = videoType
-                    }
-                }
-            }
-            when (intent.action) { // handle search
-                "GLOBALSEARCH" -> {
-                    val uri = it
-                    val ids = uri.lastPathSegment
-                    if (uri.lastPathSegment == "update_channel")
-                        intID = -1
-                    else {
-                        intID = ids?.toIntOrNull() ?: -1
-                        mediaType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
-                    }
-                }
-
-                else -> { // handle open from channels
-                    if (it.encodedPath?.contains("update_channel") == true) {
-                        intID = -1
-                        val params = when (val channel = it.encodedPath?.substringAfterLast("/")) {
-                            LampaProvider.RECS -> {
-                                // Open Main Page
-                                "{" +
-                                        "title: '" + getString(R.string.title_main) + "' + ' - " + lampaSource.uppercase(
-                                    Locale.getDefault()
-                                ) + "'," +
-                                        "component: 'main'," +
-                                        "source: '" + lampaSource + "'," +
-                                        "url: ''" +
-                                        "}"
-                            }
-
-                            LampaProvider.LIKE, LampaProvider.BOOK, LampaProvider.HIST -> {
-                                "{" +
-                                        "title: '" + getChannelDisplayName(channel) + "'," +
-                                        "component: '$channel' == 'book' ? 'bookmarks' : 'favorite'," +
-                                        "type: '$channel'," +
-                                        "url: ''," +
-                                        "page: 1" +
-                                        "}"
-                            }
-
-                            else -> ""
-                        }
-                        if (params != "") {
-                            lifecycleScope.launch {
-                                runVoidJsFunc("window.start_deep_link = ", params)
-                                delay(delay)
-                                runVoidJsFunc("Lampa.Controller.toContent", "")
-                                runVoidJsFunc("Lampa.Activity.push", params)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // continue watch
-        if (intent?.getBooleanExtra("continueWatch", false) == true) {
-            this.playActivityJS?.let { json ->
-                if (isValidJson(json)) {
-                    lifecycleScope.launch {
-                        runVoidJsFunc("window.start_deep_link = ", json)
-                        delay(delay)
-                        runVoidJsFunc("Lampa.Controller.toContent", "")
-                        runVoidJsFunc("Lampa.Activity.push", json)
-                        delay(500)
-                        if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
-                            if (isValidJson(this@MainActivity.resumeJS)) {
-                                this@MainActivity.resumeJS?.let { JSONObject(it) }
-                                    ?.let { runPlayer(it) }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // open card
-            if (intID >= 0 && mediaType.isNotEmpty()) {
-//                var source = intent?.getStringExtra("source")
-                if (source.isEmpty())
-                    source = "cub"
-
-//            ID in card json _must_ be INT in case TMDB at least, or bookmarks don't match
-//            var card = intent?.getStringExtra("LampaCardJS")
-//            if (card.isNullOrEmpty())
-                val card = "{id: $intID, source: '$source'}"
-
-                lifecycleScope.launch {
-                    runVoidJsFunc(
-                        "window.start_deep_link = ",
-                        "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
-                    )
-                    delay(delay)
-                    runVoidJsFunc("Lampa.Controller.toContent", "")
-                    runVoidJsFunc(
-                        "Lampa.Activity.push",
-                        "{id: $intID, method: '$mediaType', source: '$source', component: 'full', card: $card}"
-                    )
-                }
-            }
-        }
-        // process search cmd
-        val cmd = intent?.getStringExtra("cmd")
-        if (!cmd.isNullOrBlank()) {
-            when (cmd) {
-                "open_settings" -> {
-                    showMenuDialog()
-                }
-            }
-        }
-        // fix focus
-        browser?.setFocus()
     }
 
     private fun showMenuDialog() {
@@ -1323,7 +1186,7 @@ class MainActivity : AppCompatActivity(),
     private fun showBrowserInputDialog() {
         val mainActivity = this
         val dialogBuilder = AlertDialog.Builder(mainActivity)
-        val xWalkChromium = "53.589.4"
+        val xWalkVersion = "53.589.4"
         var selectedIndex = 0
 
         // Determine available browser options
@@ -1338,10 +1201,10 @@ class MainActivity : AppCompatActivity(),
             val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
 
             val crosswalkTitle = if (isCrosswalkActive) {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkChromium"
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
             } else {
-                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} $xWalkChromium"
-                else "${getString(R.string.engine_crosswalk)} $xWalkChromium"
+                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} $xWalkVersion"
+                else "${getString(R.string.engine_crosswalk)} $xWalkVersion"
             }
 
             val webkitTitle = if (isCrosswalkActive) {
@@ -1358,9 +1221,9 @@ class MainActivity : AppCompatActivity(),
             Triple(titles, actions, icons)
         } else { // No WebView
             val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkChromium"
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
             } else {
-                "${getString(R.string.engine_crosswalk)} $xWalkChromium"
+                "${getString(R.string.engine_crosswalk)} $xWalkVersion"
             }
 
             val titles = listOf(crosswalkTitle)
