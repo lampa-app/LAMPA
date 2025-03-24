@@ -87,6 +87,8 @@ import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
+import top.rootu.lampa.helpers.PermHelpers.hasPermission
+import top.rootu.lampa.helpers.PermHelpers.isInstallPermissionDeclared
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
 import top.rootu.lampa.helpers.Prefs.FAV
@@ -326,8 +328,12 @@ class MainActivity : AppCompatActivity(),
                 delay(3000)
                 syncStorage()
                 changeTmdbUrls()
-                for (item in delayedVoidJsFunc) runVoidJsFunc(item[0], item[1])
-                delayedVoidJsFunc.clear()
+                // Create a copy for iteration
+                val itemsToProcess = delayedVoidJsFunc.toList()
+                delayedVoidJsFunc.clear() // Clear before processing
+                for (item in itemsToProcess) {
+                    runVoidJsFunc(item[0], item[1])
+                }
             }
             // Background update Android TV channels and Recommendations
             syncBookmarks()
@@ -1100,7 +1106,8 @@ class MainActivity : AppCompatActivity(),
         } catch (_: NumberFormatException) {
             0.0
         }
-        if (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
+        // Hide CrossWalk switcher on RuStore builds
+        if (!isInstallPermissionDeclared(this))
             menuItems.removeAt(2)
 
         // Set up the adapter
