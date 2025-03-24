@@ -387,4 +387,12 @@ object Helpers {
             Log.d(tag, message)
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    fun hasSAFChooser(pm: PackageManager?): Boolean {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "video/*"
+        return intent.resolveActivity(pm!!) != null
+    }
 }

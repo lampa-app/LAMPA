@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import top.rootu.lampa.CrashActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.Helpers.hasSAFChooser
 import top.rootu.lampa.helpers.Prefs.appLang
 import java.util.Locale
 import kotlin.system.exitProcess
@@ -195,6 +196,40 @@ fun Context.getAppInstaller(): String {
     }
 }
 
+fun Context.getNetworkErrorString(errorCode: String): String {
+    return when (errorCode) {
+        "net::ERR_FAILED" -> getString(R.string.net_error_failed)
+        "net::ERR_TIMED_OUT", "net::ERR_CONNECTION_TIMED_OUT" -> getString(R.string.net_error_timed_out)
+        "net::ERR_CONNECTION_CLOSED" -> getString(R.string.net_error_connection_closed)
+        "net::ERR_CONNECTION_RESET" -> getString(R.string.net_error_connection_reset)
+        "net::ERR_CONNECTION_REFUSED" -> getString(R.string.net_error_connection_refused)
+        "net::ERR_CONNECTION_FAILED" -> getString(R.string.net_error_connection_failed)
+        "net::ERR_NAME_NOT_RESOLVED" -> getString(R.string.net_error_name_not_resolved)
+        "net::ERR_ADDRESS_UNREACHABLE" -> getString(R.string.net_error_address_unreachable)
+        "net::ERR_NETWORK_ACCESS_DENIED" -> getString(R.string.net_error_network_access_denied)
+        "net::ERR_PROXY_CONNECTION_FAILED" -> getString(R.string.net_error_proxy_connection_failed)
+        "net::ERR_INTERNET_DISCONNECTED" -> getString(R.string.net_error_internet_disconnected)
+        "net::ERR_TOO_MANY_REDIRECTS" -> getString(R.string.net_error_too_many_redirects)
+        "net::ERR_EMPTY_RESPONSE" -> getString(R.string.net_error_empty_response)
+        "net::ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH" -> getString(R.string.net_error_multiple_content_length)
+        "net::ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION" -> getString(R.string.net_error_multiple_content_disposition)
+        "net::ERR_RESPONSE_HEADERS_MULTIPLE_LOCATION" -> getString(R.string.net_error_multiple_location)
+        "net::ERR_CONTENT_LENGTH_MISMATCH" -> getString(R.string.net_error_content_length_mismatch)
+        "net::ERR_INCOMPLETE_CHUNKED_ENCODING" -> getString(R.string.net_error_incomplete_chunked_encoding)
+        "net::ERR_SSL_PROTOCOL_ERROR" -> getString(R.string.net_error_ssl_protocol_error)
+        "net::ERR_SSL_UNSAFE_NEGOTIATION" -> getString(R.string.net_error_ssl_unsafe_negotiation)
+        "net::ERR_BAD_SSL_CLIENT_AUTH_CERT" -> getString(R.string.net_error_bad_ssl_client_auth_cert)
+        "net::ERR_SSL_WEAK_SERVER_EPHEMERAL_DH_KEY" -> getString(R.string.net_error_ssl_weak_server_key)
+        "net::ERR_SSL_PINNED_KEY_NOT_IN_CERT_CHAIN" -> getString(R.string.net_error_ssl_pinned_key_missing)
+        "net::ERR_TEMPORARILY_THROTTLED" -> getString(R.string.net_error_temporarily_throttled)
+        "net::ERR_BLOCKED_BY_CLIENT" -> getString(R.string.net_error_blocked_by_client)
+        "net::ERR_NETWORK_CHANGED" -> getString(R.string.net_error_network_changed)
+        "net::ERR_BLOCKED_BY_ADMINISTRATOR" -> getString(R.string.net_error_blocked_by_admin)
+        "net::ERR_BLOCKED_ENROLLMENT_CHECK_PENDING" -> getString(R.string.net_error_blocked_enrollment_check)
+        else -> getString(R.string.net_error_failed) // Default fallback
+    }
+}
+
 val Context.isTvBox: Boolean
     get() {
         val pm = packageManager
@@ -239,11 +274,3 @@ val Context.isGoogleTV: Boolean // wide posters
     get() {
         return packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     }
-
-@RequiresApi(Build.VERSION_CODES.KITKAT)
-fun hasSAFChooser(pm: PackageManager?): Boolean {
-    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-    intent.addCategory(Intent.CATEGORY_OPENABLE)
-    intent.type = "video/*"
-    return intent.resolveActivity(pm!!) != null
-}
