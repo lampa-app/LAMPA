@@ -114,8 +114,8 @@ object PermHelpers {
                 context.packageName,
                 PackageManager.GET_PERMISSIONS
             )
-            packageInfo.requestedPermissions?.any { it == "android.permission.REQUEST_INSTALL_PACKAGES" } ?: false
-        } catch (e: Exception) {
+            packageInfo.requestedPermissions?.any { it == "android.permission.REQUEST_INSTALL_PACKAGES" } == true
+        } catch (_: Exception) {
             false
         }
     }

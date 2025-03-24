@@ -87,7 +87,6 @@ import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
-import top.rootu.lampa.helpers.PermHelpers.hasPermission
 import top.rootu.lampa.helpers.PermHelpers.isInstallPermissionDeclared
 import top.rootu.lampa.helpers.PermHelpers.verifyMicPermissions
 import top.rootu.lampa.helpers.Prefs
