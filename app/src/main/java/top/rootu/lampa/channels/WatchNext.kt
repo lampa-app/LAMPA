@@ -259,11 +259,11 @@ object WatchNext {
             card.number_of_seasons?.let { info.add("S$it") }
         }
 
-        card.genres?.joinToString(", ") { g ->
-            g?.name?.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-            }.toString()
-        }?.let { info.add(it) }
+        card.genres?.mapNotNull {
+            it.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.joinToString(", ")?.let { info.add(it) }
         // https://developer.android.com/codelabs/watchnext-for-movie-tv-episodes#3
         val watchType = if (resume) WATCH_NEXT_TYPE_CONTINUE else WATCH_NEXT_TYPE_WATCHLIST
 
