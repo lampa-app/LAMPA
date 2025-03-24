@@ -138,10 +138,13 @@ data class LampaCard(
     }
 
     override fun toString(): String {
-        val tt = name ?: title ?: "–"
-        return "LampaCard(source:$source id:$id type:$type $tt $img)"
+        val displayName = when {
+            !name.isNullOrEmpty() -> name
+            !title.isNullOrEmpty() -> title
+            else -> "-"
+        }
+        return "LampaCard(source:$source id:$id type:$type $displayName $img)"
     }
-
 }
 
 data class LampaRec(
