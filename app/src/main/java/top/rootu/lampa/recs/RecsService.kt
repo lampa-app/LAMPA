@@ -88,7 +88,11 @@ object RecsService {
         }
 
         val info = buildRecommendationInfo(card)
-        val genres = card.genres?.mapNotNull { it?.name?.capitalize(Locale.ROOT) }?.toTypedArray()
+        val genres = card.genres?.mapNotNull {
+            it.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.toTypedArray()
 
         builder.setBadgeIcon(R.drawable.lampa_logo_icon)
             .setIdTag("${card.id}")
@@ -151,9 +155,11 @@ object RecsService {
             info.add(App.context.getString(R.string.series))
             card.number_of_seasons?.let { info.add("S$it") }
         }
-        card.genres?.joinToString(", ") { genre ->
-            genre?.name?.capitalize(Locale.ROOT).orEmpty()
-        }?.let { info.add(it) }
+        card.genres?.mapNotNull {
+            it.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.joinToString(", ")?.let { info.add(it) }
         return info
     }
 

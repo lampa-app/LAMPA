@@ -1,13 +1,10 @@
 package top.rootu.lampa.search
 
 import android.app.SearchManager
-import android.content.ContentResolver
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.media.Rating
-import android.net.Uri
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.R
@@ -19,6 +16,7 @@ import java.util.*
 import kotlin.concurrent.thread
 
 object SearchDatabase {
+    // Search suggestion column names
     // https://developer.android.com/training/tv/discovery/searchable
     var KEY_NAME = SearchManager.SUGGEST_COLUMN_TEXT_1 // (required)
     var KEY_DESCRIPTION = SearchManager.SUGGEST_COLUMN_TEXT_2
@@ -36,125 +34,156 @@ object SearchDatabase {
     var KEY_COLUMN_DURATION = SearchManager.SUGGEST_COLUMN_DURATION // (required)
     var KEY_ACTION = SearchManager.SUGGEST_COLUMN_INTENT_ACTION
 
+    /**
+     * Searches TMDB for movies and TV shows matching the query.
+     *
+     * @param query The search query.
+     * @return A list of [Entity] objects representing the search results.
+     */
     fun search(query: String): List<Entity> {
-        val ents = mutableListOf<Entity>()
-        val th1 = thread {
-            val lst = searchTMDB(query, 1, true)
-            synchronized(ents) {
-                ents.addAll(lst)
-            }
-        }
-        val th2 = thread {
-            val lst = searchTMDB(query, 2, true)
-            synchronized(ents) {
-                ents.addAll(lst)
-            }
-        }
-        val th3 = thread {
-            val lst = searchTMDB(query, 1, false)
-            synchronized(ents) {
-                ents.addAll(lst)
-            }
-        }
-        val th4 = thread {
-            val lst = searchTMDB(query, 2, false)
-            synchronized(ents) {
-                ents.addAll(lst)
-            }
-        }
+        val results = mutableListOf<Entity>()
 
-        th1.join()
-        th2.join()
-        th3.join()
-        th4.join()
-
-        ents.sortWith(compareBy({ Utils.getDistance(it, query) },
-            { -(it.year?.toIntOrNull() ?: 9999) })
+        // Search in parallel for movies and TV shows across multiple pages
+        val threads = listOf(
+            thread { results.addAll(searchTMDB(query, 1, true)) }, // Movies, page 1
+            thread { results.addAll(searchTMDB(query, 2, true)) }, // Movies, page 2
+            thread { results.addAll(searchTMDB(query, 1, false)) }, // TV shows, page 1
+            thread { results.addAll(searchTMDB(query, 2, false)) }  // TV shows, page 2
         )
-        return ents
+
+        // Wait for all threads to complete
+        threads.forEach { it.join() }
+
+        // Sort results by relevance and year
+        results.sortWith(
+            compareBy(
+                { Utils.getDistance(it, query) }, // Sort by relevance
+                { -(it.year?.toIntOrNull() ?: 9999) } // Sort by year (descending)
+            )
+        )
+
+        return results
     }
 
+    /**
+     * Searches TMDB for movies or TV shows matching the query.
+     *
+     * @param query The search query.
+     * @param page The page number to fetch.
+     * @param movie Whether to search for movies (true) or TV shows (false).
+     * @return A list of [Entity] objects representing the search results.
+     */
     private fun searchTMDB(query: String, page: Int, movie: Boolean): List<Entity> {
-        val params = mutableMapOf<String, String>()
-        params["query"] = query
-        params["page"] = page.toString()
+        val params = mutableMapOf(
+            "query" to query,
+            "page" to page.toString()
+        )
 
-        val srchType = if (movie) "movie" else "tv"
+        val searchType = if (movie) "movie" else "tv"
+        var results = TMDB.videos("search/$searchType", params)?.results ?: emptyList()
 
-        var ents = TMDB.videos("search/$srchType", params)
-        if (ents != null && ents.results.isEmpty() && query.lowercase(Locale.getDefault())
-                .contains('ё')
-        ) {
-            params["query"] = query.replace('ё', 'е', true)
-            ents = TMDB.videos("search/$srchType", params)
+        // Handle the case where the query contains the letter 'ё' (Cyrillic)
+        if (results.isEmpty() && query.contains('ё', ignoreCase = true)) {
+            params["query"] = query.replace('ё', 'е', ignoreCase = true)
+            results = TMDB.videos("search/$searchType", params)?.results ?: emptyList()
         }
-        return ents?.results ?: emptyList()
+
+        return results
     }
 
+    /**
+     * Converts a list of [Entity] objects into a [MatrixCursor].
+     *
+     * @param list The list of [Entity] objects.
+     * @return A [Cursor] containing the search results.
+     */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun getMatrix(list: List<Entity>): Cursor {
         val matrixCursor = MatrixCursor(SearchProvider.queryProjection)
         try {
-            for (movie in list) matrixCursor.addRow(convertMovieIntoRow(movie))
+            list.forEach { entity ->
+                matrixCursor.addRow(convertEntityToRow(entity))
+            }
         } catch (e: IOException) {
             e.printStackTrace()
         }
-
         return matrixCursor
     }
 
+    /**
+     * Converts an [Entity] object into a row for the [MatrixCursor].
+     *
+     * @param ent The [Entity] object.
+     * @return An array of values representing the row.
+     */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
-    private fun convertMovieIntoRow(ent: Entity): Array<Any> {
+    private fun convertEntityToRow(ent: Entity): Array<Any> {
         val info = mutableListOf<String>()
-        // year
+
+        // Add year
         ent.year?.let {
-            val year = if (App.context.getString(R.string.shortyear)
-                    .isNotBlank()
-            ) it + " " + App.context.getString(R.string.shortyear) else it
+            val year = if (App.context.getString(R.string.shortyear).isNotBlank()) {
+                "$it ${App.context.getString(R.string.shortyear)}"
+            } else {
+                it
+            }
             info.add(year)
         }
-        //ent.original_title?.let { if (it.isNotBlank() && it != ent.title) info.add(it) }
+
+        // Add media type and seasons (for TV shows)
         if (ent.media_type == "tv") {
             info.add(App.context.getString(R.string.series))
             ent.number_of_seasons?.let { info.add("S$it") }
         }
-        // genres
-        ent.genres?.joinToString(", ") { g ->
-            g?.name?.replaceFirstChar {
+
+        // Add genres
+        ent.genres?.mapNotNull { genre -> // Filter out genres with null or empty names
+            genre.name?.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-            }.toString()
-        }?.let { if (it.isNotBlank()) info.add(it) }
-        // rating
+            }?.takeIf { it.isNotBlank() } // Ensure the name is not blank
+        }
+            ?.joinToString(", ") // Join non-empty genre names with a comma
+            ?.let { info.add(it) } // Add the result to the info list if it's not empty
+
+        // Add rating
         ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
-        // poster
+
+        // Get poster URL
         val poster = ent.backdrop_path ?: ent.poster_path ?: getDefaultPosterUri()
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) arrayOf(
-            ent.id ?: "", // id
-            ent.title ?: "", // name
-            info.joinToString(" · "), // desc
-            poster, // icon
-            "video/mp4", // data type
-            false, // live
-            1920, // video width
-            1080, // video height
-            "2.0", // channels
-            "$0", // purchase price
-            "$0", // rental price
-            Rating.RATING_5_STARS, // rating type
-            ent.vote_average?.div(2) ?: 0.0,
-            ent.year ?: "",
-            ent.runtime?.toLong()?.times(60000L) ?: 0,
-            "GLOBALSEARCH",
-            ent.id ?: "",
-            ent.media_type ?: ""
-        ) else arrayOf( // KitKat
-            ent.id ?: "",
-            ent.title ?: "",
-            info.joinToString(" · "),
-            poster,
-            "GLOBALSEARCH",
-            ent.id ?: "",
-            ent.media_type ?: "",
-        )
+
+        // Build the row based on the Android version
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            arrayOf(
+                ent.id ?: "", // ID
+                ent.title ?: "", // Name
+                info.joinToString(" · "), // Description
+                poster, // Icon
+                "video/mp4", // Data type
+                false, // Is live
+                1920, // Video width
+                1080, // Video height
+                "2.0", // Audio channels
+                "$0", // Purchase price
+                "$0", // Rental price
+                Rating.RATING_5_STARS, // Rating style
+                ent.vote_average?.div(2) ?: 0.0, // Rating score
+                ent.year ?: "", // Production year
+                ent.runtime?.toLong()?.times(60000L) ?: 0, // Duration
+                "GLOBALSEARCH", // Intent action
+                ent.id ?: "", // Data ID
+                ent.media_type ?: "" // Extra data
+            )
+        } else {
+            // KitKat and below
+            arrayOf(
+                ent.id ?: "", // ID
+                ent.title ?: "", // Name
+                info.joinToString(" · "), // Description
+                poster, // Icon
+                "GLOBALSEARCH", // Intent action
+                ent.id ?: "", // Data ID
+                ent.media_type ?: "" // Extra data
+            )
+        }
     }
 }

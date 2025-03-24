@@ -108,7 +108,11 @@ data class LampaCard(
             type == "scripted" -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
 
-            type?.contains("miniseries", true) == true || type?.contains("news", true) == true -> type = "tv"
+            type?.contains("miniseries", true) == true || type?.contains(
+                "news",
+                true
+            ) == true -> type = "tv"
+
             type.isNullOrEmpty() -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
         }
@@ -117,8 +121,9 @@ data class LampaCard(
     private fun fixGenres() {
         if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty()) {
             genres = genre_ids.mapNotNull { id ->
-                val genreId = id.toIntOrNull()
-                if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "", "") else null
+                id.toIntOrNull()?.let { genreId ->
+                    Genre(genreId.toString(), TMDB.genres[genreId] ?: "", "")
+                }
             }
         }
     }
