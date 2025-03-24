@@ -207,11 +207,85 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    override fun onResume() {
+        printLog("onResume()")
+        super.onResume()
+        hideSystemUI()
+        if (!this.isTvBox) setupFab()
+        // Try to initialize again when the user completed updating and
+        // returned to current activity. The browser.onResume() will do nothing if
+        // the initialization is proceeding or has already been completed.
+        mXWalkInitializer?.initAsync()
+        if (browserInit) {
+            browser?.resumeTimers()
+            printLog("onResume() syncBookmarks()")
+            syncBookmarks()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         printLog("onNewIntent() processIntent")
         setIntent(intent) // getIntent() should always return the most recent
         processIntent(intent)
+    }
+
+    override fun onPause() {
+        if (browserInit) {
+            browser?.pauseTimers()
+            // dumpStorage()
+        }
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        if (browserInit) {
+            browser?.destroy()
+        }
+        try {
+            Speech.getInstance()?.shutdown()
+        } catch (_: Exception) {
+        }
+        super.onDestroy()
+    }
+
+    // handle user pressed Home
+    override fun onUserLeaveHint() {
+        printLog("onUserLeaveHint()")
+        if (browserInit) {
+            browser?.pauseTimers()
+            browser?.clearCache(true)
+        }
+        super.onUserLeaveHint()
+    }
+
+    // handle configuration changes (language / screen orientation)
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        printLog("onConfigurationChanged()")
+        super.onConfigurationChanged(newConfig)
+        hideSystemUI()
+        showFab(true)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_MENU
+            || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
+            || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
+        ) {
+            Log.d(TAG, "Menu key pressed")
+            showMenuDialog()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            Log.d(TAG, "Back button long pressed")
+            showMenuDialog()
+            return true
+        }
+        return super.onKeyLongPress(keyCode, event)
     }
 
     override fun onBrowserInitCompleted() {
@@ -326,7 +400,6 @@ class MainActivity : AppCompatActivity(),
                 // 5. Call mXWalkView.addJavascriptInterface()
                 XWalkPreferences.setValue(XWalkPreferences.REMOTE_DEBUGGING, true)
                 XWalkPreferences.setValue(XWalkPreferences.ENABLE_JAVASCRIPT, true)
-                setContentView(R.layout.activity_xwalk)
             }
 
             "SysView" -> {
@@ -341,7 +414,17 @@ class MainActivity : AppCompatActivity(),
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         loaderView = findViewById(R.id.loaderView)
-        // browser?.init()
+    }
+
+    private fun useCrossWalk() {
+        setContentView(R.layout.activity_xwalk)
+        try {
+            browser = XWalk(this, R.id.xWalkView)
+            browser?.initialize()
+        } catch (e: Exception) {
+            Log.e("XWalk", "Init failed. Fallback to WebView.", e)
+            useSystemWebView()
+        }
     }
 
     private fun useSystemWebView() {
@@ -617,13 +700,7 @@ class MainActivity : AppCompatActivity(),
     override fun onXWalkInitCompleted() {
         printLog("onXWalkInitCompleted() isXWalkReady: ${mXWalkInitializer?.isXWalkReady}")
         if (mXWalkInitializer?.isXWalkReady == true) {
-            try {
-                browser = XWalk(this, R.id.xWalkView)
-                browser?.initialize()
-            } catch (e: Exception) {
-                Log.e("XWalk", "Init failed. Fallback to WebView.", e)
-                useSystemWebView()
-            }
+            useCrossWalk()
         }
     }
 
@@ -1456,80 +1533,6 @@ class MainActivity : AppCompatActivity(),
     // Helper function to validate URLs
     private fun isValidUrl(url: String): Boolean {
         return Patterns.WEB_URL.matcher(url).matches()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_MENU
-            || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
-            || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
-        ) {
-            Log.d(TAG, "Menu key pressed")
-            showMenuDialog()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            Log.d(TAG, "Back button long pressed")
-            showMenuDialog()
-            return true
-        }
-        return super.onKeyLongPress(keyCode, event)
-    }
-
-    override fun onPause() {
-        if (browserInit) {
-            browser?.pauseTimers()
-            // dumpStorage()
-        }
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        if (browserInit) {
-            browser?.destroy()
-        }
-        try {
-            Speech.getInstance()?.shutdown()
-        } catch (_: Exception) {
-        }
-        super.onDestroy()
-    }
-
-    override fun onResume() {
-        printLog("onResume()")
-        super.onResume()
-        hideSystemUI()
-        if (!this.isTvBox) setupFab()
-        // Try to initialize again when the user completed updating and
-        // returned to current activity. The browser.onResume() will do nothing if
-        // the initialization is proceeding or has already been completed.
-        mXWalkInitializer?.initAsync()
-        if (browserInit) {
-            browser?.resumeTimers()
-            printLog("onResume() syncBookmarks()")
-            syncBookmarks()
-        }
-    }
-
-    // handle user pressed Home
-    override fun onUserLeaveHint() {
-        printLog("onUserLeaveHint()")
-        if (browserInit) {
-            browser?.pauseTimers()
-            browser?.clearCache(true)
-        }
-        super.onUserLeaveHint()
-    }
-
-    // handle configuration changes (language / screen orientation)
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        printLog("onConfigurationChanged()")
-        super.onConfigurationChanged(newConfig)
-        hideSystemUI()
-        showFab(true)
     }
 
     fun appExit() {
