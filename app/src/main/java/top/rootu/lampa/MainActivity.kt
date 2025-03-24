@@ -751,8 +751,8 @@ class MainActivity : AppCompatActivity(),
         runJsStorageChangeField("playlist_next")
         runJsStorageChangeField("torrserver_preload")
         runJsStorageChangeField("internal_torrclient")
-        runJsStorageChangeField("language")
-        runJsStorageChangeField("source")
+        runJsStorageChangeField("language") // get lang
+        runJsStorageChangeField("source") // get current catalog
         runJsStorageChangeField("account_use") // get sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
     }
@@ -2401,13 +2401,12 @@ class MainActivity : AppCompatActivity(),
 
     fun runVoidJsFunc(funcName: String, params: String) {
         if (browserInit && loaderView.visibility == View.GONE) {
-            printLog("runVoidJsFunc run $funcName")
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
-                    + "return 'OK';"
+                    + "return '${JS_SUCCESS}';"
                     + "} catch (e) {"
-                    + "return 'Error: ' + e.message;"
+                    + "return '${JS_FAILURE}: ' + e.message;"
                     + "}"
                     + "})();")
             browser?.evaluateJavascript(
