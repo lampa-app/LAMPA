@@ -134,9 +134,10 @@ class MainActivity : AppCompatActivity(),
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private var loaderView: LottieAnimationView? = null
     private var browserInit = false
     private var isMenuVisible = false
+    private var isStorageListenerAdded = false
+    private lateinit var loaderView: LottieAnimationView
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private lateinit var progressIndicator: LinearProgressIndicator
@@ -317,7 +318,7 @@ class MainActivity : AppCompatActivity(),
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
         }
-        loaderView?.visibility = View.GONE
+        loaderView.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
         // Dirty hack to skip reload from Back history
@@ -418,11 +419,11 @@ class MainActivity : AppCompatActivity(),
         }
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        loaderView = findViewById(R.id.loaderView)
     }
 
     private fun useCrossWalk() {
         setContentView(R.layout.activity_xwalk)
+        loaderView = findViewById(R.id.loaderView)
         try {
             browser = XWalk(this, R.id.xWalkView)
             browser?.initialize()
@@ -434,6 +435,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun useSystemWebView() {
         setContentView(R.layout.activity_webview)
+        loaderView = findViewById(R.id.loaderView)
         browser = SysView(this, R.id.webView)
         browser?.initialize()
     }
@@ -725,7 +727,7 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             restoreStorage { callback ->
                 if (callback.contains(JS_SUCCESS, true)) {
-                    Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
+                    Log.d(TAG, "migrateSettings - Lampa settings restored. Restart.")
                     recreate()
                 } else {
                     App.toast(R.string.settings_rest_fail)
@@ -736,11 +738,14 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun syncStorage() {
-        runVoidJsFunc(
-            "Lampa.Storage.listener.add",
-            "'change'," +
-                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
-        )
+        if (!isStorageListenerAdded) {
+            runVoidJsFunc(
+                "Lampa.Storage.listener.add",
+                "'change'," +
+                        "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
+            )
+            isStorageListenerAdded = true
+        }
         runJsStorageChangeField("activity", "{}") // get current lampaActivity
         runJsStorageChangeField("player_timecode")
         runJsStorageChangeField("playlist_next")
@@ -2395,7 +2400,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && loaderView?.visibility == View.GONE) {
+        if (browserInit && loaderView.visibility == View.GONE) {
+            printLog("runVoidJsFunc run $funcName")
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
@@ -2413,6 +2419,7 @@ class MainActivity : AppCompatActivity(),
                 )
             }
         } else {
+            printLog("runVoidJsFunc add to delayedVoidJsFunc $funcName")
             delayedVoidJsFunc.add(listOf(funcName, params))
         }
     }
