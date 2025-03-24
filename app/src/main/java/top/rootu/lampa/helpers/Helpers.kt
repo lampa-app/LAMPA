@@ -157,25 +157,34 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
-        val intent = Intent(App.context, MainActivity::class.java)
-        // TODO: fix this id and media type mess
-        val intID = card.id?.toIntOrNull() // required for processIntent()
-        intID?.let { intent.putExtra("id", it) }
-        intent.putExtra("source", card.source)
-        intent.putExtra("media", card.type)
-
-        val idStr = try {
+    // Helper function to serialize LampaCard to JSON
+    private fun serializeCardToJson(card: LampaCard): String? {
+        return try {
             Gson().toJson(card)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("serializeCardToJson", "Failed to serialize card $card to JSON", e)
             null
-        } // used to get card from HomeWatch
-        idStr?.let { intent.putExtra("LampaCardJS", idStr) }
+        }
+    }
 
-        continueWatch?.let { intent.putExtra("continueWatch", it) }
+    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
+        val intent = Intent(App.context, MainActivity::class.java).apply {
+            // Set ID, source, and media type from the card
+            card.id?.let { putExtra("id", it) }
+            card.source?.let { putExtra("source", it) }
+            card.type?.let { putExtra("media", it) }
 
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        intent.action = card.id.toString()
+            // Serialize the card to JSON and add it to the intent
+            val cardJson = serializeCardToJson(card)
+            cardJson?.let { putExtra("LampaCardJS", it) } // used to get card from HomeWatch
+
+            // Add continueWatch flag if provided
+            continueWatch?.let { putExtra("continueWatch", it) }
+
+            // Set intent flags and action
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            action = card.id?.toString() ?: ""
+        }
         return intent
     }
 

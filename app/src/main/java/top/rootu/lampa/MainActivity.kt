@@ -185,7 +185,7 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         LAMPA_URL = this.appUrl
         SELECTED_PLAYER = this.appPlayer
-        printLog("onCreate LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
+        printLog("onCreate SELECTED_BROWSER: $SELECTED_BROWSER LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
         playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
         playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
@@ -294,9 +294,8 @@ class MainActivity : AppCompatActivity(),
         if (!Helpers.isWebViewAvailable(this)
             || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
         ) {
-            // If SELECTED_BROWSER not set, but there is information about the latest video,
-            // then the user used Crosswalk in previous versions of the application
             SELECTED_BROWSER = "XWalk"
+            // appBrowser = SELECTED_BROWSER
         }
         val wvvMajorVersion: Double = try {
             Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
@@ -309,6 +308,7 @@ class MainActivity : AppCompatActivity(),
             && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
         ) {
             SELECTED_BROWSER = "SysView"
+            // appBrowser = SELECTED_BROWSER
         }
         when (SELECTED_BROWSER) {
             "XWalk" -> {
@@ -332,6 +332,8 @@ class MainActivity : AppCompatActivity(),
             "SysView" -> {
                 setContentView(R.layout.activity_webview)
                 browser = SysView(this, R.id.webView)
+                browser?.init()
+
             }
 
             else -> {
@@ -342,7 +344,7 @@ class MainActivity : AppCompatActivity(),
         // https://developer.android.com/develop/background-work/background-tasks/scheduling/wakelock
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         loaderView = findViewById(R.id.loaderView)
-        browser?.init()
+        // browser?.init()
     }
 
     private fun handleSpeechResult(result: androidx.activity.result.ActivityResult) {
@@ -610,9 +612,11 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onXWalkInitCompleted() {
-        printLog("onXWalkInitCompleted()")
-        browser = XWalk(this, R.id.xWalkView)
-        browser?.init()
+        printLog("onXWalkInitCompleted() isXWalkReady: ${mXWalkInitializer?.isXWalkReady}")
+        if (mXWalkInitializer?.isXWalkReady == true) {
+            browser = XWalk(this, R.id.xWalkView)
+            browser?.init()
+        }
     }
 
     override fun onXWalkUpdateCancelled() {
@@ -786,6 +790,188 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
+        // Log intent data for debugging
+        logIntentData(intent)
+        // Parse intent extras
+        val sid = intent?.getStringExtra("id") ?: intent?.getIntExtra("id", -1)
+            .toString() // Change to String
+        val mediaType = intent?.getStringExtra("media") ?: ""
+        val source = intent?.getStringExtra("source") ?: lampaSource.ifEmpty { "tmdb" }
+        // Parse intent data
+        intent?.data?.let { uri ->
+            parseUriData(intent, uri, delay)
+        }
+        // Handle continue watch
+        if (intent?.getBooleanExtra("continueWatch", false) == true) {
+            handleContinueWatch(intent, delay)
+        } else if (sid != "-1" && mediaType.isNotEmpty()) {
+            // Handle opening a card
+            handleOpenCard(intent, sid, mediaType, source, delay)
+        }
+        // Handle search command
+        intent?.getStringExtra("cmd")?.let { cmd ->
+            when (cmd) {
+                "open_settings" -> showMenuDialog()
+            }
+        }
+        // Fix initial focus
+        browser?.setFocus()
+    }
+
+    // Helper function to log intent data
+    private fun logIntentData(intent: Intent?) {
+        if (BuildConfig.DEBUG) {
+            printLog("processIntent data: ${intent?.toUri(0)}")
+            intent?.extras?.let { extras ->
+                extras.keySet().forEach { key ->
+                    printLog("processIntent: extras $key : ${extras.get(key) ?: "NULL"}")
+                }
+            }
+        }
+    }
+
+    // Helper function to handle URI data
+    private fun parseUriData(
+        intent: Intent,
+        uri: Uri,
+        delay: Long
+    ) {
+        if (uri.host?.contains("themoviedb.org") == true && uri.pathSegments.size >= 2) {
+            val videoType = uri.pathSegments[0]
+            val sid = "\\d+".toRegex().find(uri.pathSegments[1])?.value // Keep as String
+            if (videoType in listOf(
+                    "movie",
+                    "tv"
+                ) && sid?.toIntOrNull() != null
+            ) { // Change comparison to String
+                handleTmdbIntent(intent, videoType, sid, delay) // Pass id as String
+            }
+        }
+        when (intent.action) {
+            "GLOBALSEARCH" -> handleGlobalSearch(intent, uri, delay)
+            else -> handleChannelIntent(intent, uri, delay)
+        }
+    }
+
+    // Helper function to handle TMDB intents
+    private fun handleTmdbIntent(
+        intent: Intent,
+        videoType: String,
+        sid: String,
+        delay: Long
+    ) { // Change id to String
+        val source = intent.getStringExtra("source") ?: "tmdb"
+        val card = "{id: '$sid', source: '$source'}" // Use String id in JSON
+        lifecycleScope.launch {
+            runVoidJsFunc(
+                "window.start_deep_link = ",
+                "{id: '$sid', method: '$videoType', source: '$source', component: 'full', card: $card}"
+            )
+            delay(delay)
+            runVoidJsFunc("Lampa.Controller.toContent", "")
+            runVoidJsFunc(
+                "Lampa.Activity.push",
+                "{id: '$sid', method: '$videoType', source: '$source', component: 'full', card: $card}"
+            )
+        }
+    }
+
+    // Helper function to handle global search
+    // content://top.rootu.lampa.atvsearch/video/508883#Intent;action=GLOBALSEARCH
+    private fun handleGlobalSearch(intent: Intent, uri: Uri, delay: Long) {
+        val sid = uri.lastPathSegment // Keep as String
+        val videoType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
+        // Handle global search case
+        if (videoType in listOf("movie", "tv") && sid?.toIntOrNull() != null)
+            handleTmdbIntent(intent, videoType, sid, delay) // Pass id as String
+    }
+
+    // Helper function to handle channel intents
+    private fun handleChannelIntent(intent: Intent, uri: Uri, delay: Long) {
+        if (uri.encodedPath?.contains("update_channel") == true) {
+            val channel = uri.encodedPath?.substringAfterLast("/") ?: ""
+            val params = when (channel) {
+                LampaProvider.RECS -> {
+                    "{" +
+                            "title: '${getString(R.string.title_main)} - ${
+                                lampaSource.uppercase(
+                                    Locale.getDefault()
+                                )
+                            }'," +
+                            "component: 'main'," +
+                            "source: '$lampaSource'," +
+                            "url: ''" +
+                            "}"
+                }
+
+                LampaProvider.LIKE, LampaProvider.BOOK, LampaProvider.HIST -> {
+                    "{" +
+                            "title: '${getChannelDisplayName(channel)}'," +
+                            "component: '${if (channel == "book") "bookmarks" else "favorite"}'," +
+                            "type: '$channel'," +
+                            "url: ''," +
+                            "page: 1" +
+                            "}"
+                }
+
+                else -> ""
+            }
+
+            if (params.isNotEmpty()) {
+                lifecycleScope.launch {
+                    runVoidJsFunc("window.start_deep_link = ", params)
+                    delay(delay)
+                    runVoidJsFunc("Lampa.Controller.toContent", "")
+                    runVoidJsFunc("Lampa.Activity.push", params)
+                }
+            }
+        }
+    }
+
+    // Helper function to handle continue watch
+    private fun handleContinueWatch(intent: Intent, delay: Long) {
+        playActivityJS?.let { json ->
+            if (isValidJson(json)) {
+                lifecycleScope.launch {
+                    runVoidJsFunc("window.start_deep_link = ", json)
+                    delay(delay)
+                    runVoidJsFunc("Lampa.Controller.toContent", "")
+                    runVoidJsFunc("Lampa.Activity.push", json)
+                    delay(500)
+                    if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
+                        resumeJS?.let { JSONObject(it) }?.let { runPlayer(it) }
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper function to handle opening a card
+    private fun handleOpenCard(
+        intent: Intent?,
+        sid: String,
+        mediaType: String,
+        source: String,
+        delay: Long
+    ) { // Change intID to String
+        val card = intent?.getStringExtra("LampaCardJS") ?: "{id: '$sid', source: '$source'}"
+        // val card = "{id: '$sid', source: '$source'}" // Use String id in JSON
+        printLog("handleOpenCard sid: $sid mediaType: $mediaType source: $source")
+        lifecycleScope.launch {
+            runVoidJsFunc(
+                "window.start_deep_link = ",
+                "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}"
+            )
+            delay(delay)
+            runVoidJsFunc("Lampa.Controller.toContent", "")
+            runVoidJsFunc(
+                "Lampa.Activity.push",
+                "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}"
+            )
+        }
+    }
+
+    private fun processIntentOld(intent: Intent?, delay: Long = 0) {
         var intID = -1
         var mediaType = ""
         var source = ""
@@ -1137,6 +1323,7 @@ class MainActivity : AppCompatActivity(),
     private fun showBrowserInputDialog() {
         val mainActivity = this
         val dialogBuilder = AlertDialog.Builder(mainActivity)
+        val xWalkChromium = "53.589.4"
         var selectedIndex = 0
 
         // Determine available browser options
@@ -1149,11 +1336,12 @@ class MainActivity : AppCompatActivity(),
             }
 
             val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
+
             val crosswalkTitle = if (isCrosswalkActive) {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} 53.589.4"
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkChromium"
             } else {
-                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} 53.589.4"
-                else "${getString(R.string.engine_crosswalk)} 53.589.4"
+                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} $xWalkChromium"
+                else "${getString(R.string.engine_crosswalk)} $xWalkChromium"
             }
 
             val webkitTitle = if (isCrosswalkActive) {
@@ -1168,17 +1356,16 @@ class MainActivity : AppCompatActivity(),
             selectedIndex = if (isCrosswalkActive) 0 else 1
 
             Triple(titles, actions, icons)
-        } else {
+        } else { // No WebView
             val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)}"
+                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkChromium"
             } else {
-                getString(R.string.engine_crosswalk)
+                "${getString(R.string.engine_crosswalk)} $xWalkChromium"
             }
 
             val titles = listOf(crosswalkTitle)
             val actions = listOf("XWalk")
             val icons = listOf(R.drawable.round_explorer_24)
-            selectedIndex = 0
 
             Triple(titles, actions, icons)
         }
@@ -1192,7 +1379,7 @@ class MainActivity : AppCompatActivity(),
         dialogBuilder.setAdapter(adapter) { dialog, which ->
             dialog.dismiss()
             if (menuItemsAction[which] != SELECTED_BROWSER) {
-                this.appBrowser = menuItemsAction[which]
+                appBrowser = menuItemsAction[which]
                 mainActivity.recreate()
             }
         }
