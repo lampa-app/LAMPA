@@ -155,6 +155,8 @@ class MainActivity : AppCompatActivity(),
         private const val RESULT_VIMU_ENDED = 2
         private const val RESULT_VIMU_START = 3
         private const val RESULT_VIMU_ERROR = 4
+        const val JS_SUCCESS = "SUCCESS"
+        const val JS_FAILURE = "FAILED"
 
         // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
@@ -273,7 +275,7 @@ class MainActivity : AppCompatActivity(),
             || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
             || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
         ) {
-            Log.d(TAG, "Menu key pressed")
+            printLog("Menu key pressed")
             showMenuDialog()
             return true
         }
@@ -282,7 +284,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            Log.d(TAG, "Back button long pressed")
+            printLog("Back button long pressed")
             showMenuDialog()
             return true
         }
@@ -374,20 +376,18 @@ class MainActivity : AppCompatActivity(),
             || (SELECTED_BROWSER.isNullOrEmpty() && VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
         ) {
             SELECTED_BROWSER = "XWalk"
-            // appBrowser = SELECTED_BROWSER
         }
         val wvvMajorVersion: Double = try {
             Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
         } catch (_: NumberFormatException) {
             0.0
         }
-        // Hide Browser chooser on RuStore builds and modern Android WebView
+        // Use WebView on RuStore builds and modern Androids by default
         if (Helpers.isWebViewAvailable(this)
             && SELECTED_BROWSER.isNullOrEmpty()
             && (BuildConfig.FLAVOR == "ruStore" || wvvMajorVersion > 53.589)
         ) {
             SELECTED_BROWSER = "SysView"
-            // appBrowser = SELECTED_BROWSER
         }
         when (SELECTED_BROWSER) {
             "XWalk" -> {
@@ -724,7 +724,7 @@ class MainActivity : AppCompatActivity(),
     fun migrateSettings() {
         lifecycleScope.launch {
             restoreStorage { callback ->
-                if (callback.contains("SUCCESS", true)) {
+                if (callback.contains(JS_SUCCESS, true)) {
                     Log.d(TAG, "onBrowserPageFinished - Lampa settings restored. Restart.")
                     recreate()
                 } else {
@@ -829,14 +829,14 @@ class MainActivity : AppCompatActivity(),
                         AndroidJS.set(key, localStorage.getItem(key));
                         count++;
                     }
-                    return 'SUCCESS. ' + count + ' items backed up.';
+                    return '${JS_SUCCESS}. ' + count + ' items backed up.';
                 } catch (error) {
-                    return 'FAILED: ' + error.message;
+                    return '${JS_FAILURE}: ' + error.message;
                 }
             })()
             """.trimIndent()
         browser?.evaluateJavascript(backupJavascript) { result ->
-            if (result.contains("SUCCESS", true)) {
+            if (result.contains(JS_SUCCESS, true)) {
                 printLog("localStorage backed up. Result $result")
                 callback(result) // Success
             } else {
@@ -858,14 +858,14 @@ class MainActivity : AppCompatActivity(),
                         console.log('[' + key + ']');
                         localStorage.setItem(key, AndroidJS.get(key));
                     }
-                    return 'SUCCESS. ' + len + ' items restored.';
+                    return '${JS_SUCCESS}. ' + len + ' items restored.';
                 } catch (error) {
-                    return 'FAILED: ' + error.message;
+                    return '${JS_FAILURE}: ' + error.message;
                 }
             })()
             """.trimIndent()
         browser?.evaluateJavascript(restoreJavascript) { result ->
-            if (result.contains("SUCCESS", true)) {
+            if (result.contains(JS_SUCCESS, true)) {
                 printLog("localStorage restored. Result $result")
                 callback(result) // Success
             } else {
@@ -1100,11 +1100,6 @@ class MainActivity : AppCompatActivity(),
             )
         )
 
-        val wvvMajorVersion: Double = try {
-            Helpers.getWebViewVersion(this).substringBefore(".").toDouble()
-        } catch (_: NumberFormatException) {
-            0.0
-        }
         // Hide CrossWalk switcher on RuStore builds
         if (!isInstallPermissionDeclared(this))
             menuItems.removeAt(2)
@@ -1157,7 +1152,7 @@ class MainActivity : AppCompatActivity(),
     private fun backupAllSettings() {
         lifecycleScope.launch {
             dumpStorage { callback ->
-                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                if (callback.contains(JS_SUCCESS, true)) { // .trim().removeSurrounding("\"")
                     // Proceed with saving settings if the backup was successful
                     if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
                         App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
@@ -1186,7 +1181,7 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             if (loadFromBackup(Prefs.STORAGE_PREFERENCES)) {
                 restoreStorage { callback ->
-                    if (callback.contains("SUCCESS", true)) {
+                    if (callback.contains(JS_SUCCESS, true)) {
                         App.toast(R.string.settings_restored)
                         recreate()
                     } else {
@@ -1510,12 +1505,12 @@ class MainActivity : AppCompatActivity(),
     private fun handleMigrateButtonClick(dialog: AlertDialog) {
         // Add a LinearProgressIndicator to the dialog
         addProgressIndicatorToDialog(dialog)
-        // Show the loader progress
+        // Show the migrate progress
         setProgressIndicatorVisibility(true)
         lifecycleScope.launch {
             dumpStorage { callback ->
                 setProgressIndicatorVisibility(false) // Hide the progress indicator
-                if (callback.contains("SUCCESS", true)) { // .trim().removeSurrounding("\"")
+                if (callback.contains(JS_SUCCESS, true)) { // .trim().removeSurrounding("\"")
                     Log.d(TAG, "handleMigrateButtonClick: dumpStorage completed - $callback")
                     this@MainActivity.migrate = true
                     val input = dialog.findViewById<AutoCompleteTV>(R.id.etLampaUrl)
@@ -2369,7 +2364,6 @@ class MainActivity : AppCompatActivity(),
                     R.color.lampa_background
                 )
             )
-            //setAlpha(0.5f)
             setOnClickListener {
                 showMenuDialog()
                 showFab(false)
