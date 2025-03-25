@@ -10,6 +10,7 @@ import android.net.http.SslError
 import android.os.Build
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.JsResult
 import android.webkit.SslErrorHandler
@@ -28,11 +29,13 @@ import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.helpers.getNetworkErrorString
+import top.rootu.lampa.helpers.isAttachedToWindowCompat
 
 
 // https://developer.android.com/develop/ui/views/layout/webapps/webview#kotlin
 class SysView(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: WebView? = null
+    override var isDestroyed = false
     val TAG = "WEBVIEW"
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -287,7 +290,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     }
 
     override fun destroy() {
+        browser?.let {
+            // Remove from parent if attached
+            if (it.isAttachedToWindowCompat())
+                (it.parent as? ViewGroup)?.removeView(it)
+        }
+        browser?.stopLoading()
         browser?.destroy()
+        isDestroyed = true
     }
 
     override fun setBackgroundColor(color: Int) {
@@ -304,6 +314,10 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
     override fun setFocus() {
         browser?.requestFocus(View.FOCUS_DOWN)
+    }
+
+    override fun getView(): View? {
+        return browser
     }
 
 }

@@ -24,6 +24,7 @@ import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
 import top.rootu.lampa.helpers.Prefs.saveFavorite
@@ -74,8 +75,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
 
             "language" -> {
-                mainActivity.setLang(eo.optString("value", "ru"))
-                printLog("language set to ${eo.optString("value", "ru")}", TAG)
+                val newLang = eo.optString("value", "ru")
+                if (mainActivity.appLang != newLang) {
+                    App.setAppLanguage(mainActivity, newLang)
+                    // mainActivity.appLang = newLang
+                    // mainActivity.runOnUiThread { mainActivity.recreate() }
+                    printLog("language changed to $newLang", TAG)
+                } else {
+                    printLog("language not changed", TAG)
+                }
             }
 
             "source" -> {
@@ -100,7 +108,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "favorite" -> {
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
-                    App.context.saveFavorite(json)
+                    mainActivity.saveFavorite(json)
                     printLog("favorite JSON saved to prefs", TAG)
                 } else {
                     Log.e(TAG, "Not valid JSON in favorite")
@@ -110,13 +118,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             "account_use" -> {
                 val use = eo.optBoolean("value", false)
                 printLog("set syncEnabled $use", TAG)
-                App.context.syncEnabled = use
+                mainActivity.syncEnabled = use
             }
 
             "recomends_list" -> {
                 val json = eo.optString("value", "")
                 if (isValidJson(json)) {
-                    App.context.saveRecs(json)
+                    mainActivity.saveRecs(json)
                     printLog("recomends_list JSON saved to prefs", TAG)
                 } else {
                     Log.e(TAG, "Not valid JSON in recomends_list")
@@ -136,7 +144,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun exit() {
         try {
             mainActivity.runOnUiThread { mainActivity.appExit() }
-        } catch (unused: Exception) {
+        } catch (_: Exception) {
             exitProcess(1)
         }
     }
@@ -410,7 +418,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             if (validBookmarks.isNotEmpty()) {
                 printLog("saveBookmarks - found ${validBookmarks.size} valid elements", TAG)
                 // Save the valid bookmarks
-                App.context.saveAccountBookmarks(Gson().toJson(validBookmarks))
+                mainActivity.saveAccountBookmarks(Gson().toJson(validBookmarks))
             } else {
                 Log.e(TAG, "saveBookmarks - no valid CUB bookmarks found in the JSON")
             }

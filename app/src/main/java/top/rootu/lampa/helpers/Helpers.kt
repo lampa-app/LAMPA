@@ -1,19 +1,15 @@
 package top.rootu.lampa.helpers
 
-import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
-import android.content.res.Resources
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
-import android.os.LocaleList
 import android.util.Log
 import android.util.TypedValue
 import androidx.annotation.RequiresApi
@@ -89,21 +85,6 @@ object Helpers {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         App.context.startActivity(intent)
         return true
-    }
-
-    fun setLocale(activity: Activity, languageCode: String?) {
-        if (BuildConfig.DEBUG) Log.d("APP_MAIN", "set Locale to [$languageCode]")
-        val locale = languageCode?.let { Locale(it) } ?: return
-        Locale.setDefault(locale)
-        val resources: Resources = activity.resources
-        val config: Configuration = resources.configuration
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-            config.setLocales(LocaleList(locale))
-        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-            config.setLocale(locale)
-        else
-            config.locale = locale
-        resources.updateConfiguration(config, resources.displayMetrics)
     }
 
     @Suppress("DEPRECATION")

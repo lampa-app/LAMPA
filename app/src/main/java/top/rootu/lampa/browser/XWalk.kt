@@ -10,6 +10,7 @@ import top.rootu.lampa.helpers.getNetworkErrorString
 
 class XWalk(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: XWalkView? = null
+    override var isDestroyed = false
     override fun initialize() {
         if (browser == null) {
             browser = mainActivity.findViewById(viewResId)
@@ -77,6 +78,7 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
 
     override fun destroy() {
         browser?.onDestroy()
+        isDestroyed = true
     }
 
     override fun setBackgroundColor(color: Int) {
@@ -90,5 +92,9 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
     override fun goBack() {}
 
     override fun setFocus() {}
+
+    override fun getView(): View? {
+        return browser
+    }
 
 }

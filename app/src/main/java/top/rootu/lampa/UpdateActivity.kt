@@ -25,7 +25,7 @@ import top.rootu.lampa.helpers.hideSystemUI
 import top.rootu.lampa.helpers.Updater
 
 
-class UpdateActivity : AppCompatActivity() {
+class UpdateActivity : BaseActivity() {
 
 //    private val requestPermissionLauncher =
 //        registerForActivityResult(

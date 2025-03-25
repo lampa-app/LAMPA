@@ -32,6 +32,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.webkit.WebView
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -40,7 +41,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatEditText
@@ -119,6 +119,9 @@ import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.helpers.hideSystemUI
+import top.rootu.lampa.helpers.isAttachedToWindowCompat
+import top.rootu.lampa.helpers.isDetachedFromWindowCompat
+import top.rootu.lampa.helpers.isSafeForUse
 import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
@@ -127,14 +130,14 @@ import java.util.Locale
 import kotlin.collections.set
 
 
-class MainActivity : AppCompatActivity(),
+class MainActivity : BaseActivity(),
     Browser.Listener,
     XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
     // Local properties
     private var mXWalkUpdater: MyXWalkUpdater? = null
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
-    private var browserInit = false
+    private var browserInitComplete = false
     private var isMenuVisible = false
     private var isStorageListenerAdded = false
     private lateinit var loaderView: LottieAnimationView
@@ -220,9 +223,11 @@ class MainActivity : AppCompatActivity(),
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
         mXWalkInitializer?.initAsync()
-        if (browserInit) {
+        printLog("onResume() browserInitComplete $browserInitComplete isSafeForUse ${browser.isSafeForUse()}")
+        if (browserInitComplete)
             browser?.resumeTimers()
-            printLog("onResume() syncBookmarks()")
+        if (browser.isSafeForUse()) {
+            printLog("onResume() run syncBookmarks()")
             syncBookmarks()
         }
     }
@@ -235,16 +240,18 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onPause() {
-        if (browserInit) {
+        if (browserInitComplete)
             browser?.pauseTimers()
-            // dumpStorage()
-        }
         super.onPause()
     }
 
     override fun onDestroy() {
-        if (browserInit) {
-            browser?.destroy()
+        if (browserInitComplete)
+        browser?.apply {
+            // Destroy only if not already destroyed
+            if (!isDestroyed) {
+                destroy()
+            }
         }
         try {
             Speech.getInstance()?.shutdown()
@@ -256,10 +263,11 @@ class MainActivity : AppCompatActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         printLog("onUserLeaveHint()")
-        if (browserInit) {
-            browser?.pauseTimers()
-            browser?.clearCache(true)
-        }
+        if (browserInitComplete)
+            browser?.apply {
+                pauseTimers()
+                clearCache(true)
+            }
         super.onUserLeaveHint()
     }
 
@@ -293,7 +301,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onBrowserInitCompleted() {
-        browserInit = true
+        browserInitComplete = true
         HttpHelper.userAgent = browser?.getUserAgentString() + " lampa_client"
         browser?.apply {
             setUserAgentString(HttpHelper.userAgent)
@@ -302,8 +310,10 @@ class MainActivity : AppCompatActivity(),
         }
         printLog("onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
         if (LAMPA_URL.isEmpty()) {
+            printLog("onBrowserInitCompleted showUrlInputDialog")
             showUrlInputDialog()
         } else {
+            printLog("onBrowserInitCompleted load $LAMPA_URL")
             browser?.loadUrl(LAMPA_URL)
         }
     }
@@ -325,22 +335,24 @@ class MainActivity : AppCompatActivity(),
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
             // Lazy Load Intent
             processIntent(intent, 500) // 1000
-            // Sync with Lampa localStorage
-            lifecycleScope.launch {
-                delay(3000)
-                syncStorage()
-                changeTmdbUrls()
-                // Create a copy for iteration
-                val itemsToProcess = delayedVoidJsFunc.toList()
-                delayedVoidJsFunc.clear() // Clear before processing
-                for (item in itemsToProcess) {
-                    runVoidJsFunc(item[0], item[1])
-                }
-            }
             // Background update Android TV channels and Recommendations
+            printLog("onBrowserPageFinished run syncBookmarks()")
             syncBookmarks()
             CoroutineScope(Dispatchers.IO).launch {
                 Scheduler.scheduleUpdate(false)
+            }
+        }
+        // Sync with Lampa localStorage
+        lifecycleScope.launch {
+            delay(3000)
+            setupListener()
+            syncStorage()
+            changeTmdbUrls()
+            // Create a copy for safe iteration
+            val itemsToProcess = delayedVoidJsFunc.toList()
+            delayedVoidJsFunc.clear() // Clear before processing
+            for (item in itemsToProcess) {
+                runVoidJsFunc(item[0], item[1])
             }
         }
     }
@@ -681,7 +693,6 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun setupUI() {
-        Helpers.setLocale(this, this.appLang)
         hideSystemUI() // Must be invoked after setContentView!
     }
 
@@ -737,21 +748,23 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    fun syncStorage() {
-        if (!isStorageListenerAdded) {
+    fun setupListener() {
+        if (!isStorageListenerAdded)
             runVoidJsFunc(
                 "Lampa.Storage.listener.add",
                 "'change'," +
                         "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
             )
-            isStorageListenerAdded = true
-        }
+        isStorageListenerAdded = true
+    }
+
+    fun syncStorage() {
         runJsStorageChangeField("activity", "{}") // get current lampaActivity
         runJsStorageChangeField("player_timecode")
         runJsStorageChangeField("playlist_next")
         runJsStorageChangeField("torrserver_preload")
         runJsStorageChangeField("internal_torrclient")
-        runJsStorageChangeField("language") // get lang
+        runJsStorageChangeField("language") // apply language
         runJsStorageChangeField("source") // get current catalog
         runJsStorageChangeField("account_use") // get sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
@@ -914,6 +927,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     // Helper function to log intent data
+    @Suppress("DEPRECATION")
     private fun logIntentData(intent: Intent?) {
         if (BuildConfig.DEBUG) {
             printLog("processIntent data: ${intent?.toUri(0)}")
@@ -929,7 +943,7 @@ class MainActivity : AppCompatActivity(),
     private fun parseUriData(
         intent: Intent,
         uri: Uri,
-        delay: Long
+        delay: Long = 0L
     ) {
         if (uri.host?.contains("themoviedb.org") == true && uri.pathSegments.size >= 2) {
             val videoType = uri.pathSegments[0]
@@ -953,27 +967,21 @@ class MainActivity : AppCompatActivity(),
         intent: Intent,
         videoType: String,
         sid: String,
-        delay: Long
+        delay: Long = 0
     ) { // Change id to String
         val source = intent.getStringExtra("source") ?: "tmdb"
         val card = "{id: '$sid', source: '$source'}" // Use String id in JSON
         lifecycleScope.launch {
-            runVoidJsFunc(
-                "window.start_deep_link = ",
-                "{id: '$sid', method: '$videoType', source: '$source', component: 'full', card: $card}"
-            )
-            delay(delay)
-            runVoidJsFunc("Lampa.Controller.toContent", "")
-            runVoidJsFunc(
-                "Lampa.Activity.push",
-                "{id: '$sid', method: '$videoType', source: '$source', component: 'full', card: $card}"
+            openLampaContent(
+                "{id: '$sid', method: '$videoType', source: '$source', component: 'full', card: $card}",
+                delay
             )
         }
     }
 
     // Helper function to handle global search
     // content://top.rootu.lampa.atvsearch/video/508883#Intent;action=GLOBALSEARCH
-    private fun handleGlobalSearch(intent: Intent, uri: Uri, delay: Long) {
+    private fun handleGlobalSearch(intent: Intent, uri: Uri, delay: Long = 0) {
         val sid = uri.lastPathSegment // Keep as String
         val videoType = intent.extras?.getString(SearchManager.EXTRA_DATA_KEY) ?: ""
         // Handle global search case
@@ -982,7 +990,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     // Helper function to handle channel intents
-    private fun handleChannelIntent(uri: Uri, delay: Long) {
+    private fun handleChannelIntent(uri: Uri, delay: Long = 0) {
         if (uri.encodedPath?.contains("update_channel") == true) {
             val channel = uri.encodedPath?.substringAfterLast("/") ?: ""
             val params = when (channel) {
@@ -1014,25 +1022,19 @@ class MainActivity : AppCompatActivity(),
 
             if (params.isNotEmpty()) {
                 lifecycleScope.launch {
-                    runVoidJsFunc("window.start_deep_link = ", params)
-                    delay(delay)
-                    runVoidJsFunc("Lampa.Controller.toContent", "")
-                    runVoidJsFunc("Lampa.Activity.push", params)
+                    openLampaContent(params, delay)
                 }
             }
         }
     }
 
     // Helper function to handle continue watch
-    private fun handleContinueWatch(intent: Intent, delay: Long) {
+    private fun handleContinueWatch(intent: Intent, delay: Long = 0) {
         playActivityJS?.let { json ->
             if (isValidJson(json)) {
                 lifecycleScope.launch {
-                    runVoidJsFunc("window.start_deep_link = ", json)
+                    openLampaContent(json, delay)
                     delay(delay)
-                    runVoidJsFunc("Lampa.Controller.toContent", "")
-                    runVoidJsFunc("Lampa.Activity.push", json)
-                    delay(500)
                     if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                         resumeJS?.let { JSONObject(it) }?.let { runPlayer(it) }
                     }
@@ -1047,23 +1049,24 @@ class MainActivity : AppCompatActivity(),
         sid: String,
         mediaType: String,
         source: String,
-        delay: Long
+        delay: Long = 0
     ) { // Change intID to String
-        val card = intent?.getStringExtra("LampaCardJS") ?: "{id: '$sid', source: '$source'}"
-        // val card = "{id: '$sid', source: '$source'}" // Use String id in JSON
+        val card = intent?.getStringExtra("LampaCardJS")
+            ?: "{id: '$sid', source: '$source'}" // Use String id in JSON
         printLog("handleOpenCard sid: $sid mediaType: $mediaType source: $source")
         lifecycleScope.launch {
-            runVoidJsFunc(
-                "window.start_deep_link = ",
-                "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}"
-            )
-            delay(delay)
-            runVoidJsFunc("Lampa.Controller.toContent", "")
-            runVoidJsFunc(
-                "Lampa.Activity.push",
-                "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}"
+            openLampaContent(
+                "{id: '$sid', method: '$mediaType', source: '$source', component: 'full', card: $card}",
+                delay
             )
         }
+    }
+
+    private suspend fun openLampaContent(json: String, delay: Long = 0) {
+        runVoidJsFunc("window.start_deep_link = ", json)
+        delay(delay)
+        runVoidJsFunc("Lampa.Controller.toContent", "")
+        runVoidJsFunc("Lampa.Activity.push", json)
     }
 
     private fun showMenuDialog() {
@@ -1542,16 +1545,11 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun appExit() {
-        browser?.let {
-            it.clearCache(true)
-            it.destroy()
+        browser?.apply {
+            clearCache(true)
+            destroy()
         }
         finishAffinity() // exitProcess(1)
-    }
-
-    fun setLang(lang: String) {
-        this.appLang = lang
-        Helpers.setLocale(this, lang)
     }
 
     fun setPlayerPackage(packageName: String, isIPTV: Boolean) {
@@ -1965,6 +1963,7 @@ class MainActivity : AppCompatActivity(),
                     intent.setPackage(SELECTED_PLAYER)
                 }
             }
+            @Suppress("DEPRECATION")
             try {
                 intent.flags = 0 // https://stackoverflow.com/a/47694122
                 if (BuildConfig.DEBUG) {
@@ -2400,7 +2399,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInit && loaderView.visibility == View.GONE) {
+        if (browserInitComplete && loaderView.visibility == View.GONE) {
+            printLog("runVoidJsFunc $funcName")
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"

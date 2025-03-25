@@ -45,7 +45,6 @@ object ChannelManager {
      * Gets the localized display name for a channel.
      */
     fun getChannelDisplayName(name: String): String {
-        App.context.setLanguage()
         return when (name) {
             RECS -> App.context.getString(R.string.ch_recs)
             LIKE -> App.context.getString(R.string.ch_liked)
