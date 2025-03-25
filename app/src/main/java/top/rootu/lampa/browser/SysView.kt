@@ -3,7 +3,6 @@ package top.rootu.lampa.browser
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslError
@@ -26,17 +25,15 @@ import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
+import top.rootu.lampa.helpers.Helpers.isTelegramInstalled
 import top.rootu.lampa.helpers.Helpers.printLog
-import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.helpers.getNetworkErrorString
 import top.rootu.lampa.helpers.isAttachedToWindowCompat
-
 
 // https://developer.android.com/develop/ui/views/layout/webapps/webview#kotlin
 class SysView(override val mainActivity: MainActivity, override val viewResId: Int) : Browser {
     private var browser: WebView? = null
     override var isDestroyed = false
-    val TAG = "WEBVIEW"
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun initialize() {
@@ -53,6 +50,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         }
         setFocus()
         val settings = browser?.settings
+        @Suppress("DEPRECATION")
         settings?.apply {
             javaScriptEnabled = true
             builtInZoomControls = false
@@ -88,11 +86,11 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 url?.let {
                     if (it.startsWith("tg://")) {
                         // Handle Telegram link
-                        if (isTelegramAppInstalled()) {
+                        if (isTelegramInstalled(mainActivity)) {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             mainActivity.startActivity(intent)
                         } else {
-                            App.toast("Telegram app is not installed. Get in on Google Play.")
+                            // App.toast("Telegram app is not installed. Get in on Google Play.")
                             redirectToTelegramPlayStore()
                         }
                         return true // Indicate that the URL has been handled
@@ -111,11 +109,11 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             ): Boolean {
                 printLog("shouldOverrideUrlLoading(view, request) view $view request $request")
                 if (request.url.scheme.equals("tg", true)) {
-                    if (isTelegramAppInstalled()) {
+                    if (isTelegramInstalled(mainActivity)) {
                         val intent = Intent(Intent.ACTION_VIEW, request.url)
                         mainActivity.startActivity(intent)
                     } else {
-                        App.toast("Telegram app is not installed. Get in on Google Play.")
+                        // App.toast("Telegram app is not installed. Get in on Google Play.")
                         redirectToTelegramPlayStore()
                     }
                     return true // Indicate that the URL has been handled
@@ -125,19 +123,6 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 //return super.shouldOverrideUrlLoading(view, request)
             }
 
-            private fun isTelegramAppInstalled(): Boolean {
-                return try {
-                    // Check if the Telegram app is installed by querying its package name
-                    mainActivity.packageManager.getPackageInfo(
-                        "org.telegram.messenger",
-                        PackageManager.GET_ACTIVITIES
-                    )
-                    true
-                } catch (_: PackageManager.NameNotFoundException) {
-                    // Telegram app is not installed
-                    false
-                }
-            }
 
             private fun redirectToTelegramPlayStore() {
                 // Open the Telegram app page on the Play Store
@@ -146,10 +131,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
                 )
                 try {
-                    if ((getAppVersion(mainActivity, "com.android.vending")?.versionNumber
-                            ?: 0L) > 0L
-                    ) mainActivity.startActivity(playStoreIntent)
+                    mainActivity.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("market://details?id=org.telegram.messenger")
+                        )
+                    )
                 } catch (_: ActivityNotFoundException) {
+                    mainActivity.startActivity(playStoreIntent)
                 }
             }
 
@@ -171,22 +160,20 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                             .equals(MainActivity.LAMPA_URL, true)
                     ) {
                         view.loadUrl("about:blank")
-                        // net::ERR_INTERNET_DISCONNECTED [-2]
                         // net::ERR_NAME_NOT_RESOLVED [-2]
                         // net::ERR_TIMED_OUT [-8]
                         // ...
-                        val reason = view.context.getNetworkErrorString(error.description.toString())
+                        val reason =
+                            view.context.getNetworkErrorString(error.description.toString())
                         val msg = "${
                             view.context.getString(R.string.download_failed_message)
                         } ${MainActivity.LAMPA_URL} – $reason"
-                        if (error.description == "net::ERR_INTERNET_DISCONNECTED") {
-                            val htmlData =
-                                "<html><body style=\"margin:0;padding:0;overflow:hidden;\"><div style=\"display:table;width:100%;height:100vh;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
-                                    view.context.getString(
-                                        R.string.net_error_internet_disconnected
-                                    )
-                                }</p></div></div></body>"
-                            view.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
+                        // net::ERR_INTERNET_DISCONNECTED [-2]
+                        val noInternetErr = "net::ERR_INTERNET_DISCONNECTED"
+                        if (error.description == noInternetErr) {
+                            val html =
+                                createErrorHtmlPage(view.context.getNetworkErrorString(noInternetErr))
+                            view.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
                             view.invalidate()
                         } else
                             mainActivity.showUrlInputDialog(msg)
@@ -207,15 +194,14 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     val reason = App.context.getNetworkErrorString(description.toString())
                     val msg =
                         "${App.context.getString(R.string.download_failed_message)} ${MainActivity.LAMPA_URL} – $reason"
-                    if (description == "net::ERR_INTERNET_DISCONNECTED") {
-                        val htmlData =
-                            "<html><body style=\"margin:0;padding:0;overflow:hidden;\"><div style=\"display:table;width:100%;height:100vh;overflow:hidden;\"><div align=\"center\" style=\"display:table-cell;vertical-align:middle;\"><svg width=\"120\" height=\"120\" style=\"overflow:visible;enable-background:new 0 0 120 120\" viewBox=\"0 0 32 32\" width=\"32\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g id=\"Error_1_\"><g id=\"Error\"><circle cx=\"16\" cy=\"16\" id=\"BG\" r=\"16\" style=\"fill:#D72828;\"/><path d=\"M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z\" id=\"Exclamatory_x5F_Sign\" style=\"fill:#E6E6E6;\"/></g></g></g></svg><br/><br/><p style=\"color:#E6E6E6;\">${
-                                App.context.getString(
-                                    R.string.net_error_internet_disconnected
-                                )
-                            }</p></div></div></body>"
-                        view?.loadDataWithBaseURL(null, htmlData, "text/html", "UTF-8", null)
-                        view?.invalidate()
+                    val noInternetErr = "net::ERR_INTERNET_DISCONNECTED"
+                    if (description == noInternetErr) {
+                        view?.apply {
+                            val html =
+                                createErrorHtmlPage(this.context.getNetworkErrorString(noInternetErr))
+                            loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                            invalidate()
+                        }
                     } else
                         mainActivity.showUrlInputDialog(msg)
                 }
@@ -235,7 +221,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         if (BuildConfig.DEBUG)
             browser?.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    Log.d("$TAG CONSOLE", consoleMessage.message())
+                    Log.d("CONSOLE", consoleMessage.message())
                     return true
                 }
 
@@ -321,4 +307,32 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         return browser
     }
 
+    private fun createErrorHtmlPage(
+        errorMessage: String,
+        iconColor: String = "#D72828",
+        textColor: String = "#E6E6E6"
+    ): String {
+        return """
+    <html>
+        <body style="margin:0;padding:0;overflow:hidden;">
+            <div style="display:table;width:100%;height:100vh;overflow:hidden;">
+                <div align="center" style="display:table-cell;vertical-align:middle;">
+                    <svg width="120" height="120" 
+                         style="overflow:visible;enable-background:new 0 0 120 120" 
+                         viewBox="0 0 32 32" 
+                         xmlns="http://www.w3.org/2000/svg">
+                        <g>
+                            <circle cx="16" cy="16" r="16" style="fill:$iconColor;"/>
+                            <path d="M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z" 
+                                  style="fill:$textColor;"/>
+                        </g>
+                    </svg>
+                    <br/><br/>
+                    <p style="color:$textColor;">$errorMessage</p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """.trimIndent()
+    }
 }

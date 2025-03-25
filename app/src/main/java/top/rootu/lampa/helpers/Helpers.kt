@@ -376,4 +376,31 @@ object Helpers {
         intent.type = "video/*"
         return intent.resolveActivity(pm!!) != null
     }
+
+    /**
+     * Checks if Telegram (official or unofficial) is installed on the device.
+     * Supports checking multiple package names for unofficial clients.
+     *
+     * @param context The application context
+     * @return true if any Telegram client is installed, false otherwise
+     */
+    fun isTelegramInstalled(context: Context): Boolean {
+        val telegramPackages = listOf(
+            "org.telegram.messenger",     // Official Telegram
+            "org.telegram.plus",         // Telegram Plus
+            "org.telegram.messenger.web", // Telegram Web
+            "nekox.messenger",           // Nekogram
+            "org.thunderdog.challegram",  // Challegram
+            "uz.dilijan.messenger"       // Other unofficial clients
+        )
+
+        return telegramPackages.any { packageName ->
+            try {
+                context.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+                true
+            } catch (_: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }
 }

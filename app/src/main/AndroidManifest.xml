@@ -27,6 +27,10 @@
         <package android:name="net.gtvbox.videoplayer" />
         <package android:name="net.gtvbox.vimuhd" />
         <package android:name="org.telegram.messenger" />
+        <package android:name="org.telegram.plus" />
+        <package android:name="org.telegram.messenger.web" />
+        <package android:name="nekox.messenger" />
+        <package android:name="uz.dilijan.messenger" />
 
         <intent>
             <action android:name="android.speech.RecognitionService" />

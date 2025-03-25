@@ -1348,7 +1348,7 @@ class MainActivity : BaseActivity(),
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
-
+        @SuppressLint("InflateParams")
         // Inflate the dialog view
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
         val tilt = view.findViewById<TextInputLayout>(R.id.tiltLampaUrl)
