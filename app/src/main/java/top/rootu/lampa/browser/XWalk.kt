@@ -61,7 +61,8 @@ class XWalk(override val mainActivity: MainActivity, override val viewResId: Int
     }
 
     override fun pauseTimers() {
-        browser?.pauseTimers()
+        if (!isDestroyed)
+            browser?.pauseTimers()
     }
 
     override fun resumeTimers() {

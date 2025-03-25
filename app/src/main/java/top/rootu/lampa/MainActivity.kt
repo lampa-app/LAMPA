@@ -32,7 +32,6 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.webkit.WebView
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -119,8 +118,6 @@ import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.helpers.hideSystemUI
-import top.rootu.lampa.helpers.isAttachedToWindowCompat
-import top.rootu.lampa.helpers.isDetachedFromWindowCompat
 import top.rootu.lampa.helpers.isSafeForUse
 import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LampaCard
@@ -246,11 +243,12 @@ class MainActivity : BaseActivity(),
     }
 
     override fun onDestroy() {
-        if (browserInitComplete)
-        browser?.apply {
-            // Destroy only if not already destroyed
-            if (!isDestroyed) {
-                destroy()
+        if (browserInitComplete) {
+            browser?.apply {
+                // Destroy only if not already destroyed
+                if (!isDestroyed) {
+                    destroy()
+                }
             }
         }
         try {

@@ -273,7 +273,8 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     }
 
     override fun pauseTimers() {
-        browser?.pauseTimers()
+        if (!isDestroyed)
+            browser?.pauseTimers()
     }
 
     override fun resumeTimers() {
