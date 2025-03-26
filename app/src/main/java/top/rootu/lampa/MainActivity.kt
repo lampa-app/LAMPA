@@ -124,7 +124,6 @@ import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
-import kotlin.collections.set
 
 
 class MainActivity : BaseActivity(),
@@ -158,7 +157,24 @@ class MainActivity : BaseActivity(),
         private const val RESULT_VIMU_ERROR = 4
         const val JS_SUCCESS = "SUCCESS"
         const val JS_FAILURE = "FAILED"
-
+        val PLAYERS_BLACKLIST = setOf(
+            "com.android.gallery3d",
+            "com.android.tv.frameworkpackagestubs",
+            "com.google.android.tv.frameworkpackagestubs",
+            "com.google.android.apps.photos",
+            "com.estrongs.android.pop",
+            "com.estrongs.android.pop.pro",
+            "com.ghisler.android.totalcommander",
+            "com.instantbits.cast.webvideo",
+            "com.lonelycatgames.xplore",
+            "com.mitv.videoplayer",
+            "com.mixplorer.silver",
+            "com.opera.browser",
+            "org.droidtv.contentexplorer",
+            "pl.solidexplorer2",
+            "nextapp.fx",
+            // more to add...
+        )
         // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
         // private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
@@ -187,13 +203,13 @@ class MainActivity : BaseActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        LAMPA_URL = this.appUrl
-        SELECTED_PLAYER = this.appPlayer
+        LAMPA_URL = appUrl
+        SELECTED_PLAYER = appPlayer
         printLog("onCreate SELECTED_BROWSER: $SELECTED_BROWSER LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
-        playIndex = this.lastPlayedPrefs.getInt("playIndex", playIndex)
-        playVideoUrl = this.lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
+        playIndex = lastPlayedPrefs.getInt("playIndex", playIndex)
+        playVideoUrl = lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
         playJSONArray = try {
-            JSONArray(this.lastPlayedPrefs.getString("playJSONArray", "[]"))
+            JSONArray(lastPlayedPrefs.getString("playJSONArray", "[]"))
         } catch (_: Exception) {
             JSONArray()
         }
@@ -203,7 +219,7 @@ class MainActivity : BaseActivity(),
         setupUI()
         setupIntents()
 
-        if (this.firstRun) {
+        if (firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
                 printLog("First run scheduleUpdate(sync: true)")
                 Scheduler.scheduleUpdate(true)
@@ -215,7 +231,7 @@ class MainActivity : BaseActivity(),
         printLog("onResume()")
         super.onResume()
         hideSystemUI()
-        if (!this.isTvBox) setupFab()
+        if (!isTvBox) setupFab()
         // Try to initialize again when the user completed updating and
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
@@ -518,7 +534,7 @@ class MainActivity : BaseActivity(),
     }
 
     private fun logDebugInfo(data: Intent?, resultCode: Int, videoUrl: String) {
-        Log.d(TAG, "Returned intent url: $videoUrl")
+        printLog("Returned videoUrl: $videoUrl", TAG)
         when (resultCode) {
             RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}")
             RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}")
@@ -526,7 +542,7 @@ class MainActivity : BaseActivity(),
             RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}")
             RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}")
             RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}")
-            else -> Log.w(TAG, "Undefined result code ($resultCode): ${data?.toUri(0)}")
+            else -> Log.w(TAG, "Undefined result code [$resultCode]: ${data?.toUri(0)}")
         }
     }
 
@@ -648,7 +664,7 @@ class MainActivity : BaseActivity(),
                 val dur = intent.getIntExtra("duration", 0)
                 if (pos > 0 && dur > 0) {
                     val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
-                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended=$ended]")
                     resultPlayer(videoUrl, pos, dur, ended)
                 }
             }
@@ -927,12 +943,54 @@ class MainActivity : BaseActivity(),
     // Helper function to log intent data
     @Suppress("DEPRECATION")
     private fun logIntentData(intent: Intent?) {
-        if (BuildConfig.DEBUG) {
-            printLog("processIntent data: ${intent?.toUri(0)}")
-            intent?.extras?.let { extras ->
-                extras.keySet().forEach { key ->
-                    printLog("processIntent: extras $key : ${extras.get(key) ?: "NULL"}")
-                }
+        if (!BuildConfig.DEBUG || intent == null) return
+
+        // Log basic intent info
+        printLog("Intent URI: ${intent.toUri(0)}")
+
+        // Log all extras
+        intent.extras?.let { bundle ->
+            val output = StringBuilder("Intent Extras:\n")
+
+            bundle.keySet().forEach { key ->
+                output.append("• $key = ${bundleValueToString(bundle.get(key))}\n")
+            }
+
+            printLog(output.toString())
+        } ?: printLog("No extras found in intent")
+    }
+
+    /**
+     * Safely converts bundle values to readable strings
+     */
+    private fun bundleValueToString(value: Any?): String {
+        return when (value) {
+            null -> "NULL"
+            is String -> value
+            is Int, is Long, is Float, is Double, is Boolean -> value.toString()
+            is Parcelable -> "Parcelable(${value.javaClass.simpleName})"
+            is Array<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is List<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is Bundle -> {
+                @Suppress("DEPRECATION")
+                val subItems =
+                    value.keySet().joinToString { "$it=${bundleValueToString(value.get(it))}" }
+                "Bundle{$subItems}"
+            }
+
+            else -> try {
+                // Fallback for other types
+                value.toString()
+            } catch (_: Exception) {
+                "Unprintable(${value.javaClass.simpleName ?: "null"})"
             }
         }
     }
@@ -1348,6 +1406,7 @@ class MainActivity : BaseActivity(),
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         var dialog: AlertDialog? = null
+
         @SuppressLint("InflateParams")
         // Inflate the dialog view
         val view = layoutInflater.inflate(R.layout.dialog_input_url, null, false)
@@ -1436,9 +1495,9 @@ class MainActivity : BaseActivity(),
         LAMPA_URL = input?.text.toString()
         if (isValidUrl(LAMPA_URL)) {
             Log.d(TAG, "URL '$LAMPA_URL' is valid")
-            if (this.appUrl != LAMPA_URL) {
-                this.appUrl = LAMPA_URL
-                this.addUrlHistory(LAMPA_URL)
+            if (appUrl != LAMPA_URL) {
+                appUrl = LAMPA_URL
+                addUrlHistory(LAMPA_URL)
                 browser?.loadUrl(LAMPA_URL)
                 App.toast(R.string.change_url_press_back)
             } else {
@@ -1455,10 +1514,10 @@ class MainActivity : BaseActivity(),
     // Helper function to handle the cancel button click
     private fun handleCancelButtonClick(dialog: DialogInterface) {
         dialog.cancel()
-        if (LAMPA_URL.isEmpty() && this.appUrl.isEmpty()) {
+        if (LAMPA_URL.isEmpty() && appUrl.isEmpty()) {
             appExit()
         } else {
-            LAMPA_URL = this.appUrl
+            LAMPA_URL = appUrl
             // hideSystemUI()
         }
     }
@@ -1553,13 +1612,13 @@ class MainActivity : BaseActivity(),
     fun setPlayerPackage(packageName: String, isIPTV: Boolean) {
         SELECTED_PLAYER = packageName.lowercase(Locale.getDefault())
         if (isIPTV)
-            this.tvPlayer = SELECTED_PLAYER!!
+            tvPlayer = SELECTED_PLAYER!!
         else
-            this.appPlayer = SELECTED_PLAYER!!
+            appPlayer = SELECTED_PLAYER!!
     }
 
     private fun saveLastPlayed() {
-        val editor = this.lastPlayedPrefs.edit()
+        val editor = lastPlayedPrefs.edit()
         editor?.apply {
             putInt("playIndex", playIndex)
             putString("playVideoUrl", playVideoUrl)
@@ -1568,7 +1627,8 @@ class MainActivity : BaseActivity(),
         }
         Log.d(TAG, "saveLastPlayed $playJSONArray")
         // store to prefs for resume from WatchNext
-        this.playActivityJS = lampaActivity
+        playActivityJS = lampaActivity
+        Log.d(TAG, "saveLastPlayed() set playActivityJS to $playActivityJS")
     }
 
     @SuppressLint("InflateParams")
@@ -1583,7 +1643,7 @@ class MainActivity : BaseActivity(),
         val isIPTV = jsonObject.optBoolean("iptv", false)
         val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
         SELECTED_PLAYER =
-            launchPlayer.ifEmpty { if (isIPTV || isLIVE) this.tvPlayer else this.appPlayer }
+            launchPlayer.ifEmpty { if (isIPTV || isLIVE) tvPlayer else appPlayer }
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndTypeAndNormalize(
             Uri.parse(videoUrl),
@@ -1591,26 +1651,10 @@ class MainActivity : BaseActivity(),
         )
         val resInfo =
             packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        val excludedAppsPackageNames = hashSetOf(
-            "com.android.gallery3d",
-            "com.android.tv.frameworkpackagestubs",
-            "com.google.android.tv.frameworkpackagestubs",
-            "com.google.android.apps.photos",
-            "com.estrongs.android.pop",
-            "com.estrongs.android.pop.pro",
-            "com.ghisler.android.totalcommander",
-            "com.instantbits.cast.webvideo",
-            "com.lonelycatgames.xplore",
-            "com.mitv.videoplayer",
-            "com.mixplorer.silver",
-            "com.opera.browser",
-            "org.droidtv.contentexplorer",
-            "pl.solidexplorer2",
-            "nextapp.fx"
-        )
+
         val filteredList: MutableList<ResolveInfo> = mutableListOf()
         for (info in resInfo) {
-            if (excludedAppsPackageNames.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
+            if (PLAYERS_BLACKLIST.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
                 continue
             }
             filteredList.add(info)
@@ -1993,7 +2037,7 @@ class MainActivity : BaseActivity(),
         ended: Boolean = false
     ) {
         // store state and duration too for WatchNext
-        val editor = this.lastPlayedPrefs.edit()
+        val editor = lastPlayedPrefs.edit()
         editor?.putBoolean("ended", ended)
         editor?.putInt("position", pos)
         editor?.putInt("duration", dur)
@@ -2067,7 +2111,7 @@ class MainActivity : BaseActivity(),
                 io.put("timeline", newTimeline)
                 val resumeio = JSONObject(io.toString())
                 resumeio.put("playlist", playJSONArray)
-                this.resumeJS = resumeio.toString()
+                resumeJS = resumeio.toString()
             }
             if (i in playIndex until returnIndex) {
                 printLog("mark complete index $i (in range from $playIndex to $returnIndex)")
@@ -2084,7 +2128,7 @@ class MainActivity : BaseActivity(),
 
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
-            if (!SpeechRecognizer.isRecognitionAvailable(this.baseContext)) {
+            if (!SpeechRecognizer.isRecognitionAvailable(baseContext)) {
                 printLog("SpeechRecognizer not available!")
             } else {
                 printLog("SpeechRecognizer available!")
@@ -2339,7 +2383,7 @@ class MainActivity : BaseActivity(),
 
     private fun showFab(show: Boolean = true) {
         val fab: FloatingActionButton? = findViewById(R.id.fab)
-        if (show && !this.isTvBox) {
+        if (show && !isTvBox) {
             fab?.show()
             lifecycleScope.launch {
                 delay(15000)
@@ -2354,15 +2398,15 @@ class MainActivity : BaseActivity(),
         fab?.apply {
             setImageDrawable(
                 AppCompatResources.getDrawable(
-                    this.context,
+                    context,
                     R.drawable.lampa_logo_round
                 )
             )
-            customSize = dp2px(this.context, 32f)
-            setMaxImageSize(dp2px(this.context, 30f))
+            customSize = dp2px(context, 32f)
+            setMaxImageSize(dp2px(context, 30f))
             backgroundTintList = ColorStateList.valueOf(
                 ContextCompat.getColor(
-                    this.context,
+                    context,
                     R.color.lampa_background
                 )
             )
