@@ -14,12 +14,12 @@ import androidx.tvprovider.media.tv.WatchNextProgram
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.rootu.lampa.App
-import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
@@ -79,7 +79,7 @@ object WatchNext {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         val context = App.context
         val deleted = removeStale()
-        if (BuildConfig.DEBUG) Log.d(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
+        printLog("updateWatchNext() WatchNext stale cards removed: $deleted", TAG)
 
         val lst = when { // reversed order
             // CUB
@@ -99,19 +99,17 @@ object WatchNext {
         val (excludePending, pending) = lst.partition {
             !context.wathToRemove.contains(it.id.toString())
         }
-        if (BuildConfig.DEBUG) {
-            Log.d(
-                TAG,
-                "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }} pending to remove: ${pending.size} ${pending.map { it.id }}"
-            )
-        }
+        printLog(
+            "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }} pending to remove: ${pending.size} ${pending.map { it.id }}",
+            TAG
+        )
 
         excludePending.forEach { card ->
             withContext(Dispatchers.Default) {
                 try {
                     add(card)
                 } catch (_: Exception) {
-                    // if (BuildConfig.DEBUG) Log.d(TAG, "Error adding $card to WatchNext: $e")
+                    // printLog("Error adding $card to WatchNext: $e", TAG)
                 }
             }
         }
@@ -121,6 +119,7 @@ object WatchNext {
     fun addLastPlayed(card: LampaCard) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         card.id?.let { movieId ->
+            // TODO: Implement update by ID
             if (movieId.isNotEmpty()) {
                 deleteFromWatchNext(RESUME_ID)
             }
@@ -168,10 +167,7 @@ object WatchNext {
     private fun deleteFromWatchNext(movieId: String) {
         val program = findProgramByMovieId(movieId)
         program?.let {
-            if (BuildConfig.DEBUG) Log.d(
-                TAG,
-                "deleteFromWatchNext($movieId) removeProgram(${it.id})"
-            )
+            printLog("deleteFromWatchNext($movieId) removeProgram(${it.id})", TAG)
             removeProgram(it.id)
         }
     }
@@ -293,8 +289,8 @@ object WatchNext {
 //            builder.setTitle(video.category)
 //        }
         if (resume) {
-            val watchPosition = App.context.lastPlayedPrefs.getInt("position", 0)
-            val duration = App.context.lastPlayedPrefs.getInt("duration", 0)
+            val watchPosition = App.context.lastPlayedPrefs.getInt("last_duration", 0)
+            val duration = App.context.lastPlayedPrefs.getInt("last_duration", 0)
             builder.setLastPlaybackPositionMillis(watchPosition)
                 .setDurationMillis(duration)
         }

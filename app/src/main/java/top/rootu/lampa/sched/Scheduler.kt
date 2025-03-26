@@ -30,7 +30,7 @@ object Scheduler {
     private val schedulerScope = CoroutineScope(Dispatchers.Default)
 
     /**
-     * Schedules periodic updates for cards.
+     * Schedules periodic updates for Android TV content.
      *
      * @param sched Whether to schedule updates or perform a one-shot update.
      */
@@ -78,7 +78,7 @@ object Scheduler {
                     "Scheduler",
                     "jobScheduler call updateCards(sync: $sched)"
                 )
-                updateCards(sched)
+                updateContent(sched)
             }
         }
     }
@@ -114,12 +114,12 @@ object Scheduler {
     }
 
     /**
-     * Updates the cards data.
+     * Updates the Android TV Home content.
      *
-     * @param sync Whether to sync data with the server.
+     * @param sync Whether to update TV channels sequentially or in parallel.
      */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun updateCards(sync: Boolean) {
+    fun updateContent(sync: Boolean) {
 
         if (isUpdate.compareAndSet(false, true)) return
 
@@ -127,13 +127,13 @@ object Scheduler {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateCards call RecsService.updateRecs()."
+                    "updateContent call RecsService.updateRecs()."
                 )
                 RecsService.updateRecs() // Update recommendations for older versions
             } else {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateCards call LampaChannels.update($sync)."
+                    "updateContent call LampaChannels.update($sync)."
                 )
                 LampaChannels.update(sync) // Update channels for newer versions
             }
