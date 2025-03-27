@@ -1251,9 +1251,10 @@ class MainActivity : BaseActivity(),
     // Function to handle restore default settings
     private fun restoreDefaultSettings() {
         clearStorage()
-        // clearUrlHistory()
         appPrefs.edit().clear().apply()
         defPrefs.edit().clear().apply()
+        lastPlayedPrefs.edit().clear().apply()
+        // clearUrlHistory()
         recreate()
     }
 
