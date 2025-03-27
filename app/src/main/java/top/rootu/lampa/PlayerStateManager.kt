@@ -3,18 +3,21 @@ package top.rootu.lampa
 import android.content.Context
 import android.util.Log
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
+import top.rootu.lampa.MainActivity.Companion.VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
+import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.text.isNotEmpty
 
 class PlayerStateManager(context: Context) {
-    // Shared preferences keys
     private companion object {
-        const val PREFS_NAME = "player_state_prefs"
+        // const val PREFS_NAME = "player_state_prefs"
         const val MAX_CACHED_STATES = 5
         const val TAG = "PlayerStateManager"
     }
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = App.context.lastPlayedPrefs // getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val stateCache = ConcurrentHashMap<String, PlaybackState>()
 
     data class PlaybackState(
@@ -27,7 +30,22 @@ class PlayerStateManager(context: Context) {
         val extras: Map<String, Any> = emptyMap()
     ) {
         val currentItem: PlaylistItem? get() = playlist.getOrNull(currentIndex)
-        val isEnded: Boolean get() = currentPosition <= 0 && currentItem?.timeline?.percent == 100
+        val isEnded: Boolean
+            get() {
+                val item = currentItem ?: return false
+                val timeline = item.timeline ?: return false
+
+                return when {
+                    // Case 1: Explicitly marked as completed (100%)
+                    timeline.percent >= 100 -> true
+                    // Case 2: Reached near end of content (96% threshold)
+                    timeline.duration > 0 && timeline.time >= timeline.duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE -> true
+                    // Case 3: Position reset to start but marked complete
+                    currentPosition <= 0 && timeline.percent >= VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE * 100 -> true
+                    // Default case: Not ended
+                    else -> false
+                }
+            }
     }
 
     data class PlaylistItem(
@@ -41,7 +59,8 @@ class PlayerStateManager(context: Context) {
             val hash: String,
             val time: Double,
             val duration: Double,
-            val percent: Int
+            val percent: Int,
+            val profile: Int? = null
         )
 
         data class Subtitle(
@@ -140,10 +159,31 @@ class PlayerStateManager(context: Context) {
     }
 
     /**
+     * Public method to convert single JSONObject to Timeline
+     */
+    fun convertJsonToTimeline(json: JSONObject): PlaylistItem.Timeline {
+        return json.toTimeline() // Uses internal extension
+    }
+
+    /**
+     * Public method to convert single JSONObject to QualityMap
+     */
+    fun convertJsonToQualityMap(json: JSONObject): Map<String, String> {
+        return json.toQualityMap() // Uses internal extension
+    }
+
+    /**
      * Public method to convert single JSONObject to PlaylistItem
      */
     fun convertJsonToPlaylistItem(json: JSONObject): PlaylistItem {
         return json.toPlaylistItem() // Uses internal extension
+    }
+
+    /**
+     * Public method to convert single PlaylistItem.Timeline to JSON String
+     */
+    fun convertTimelineToJsonString(timeline: PlaylistItem.Timeline): String {
+        return timeline.toJson().toString() // Uses internal extension
     }
 
     // Private helper methods
@@ -256,7 +296,7 @@ class PlayerStateManager(context: Context) {
         return map
     }
 
-    fun JSONArray.toPlaylist(): List<PlaylistItem> {
+    private fun JSONArray.toPlaylist(): List<PlaylistItem> {
         return List(length()) { i ->
             getJSONObject(i).toPlaylistItem()
         }
@@ -264,7 +304,12 @@ class PlayerStateManager(context: Context) {
 
     private fun JSONObject.toPlaylistItem(): PlaylistItem {
         return PlaylistItem(
-            url = getString("url"),
+            url = try { // Required field
+                getString("url").takeIf { it.isNotBlank() }
+                    ?: throw JSONException("Missing or empty URL")
+            } catch (e: JSONException) {
+                throw IllegalArgumentException("Invalid playlist item: URL required", e)
+            },
             title = optString("title").takeIf { it.isNotEmpty() },
             timeline = optJSONObject("timeline")?.toTimeline(),
             quality = optJSONObject("quality")?.toQualityMap(),
@@ -274,14 +319,26 @@ class PlayerStateManager(context: Context) {
 
     private fun JSONObject.toTimeline(): PlaylistItem.Timeline {
         return PlaylistItem.Timeline(
-            hash = getString("hash"),
-            time = getDouble("time"),
-            duration = getDouble("duration"),
-            percent = getInt("percent")
+            hash = optString("hash", "0"),  // Safer string access with default
+            time = getDouble("time").coerceAtLeast(0.0),  // Ensure non-negative
+            duration = getDouble("duration").coerceAtLeast(0.0),  // Ensure non-negative
+            percent = getInt("percent").coerceIn(0, 100),  // Clamp to valid percentage
+            profile = try {
+                // More robust profile handling
+                when {
+                    has("profile") -> getInt("profile").takeIf { it > 0 }
+                    else -> null
+                }
+            } catch (e: JSONException) {
+                null  // Fallback if profile exists but isn't an Int
+            }
         )
     }
 
     private fun JSONObject.toQualityMap(): Map<String, String> {
+//        val map = mutableMapOf<String, String>()
+//        keys().forEach { key -> map[key] = getString(key) }
+//        return map
         return keys().asSequence().associateWith { getString(it) }
     }
 
@@ -321,6 +378,7 @@ class PlayerStateManager(context: Context) {
             put("time", time)
             put("duration", duration)
             put("percent", percent)
+            profile?.let { put ("profile", profile) }
         }
     }
 
