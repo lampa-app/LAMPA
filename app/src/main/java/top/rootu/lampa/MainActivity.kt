@@ -63,7 +63,6 @@ import net.gotev.speech.SpeechDelegate
 import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.SpeechUtil
 import net.gotev.speech.ui.SpeechProgressView
-import org.json.JSONArray
 import org.json.JSONObject
 import org.xwalk.core.MyXWalkEnvironment
 import org.xwalk.core.MyXWalkUpdater
@@ -140,6 +139,7 @@ class MainActivity : BaseActivity(),
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
     private lateinit var progressIndicator: LinearProgressIndicator
+    private lateinit var playerStateManager: PlayerStateManager
 
     // Data class for menu items
     private data class MenuItem(
@@ -194,9 +194,6 @@ class MainActivity : BaseActivity(),
         var playerAutoNext: Boolean = true
         var internalTorrserve: Boolean = false
         var torrserverPreload: Boolean = false
-        var playJSONArray: JSONArray = JSONArray()
-        var playIndex = 0
-        var playVideoUrl: String = ""
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
     }
@@ -206,13 +203,7 @@ class MainActivity : BaseActivity(),
         LAMPA_URL = appUrl
         SELECTED_PLAYER = appPlayer
         printLog("onCreate SELECTED_BROWSER: $SELECTED_BROWSER LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER")
-        playIndex = lastPlayedPrefs.getInt("playIndex", playIndex)
-        playVideoUrl = lastPlayedPrefs.getString("playVideoUrl", playVideoUrl)!!
-        playJSONArray = try {
-            JSONArray(lastPlayedPrefs.getString("playJSONArray", "[]"))
-        } catch (_: Exception) {
-            JSONArray()
-        }
+        playerStateManager = PlayerStateManager(this)
 
         setupActivity()
         setupBrowser()
@@ -1617,514 +1608,514 @@ class MainActivity : BaseActivity(),
             appPlayer = SELECTED_PLAYER!!
     }
 
-    private fun saveLastPlayed() {
-        val editor = lastPlayedPrefs.edit()
-        editor?.apply {
-            putInt("playIndex", playIndex)
-            putString("playVideoUrl", playVideoUrl)
-            putString("playJSONArray", playJSONArray.toString())
-            apply()
-        }
-        Log.d(TAG, "saveLastPlayed $playJSONArray")
-        // store to prefs for resume from WatchNext
-        playActivityJS = lampaActivity
-        Log.d(TAG, "saveLastPlayed() set playActivityJS to $playActivityJS")
-    }
+//    private fun saveLastPlayed() {
+//        val editor = lastPlayedPrefs.edit()
+//        editor?.apply {
+//            putInt("playIndex", playIndex)
+//            putString("playVideoUrl", playVideoUrl)
+//            putString("playJSONArray", playJSONArray.toString())
+//            apply()
+//        }
+//        Log.d(TAG, "saveLastPlayed $playJSONArray")
+//        // store to prefs for resume from WatchNext
+//        playActivityJS = lampaActivity
+//        Log.d(TAG, "saveLastPlayed() set playActivityJS to $playActivityJS")
+//    }
 
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
         runPlayer(jsonObject, "")
     }
 
-    @SuppressLint("InflateParams")
-    fun runPlayer(jsonObject: JSONObject, launchPlayer: String) {
+//    @SuppressLint("InflateParams")
+//    fun runPlayerOld(jsonObject: JSONObject, launchPlayer: String) {
+//
+//        val videoUrl = jsonObject.optString("url")
+//        val isIPTV = jsonObject.optBoolean("iptv", false)
+//        val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
+//        SELECTED_PLAYER =
+//            launchPlayer.ifEmpty { if (isIPTV || isLIVE) tvPlayer else appPlayer }
+//        val intent = Intent(Intent.ACTION_VIEW)
+//        intent.setDataAndTypeAndNormalize(
+//            Uri.parse(videoUrl),
+//            if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+//        )
+//        val resInfo =
+//            packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+//
+//        val filteredList: MutableList<ResolveInfo> = mutableListOf()
+//        for (info in resInfo) {
+//            if (PLAYERS_BLACKLIST.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
+//                continue
+//            }
+//            filteredList.add(info)
+//        }
+//        if (filteredList.isEmpty()) {
+//            App.toast(R.string.no_player_activity_found, true)
+//            return
+//        }
+//        var playerPackageExist = false
+//        if (!SELECTED_PLAYER.isNullOrEmpty()) {
+//            for (info in filteredList) {
+//                if (info.activityInfo.packageName.lowercase(Locale.getDefault()) == SELECTED_PLAYER) {
+//                    playerPackageExist = true
+//                    break
+//                }
+//            }
+//        }
+//        if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
+//            val mainActivity = this
+//            val listAdapter = AppListAdapter(mainActivity, filteredList)
+//            val playerChooser = AlertDialog.Builder(mainActivity)
+//            val appTitleView =
+//                LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
+//            val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
+//            playerChooser.setCustomTitle(appTitleView)
+//
+//            playerChooser.setAdapter(listAdapter) { dialog, which ->
+//                val setDefaultPlayer = switch.isChecked
+//                SELECTED_PLAYER = listAdapter.getItemPackage(which)
+//                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString(), isIPTV)
+//                dialog.dismiss()
+//                runPlayer(jsonObject, SELECTED_PLAYER!!)
+//            }
+//            val playerChooserDialog = playerChooser.create()
+//            showFullScreenDialog(playerChooserDialog)
+//            playerChooserDialog.listView.requestFocus()
+//        } else {
+//            var videoPosition: Long = 0
+//            var videoDuration: Long = 0
+//            val videoTitle =
+//                if (jsonObject.has("title"))
+//                    jsonObject.optString("title")
+//                else if (isIPTV) "LAMPA TV" else "LAMPA video"
+//            val listTitles = ArrayList<String>()
+//            val listUrls = ArrayList<String>()
+//            val subsTitles = ArrayList<String>()
+//            val subsUrls = ArrayList<String>()
+//            val headers = ArrayList<String>()
+//            playIndex = -1
+//
+//            if (playerTimeCode == "continue" && jsonObject.has("timeline")) {
+//                val timeline = jsonObject.optJSONObject("timeline")
+//                if (timeline?.has("time") == true)
+//                    videoPosition = (timeline.optDouble("time", 0.0) * 1000).toLong()
+//                if (timeline?.has("duration") == true)
+//                    videoDuration = (timeline.optDouble("duration", 0.0) * 1000).toLong()
+//            }
+//            // Headers
+//            var ua = HttpHelper.userAgent
+//            if (jsonObject.has("headers")) {
+//                val headersJSON = jsonObject.optJSONObject("headers")
+//                if (headersJSON != null) {
+//                    val keys = headersJSON.keys()
+//                    while (keys.hasNext()) {
+//                        val key = keys.next()
+//                        val value = headersJSON.optString(key)
+//                        when (key.lowercase(Locale.getDefault())) {
+//                            "user-agent" -> ua = value
+//                            "content-length" -> {}
+//                            else -> {
+//                                headers.add(key)
+//                                headers.add(value)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            headers.add("User-Agent")
+//            headers.add(ua)
+//            // Playlist
+//            if (jsonObject.has("playlist") && playerAutoNext) {
+//                playJSONArray = jsonObject.getJSONArray("playlist")
+//                val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload\$".toRegex()
+//                for (i in 0 until playJSONArray.length()) {
+//                    val io = playJSONArray.getJSONObject(i)
+//                    if (io.has("url")) {
+//                        val url = if (torrserverPreload && internalTorrserve)
+//                            io.optString("url").replace(badLinkPattern, "$1&play")
+//                        else
+//                            io.optString("url")
+//                        if (url != io.optString("url")) {
+//                            io.put("url", url)
+//                            playJSONArray.put(i, io)
+//                        }
+//                        if (url == videoUrl)
+//                            playIndex = i
+//                        listUrls.add(io.optString("url"))
+//                        listTitles.add(
+//                            if (io.has("title")) io.optString("title") else (i + 1).toString()
+//                        )
+//                    }
+//                }
+//            }
+//            // Subtitles
+//            if (jsonObject.has("subtitles")) {
+//                val subsJSONArray = jsonObject.optJSONArray("subtitles")
+//                if (subsJSONArray != null)
+//                    for (i in 0 until subsJSONArray.length()) {
+//                        val io = subsJSONArray.getJSONObject(i)
+//                        if (io.has("url")) {
+//                            subsUrls.add(io.optString("url"))
+//                            subsTitles.add(io.optString("label", "Sub " + (i + 1).toString()))
+//                        }
+//                    }
+//            }
+//            if (playIndex < 0) {
+//                // current url not found in playlist or playlist missing
+//                playIndex = 0
+//                playJSONArray = JSONArray()
+//                playJSONArray.put(jsonObject)
+//            }
+//            playVideoUrl = videoUrl
+//
+//            saveLastPlayed()
+//
+//            when (SELECTED_PLAYER) {
+//                "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
+//                    intent.setPackage(SELECTED_PLAYER)
+//                    intent.putExtra("title", videoTitle)
+//
+//                    if (playerTimeCode == "continue" || playerTimeCode == "again")
+//                        intent.putExtra("resume", videoPosition)
+//
+//                    val haveQuality = if (jsonObject.has("quality")) {
+//                        var qualityListSize = 0
+//                        val keys = (jsonObject["quality"] as JSONObject).keys()
+//                        while (keys.hasNext() && qualityListSize < 2) {
+//                            keys.next()
+//                            qualityListSize++
+//                        }
+//                        qualityListSize > 1
+//                    } else {
+//                        false
+//                    }
+//
+//                    if (listUrls.size > 1 || haveQuality) {
+//                        val playObj = playJSONArray[0] as JSONObject
+//                        if (playObj.has("timeline")) {
+//                            val firstHash =
+//                                (playObj["timeline"] as JSONObject).optString("hash", "0")
+//                            if (firstHash != "0") {
+//                                intent.putExtra("playlistTitle", firstHash)
+//                            }
+//                        }
+//
+//                        if (listTitles.isNotEmpty()) {
+//                            intent.putStringArrayListExtra("titleList", listTitles)
+//                        } else {
+//                            intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
+//                        }
+//                        intent.putExtra("playlistPosition", playIndex)
+//
+//                        if (haveQuality) {
+//                            var qualitySet = ""
+//                            val qualityMap = LinkedHashMap<String, ArrayList<String>>()
+//                            for (i in 0 until playJSONArray.length()) {
+//                                // val itemQualityMap = (playJSONArray[i] as JSONObject)["quality"] as JSONObject
+//                                val itemQualityMap =
+//                                    (playJSONArray[i] as JSONObject).optJSONObject("quality")
+//                                itemQualityMap?.let {
+//                                    val keys = itemQualityMap.keys()
+//                                    while (keys.hasNext()) {
+//                                        val key = keys.next()
+//                                        val value = itemQualityMap.getString(key)
+//                                        if (value == videoUrl) qualitySet = key
+//                                        if (qualityMap.contains(key).not()) {
+//                                            qualityMap[key] = arrayListOf()
+//                                        }
+//                                        qualityMap.getValue(key).add(value)
+//                                    }
+//                                }
+//                            }
+//                            val qualityKeys = ArrayList(qualityMap.keys.toList())
+//                            val qualityIndex = qualityKeys.indexOf(qualitySet)
+//                            intent.putStringArrayListExtra("videoGroupList", qualityKeys)
+//                            qualityKeys.forEach {
+//                                intent.putStringArrayListExtra(it, qualityMap.getValue(it))
+//                            }
+//                            intent.putExtra(
+//                                "groupPosition",
+//                                if (qualityIndex < 1) 0 else qualityIndex
+//                            )
+//                        } else {
+//                            if (listUrls.isNotEmpty()) {
+//                                intent.putStringArrayListExtra("videoList", listUrls)
+//                            } else {
+//                                intent.putStringArrayListExtra(
+//                                    "videoList",
+//                                    arrayListOf(videoUrl)
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
+//                    //intent.setPackage(SELECTED_PLAYER)
+//                    intent.component = ComponentName(
+//                        SELECTED_PLAYER!!,
+//                        "$SELECTED_PLAYER.ActivityScreen"
+//                    )
+//                    intent.putExtra("title", videoTitle)
+//                    intent.putExtra("sticky", false)
+//                    intent.putExtra("headers", headers.toTypedArray())
+//                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+//                        intent.putExtra("position", videoPosition.toInt())
+//                    } else if (playerTimeCode == "again"
+//                        || (playerTimeCode == "continue" && videoPosition == 0L)
+//                    ) {
+//                        intent.putExtra("position", 1)
+//                    }
+//                    if (listUrls.size > 1) {
+//                        val parcelableVideoArr = arrayOfNulls<Parcelable>(listUrls.size)
+//                        for (i in 0 until listUrls.size) {
+//                            parcelableVideoArr[i] = Uri.parse(listUrls[i])
+//                        }
+//                        intent.putExtra("video_list", parcelableVideoArr)
+//                        intent.putExtra("video_list.name", listTitles.toTypedArray())
+//                        intent.putExtra("video_list_is_explicit", true)
+//                    }
+//                    if (subsUrls.isNotEmpty()) {
+//                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+//                        for (i in 0 until subsUrls.size) {
+//                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+//                        }
+//                        intent.putExtra("subs", parcelableSubsArr)
+//                        intent.putExtra("subs.name", subsTitles.toTypedArray())
+//                    }
+//                    intent.putExtra("return_result", true)
+//                }
+//
+//                "is.xyz.mpv" -> {
+//                    // http://mpv-android.github.io/mpv-android/intent.html
+//                    intent.setPackage(SELECTED_PLAYER)
+//                    if (subsUrls.isNotEmpty()) {
+//                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+//                        for (i in 0 until subsUrls.size) {
+//                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+//                        }
+//                        intent.putExtra("subs", parcelableSubsArr)
+//                    }
+//                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+//                        intent.putExtra("position", videoPosition.toInt())
+//                    } else if (playerTimeCode == "again"
+//                        || (playerTimeCode == "continue" && videoPosition == 0L)
+//                    ) {
+//                        intent.putExtra("position", 1)
+//                    }
+//                }
+//
+//                "org.videolan.vlc" -> {
+//                    // https://wiki.videolan.org/Android_Player_Intents
+//                    if (VERSION.SDK_INT > 32) {
+//                        intent.setPackage(SELECTED_PLAYER)
+//                    } else {
+//                        intent.component = ComponentName(
+//                            SELECTED_PLAYER!!,
+//                            "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
+//                        ) // required for return intent
+//                    }
+//                    intent.putExtra("title", videoTitle)
+//                    if (playerTimeCode == "continue" && videoPosition > 0L) {
+//                        intent.putExtra("from_start", false)
+//                        intent.putExtra("position", videoPosition)
+//                    } else if (playerTimeCode == "again"
+//                        || (playerTimeCode == "continue" && videoPosition == 0L)
+//                    ) {
+//                        intent.putExtra("from_start", true)
+//                        intent.putExtra("position", 0L)
+//                    }
+//                    intent.putExtra("extra_duration", videoDuration)
+//                }
+//
+//                "com.brouken.player" -> {
+//                    intent.setPackage(SELECTED_PLAYER)
+//                    intent.putExtra("title", videoTitle)
+//                    if (playerTimeCode == "continue" || playerTimeCode == "again")
+//                        intent.putExtra("position", videoPosition.toInt())
+//                    if (subsUrls.isNotEmpty()) {
+//                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
+//                        for (i in 0 until subsUrls.size) {
+//                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
+//                        }
+//                        intent.putExtra("subs", parcelableSubsArr)
+//                        intent.putExtra("subs.name", subsTitles.toTypedArray())
+//                    }
+//                    intent.putExtra("return_result", true)
+//                }
+//
+//                "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
+//                    val vimuVersionNumber =
+//                        getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
+//                    printLog("ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
+//                    intent.setPackage(SELECTED_PLAYER)
+//                    intent.putExtra("headers", headers.toTypedArray())
+//                    // see https://vimu.tv/player-api
+//                    if (listUrls.size <= 1) {
+//                        intent.putExtra("forcename", videoTitle)
+//                        if (subsUrls.isNotEmpty()) {
+//                            intent.putStringArrayListExtra(
+//                                "asussrtlist",
+//                                subsUrls
+//                            )
+//                        }
+//                        if (isIPTV || isLIVE)
+//                            intent.putExtra("forcelive", true)
+//                    } else {
+//                        intent.setDataAndType(
+//                            Uri.parse(videoUrl),
+//                            "application/vnd.gtvbox.filelist"
+//                        )
+//                        if (vimuVersionNumber >= 799L) { // 7.99 and above
+//                            intent.putStringArrayListExtra("asusfilelist", listUrls)
+//                            intent.putStringArrayListExtra("asusnamelist", listTitles)
+//                            intent.putExtra("startindex", playIndex)
+//                        } else {
+//                            intent.putStringArrayListExtra(
+//                                "asusfilelist",
+//                                ArrayList(listUrls.subList(playIndex, listUrls.size))
+//                            )
+//                            intent.putStringArrayListExtra(
+//                                "asusnamelist",
+//                                ArrayList(listTitles.subList(playIndex, listUrls.size))
+//                            )
+//                        }
+//                    }
+//                    if (playerTimeCode == "continue" || playerTimeCode == "again") {
+//                        intent.putExtra("position", videoPosition.toInt())
+//                        intent.putExtra("startfrom", videoPosition.toInt())
+//                    } else if (playerTimeCode == "ask") {
+//                        // use ViMu resume
+//                        intent.putExtra("forcedirect", true)
+//                        intent.putExtra("forceresume", true)
+//                    }
+//                }
+//
+//                else -> {
+//                    intent.setPackage(SELECTED_PLAYER)
+//                }
+//            }
+//            @Suppress("DEPRECATION")
+//            try {
+//                intent.flags = 0 // https://stackoverflow.com/a/47694122
+//                if (BuildConfig.DEBUG) {
+//                    printLog("INTENT: " + intent.toUri(0))
+//                    intent.extras?.let {
+//                        for (key in it.keySet()) {
+//                            if (key == "headers")
+//                                printLog(
+//                                    "INTENT: data extras $key : ${
+//                                        it.getStringArray(key)?.toList()
+//                                    }"
+//                                )
+//                            else
+//                                printLog("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
+//                        }
+//                    }
+//                }
+//                resultLauncher.launch(intent)
+//            } catch (_: Exception) {
+//                App.toast(R.string.no_launch_player, true)
+//            }
+//        }
+//    }
 
-        val videoUrl = jsonObject.optString("url")
-        val isIPTV = jsonObject.optBoolean("iptv", false)
-        val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
-        SELECTED_PLAYER =
-            launchPlayer.ifEmpty { if (isIPTV || isLIVE) tvPlayer else appPlayer }
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndTypeAndNormalize(
-            Uri.parse(videoUrl),
-            if (videoUrl.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
-        )
-        val resInfo =
-            packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-
-        val filteredList: MutableList<ResolveInfo> = mutableListOf()
-        for (info in resInfo) {
-            if (PLAYERS_BLACKLIST.contains(info.activityInfo.packageName.lowercase(Locale.getDefault()))) {
-                continue
-            }
-            filteredList.add(info)
-        }
-        if (filteredList.isEmpty()) {
-            App.toast(R.string.no_player_activity_found, true)
-            return
-        }
-        var playerPackageExist = false
-        if (!SELECTED_PLAYER.isNullOrEmpty()) {
-            for (info in filteredList) {
-                if (info.activityInfo.packageName.lowercase(Locale.getDefault()) == SELECTED_PLAYER) {
-                    playerPackageExist = true
-                    break
-                }
-            }
-        }
-        if (!playerPackageExist || SELECTED_PLAYER.isNullOrEmpty()) {
-            val mainActivity = this
-            val listAdapter = AppListAdapter(mainActivity, filteredList)
-            val playerChooser = AlertDialog.Builder(mainActivity)
-            val appTitleView =
-                LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
-            val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
-            playerChooser.setCustomTitle(appTitleView)
-
-            playerChooser.setAdapter(listAdapter) { dialog, which ->
-                val setDefaultPlayer = switch.isChecked
-                SELECTED_PLAYER = listAdapter.getItemPackage(which)
-                if (setDefaultPlayer) setPlayerPackage(SELECTED_PLAYER.toString(), isIPTV)
-                dialog.dismiss()
-                runPlayer(jsonObject, SELECTED_PLAYER!!)
-            }
-            val playerChooserDialog = playerChooser.create()
-            showFullScreenDialog(playerChooserDialog)
-            playerChooserDialog.listView.requestFocus()
-        } else {
-            var videoPosition: Long = 0
-            var videoDuration: Long = 0
-            val videoTitle =
-                if (jsonObject.has("title"))
-                    jsonObject.optString("title")
-                else if (isIPTV) "LAMPA TV" else "LAMPA video"
-            val listTitles = ArrayList<String>()
-            val listUrls = ArrayList<String>()
-            val subsTitles = ArrayList<String>()
-            val subsUrls = ArrayList<String>()
-            val headers = ArrayList<String>()
-            playIndex = -1
-
-            if (playerTimeCode == "continue" && jsonObject.has("timeline")) {
-                val timeline = jsonObject.optJSONObject("timeline")
-                if (timeline?.has("time") == true)
-                    videoPosition = (timeline.optDouble("time", 0.0) * 1000).toLong()
-                if (timeline?.has("duration") == true)
-                    videoDuration = (timeline.optDouble("duration", 0.0) * 1000).toLong()
-            }
-            // Headers
-            var ua = HttpHelper.userAgent
-            if (jsonObject.has("headers")) {
-                val headersJSON = jsonObject.optJSONObject("headers")
-                if (headersJSON != null) {
-                    val keys = headersJSON.keys()
-                    while (keys.hasNext()) {
-                        val key = keys.next()
-                        val value = headersJSON.optString(key)
-                        when (key.lowercase(Locale.getDefault())) {
-                            "user-agent" -> ua = value
-                            "content-length" -> {}
-                            else -> {
-                                headers.add(key)
-                                headers.add(value)
-                            }
-                        }
-                    }
-                }
-            }
-            headers.add("User-Agent")
-            headers.add(ua)
-            // Playlist
-            if (jsonObject.has("playlist") && playerAutoNext) {
-                playJSONArray = jsonObject.getJSONArray("playlist")
-                val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload\$".toRegex()
-                for (i in 0 until playJSONArray.length()) {
-                    val io = playJSONArray.getJSONObject(i)
-                    if (io.has("url")) {
-                        val url = if (torrserverPreload && internalTorrserve)
-                            io.optString("url").replace(badLinkPattern, "$1&play")
-                        else
-                            io.optString("url")
-                        if (url != io.optString("url")) {
-                            io.put("url", url)
-                            playJSONArray.put(i, io)
-                        }
-                        if (url == videoUrl)
-                            playIndex = i
-                        listUrls.add(io.optString("url"))
-                        listTitles.add(
-                            if (io.has("title")) io.optString("title") else (i + 1).toString()
-                        )
-                    }
-                }
-            }
-            // Subtitles
-            if (jsonObject.has("subtitles")) {
-                val subsJSONArray = jsonObject.optJSONArray("subtitles")
-                if (subsJSONArray != null)
-                    for (i in 0 until subsJSONArray.length()) {
-                        val io = subsJSONArray.getJSONObject(i)
-                        if (io.has("url")) {
-                            subsUrls.add(io.optString("url"))
-                            subsTitles.add(io.optString("label", "Sub " + (i + 1).toString()))
-                        }
-                    }
-            }
-            if (playIndex < 0) {
-                // current url not found in playlist or playlist missing
-                playIndex = 0
-                playJSONArray = JSONArray()
-                playJSONArray.put(jsonObject)
-            }
-            playVideoUrl = videoUrl
-
-            saveLastPlayed()
-
-            when (SELECTED_PLAYER) {
-                "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
-                    intent.setPackage(SELECTED_PLAYER)
-                    intent.putExtra("title", videoTitle)
-
-                    if (playerTimeCode == "continue" || playerTimeCode == "again")
-                        intent.putExtra("resume", videoPosition)
-
-                    val haveQuality = if (jsonObject.has("quality")) {
-                        var qualityListSize = 0
-                        val keys = (jsonObject["quality"] as JSONObject).keys()
-                        while (keys.hasNext() && qualityListSize < 2) {
-                            keys.next()
-                            qualityListSize++
-                        }
-                        qualityListSize > 1
-                    } else {
-                        false
-                    }
-
-                    if (listUrls.size > 1 || haveQuality) {
-                        val playObj = playJSONArray[0] as JSONObject
-                        if (playObj.has("timeline")) {
-                            val firstHash =
-                                (playObj["timeline"] as JSONObject).optString("hash", "0")
-                            if (firstHash != "0") {
-                                intent.putExtra("playlistTitle", firstHash)
-                            }
-                        }
-
-                        if (listTitles.isNotEmpty()) {
-                            intent.putStringArrayListExtra("titleList", listTitles)
-                        } else {
-                            intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
-                        }
-                        intent.putExtra("playlistPosition", playIndex)
-
-                        if (haveQuality) {
-                            var qualitySet = ""
-                            val qualityMap = LinkedHashMap<String, ArrayList<String>>()
-                            for (i in 0 until playJSONArray.length()) {
-                                // val itemQualityMap = (playJSONArray[i] as JSONObject)["quality"] as JSONObject
-                                val itemQualityMap =
-                                    (playJSONArray[i] as JSONObject).optJSONObject("quality")
-                                itemQualityMap?.let {
-                                    val keys = itemQualityMap.keys()
-                                    while (keys.hasNext()) {
-                                        val key = keys.next()
-                                        val value = itemQualityMap.getString(key)
-                                        if (value == videoUrl) qualitySet = key
-                                        if (qualityMap.contains(key).not()) {
-                                            qualityMap[key] = arrayListOf()
-                                        }
-                                        qualityMap.getValue(key).add(value)
-                                    }
-                                }
-                            }
-                            val qualityKeys = ArrayList(qualityMap.keys.toList())
-                            val qualityIndex = qualityKeys.indexOf(qualitySet)
-                            intent.putStringArrayListExtra("videoGroupList", qualityKeys)
-                            qualityKeys.forEach {
-                                intent.putStringArrayListExtra(it, qualityMap.getValue(it))
-                            }
-                            intent.putExtra(
-                                "groupPosition",
-                                if (qualityIndex < 1) 0 else qualityIndex
-                            )
-                        } else {
-                            if (listUrls.isNotEmpty()) {
-                                intent.putStringArrayListExtra("videoList", listUrls)
-                            } else {
-                                intent.putStringArrayListExtra(
-                                    "videoList",
-                                    arrayListOf(videoUrl)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
-                    //intent.setPackage(SELECTED_PLAYER)
-                    intent.component = ComponentName(
-                        SELECTED_PLAYER!!,
-                        "$SELECTED_PLAYER.ActivityScreen"
-                    )
-                    intent.putExtra("title", videoTitle)
-                    intent.putExtra("sticky", false)
-                    intent.putExtra("headers", headers.toTypedArray())
-                    if (playerTimeCode == "continue" && videoPosition > 0L) {
-                        intent.putExtra("position", videoPosition.toInt())
-                    } else if (playerTimeCode == "again"
-                        || (playerTimeCode == "continue" && videoPosition == 0L)
-                    ) {
-                        intent.putExtra("position", 1)
-                    }
-                    if (listUrls.size > 1) {
-                        val parcelableVideoArr = arrayOfNulls<Parcelable>(listUrls.size)
-                        for (i in 0 until listUrls.size) {
-                            parcelableVideoArr[i] = Uri.parse(listUrls[i])
-                        }
-                        intent.putExtra("video_list", parcelableVideoArr)
-                        intent.putExtra("video_list.name", listTitles.toTypedArray())
-                        intent.putExtra("video_list_is_explicit", true)
-                    }
-                    if (subsUrls.isNotEmpty()) {
-                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
-                        for (i in 0 until subsUrls.size) {
-                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
-                        }
-                        intent.putExtra("subs", parcelableSubsArr)
-                        intent.putExtra("subs.name", subsTitles.toTypedArray())
-                    }
-                    intent.putExtra("return_result", true)
-                }
-
-                "is.xyz.mpv" -> {
-                    // http://mpv-android.github.io/mpv-android/intent.html
-                    intent.setPackage(SELECTED_PLAYER)
-                    if (subsUrls.isNotEmpty()) {
-                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
-                        for (i in 0 until subsUrls.size) {
-                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
-                        }
-                        intent.putExtra("subs", parcelableSubsArr)
-                    }
-                    if (playerTimeCode == "continue" && videoPosition > 0L) {
-                        intent.putExtra("position", videoPosition.toInt())
-                    } else if (playerTimeCode == "again"
-                        || (playerTimeCode == "continue" && videoPosition == 0L)
-                    ) {
-                        intent.putExtra("position", 1)
-                    }
-                }
-
-                "org.videolan.vlc" -> {
-                    // https://wiki.videolan.org/Android_Player_Intents
-                    if (VERSION.SDK_INT > 32) {
-                        intent.setPackage(SELECTED_PLAYER)
-                    } else {
-                        intent.component = ComponentName(
-                            SELECTED_PLAYER!!,
-                            "$SELECTED_PLAYER.gui.video.VideoPlayerActivity"
-                        ) // required for return intent
-                    }
-                    intent.putExtra("title", videoTitle)
-                    if (playerTimeCode == "continue" && videoPosition > 0L) {
-                        intent.putExtra("from_start", false)
-                        intent.putExtra("position", videoPosition)
-                    } else if (playerTimeCode == "again"
-                        || (playerTimeCode == "continue" && videoPosition == 0L)
-                    ) {
-                        intent.putExtra("from_start", true)
-                        intent.putExtra("position", 0L)
-                    }
-                    intent.putExtra("extra_duration", videoDuration)
-                }
-
-                "com.brouken.player" -> {
-                    intent.setPackage(SELECTED_PLAYER)
-                    intent.putExtra("title", videoTitle)
-                    if (playerTimeCode == "continue" || playerTimeCode == "again")
-                        intent.putExtra("position", videoPosition.toInt())
-                    if (subsUrls.isNotEmpty()) {
-                        val parcelableSubsArr = arrayOfNulls<Parcelable>(subsUrls.size)
-                        for (i in 0 until subsUrls.size) {
-                            parcelableSubsArr[i] = Uri.parse(subsUrls[i])
-                        }
-                        intent.putExtra("subs", parcelableSubsArr)
-                        intent.putExtra("subs.name", subsTitles.toTypedArray())
-                    }
-                    intent.putExtra("return_result", true)
-                }
-
-                "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
-                    val vimuVersionNumber =
-                        getAppVersion(this, SELECTED_PLAYER!!)?.versionNumber ?: 0L
-                    printLog("ViMu ($SELECTED_PLAYER) version $vimuVersionNumber")
-                    intent.setPackage(SELECTED_PLAYER)
-                    intent.putExtra("headers", headers.toTypedArray())
-                    // see https://vimu.tv/player-api
-                    if (listUrls.size <= 1) {
-                        intent.putExtra("forcename", videoTitle)
-                        if (subsUrls.isNotEmpty()) {
-                            intent.putStringArrayListExtra(
-                                "asussrtlist",
-                                subsUrls
-                            )
-                        }
-                        if (isIPTV || isLIVE)
-                            intent.putExtra("forcelive", true)
-                    } else {
-                        intent.setDataAndType(
-                            Uri.parse(videoUrl),
-                            "application/vnd.gtvbox.filelist"
-                        )
-                        if (vimuVersionNumber >= 799L) { // 7.99 and above
-                            intent.putStringArrayListExtra("asusfilelist", listUrls)
-                            intent.putStringArrayListExtra("asusnamelist", listTitles)
-                            intent.putExtra("startindex", playIndex)
-                        } else {
-                            intent.putStringArrayListExtra(
-                                "asusfilelist",
-                                ArrayList(listUrls.subList(playIndex, listUrls.size))
-                            )
-                            intent.putStringArrayListExtra(
-                                "asusnamelist",
-                                ArrayList(listTitles.subList(playIndex, listUrls.size))
-                            )
-                        }
-                    }
-                    if (playerTimeCode == "continue" || playerTimeCode == "again") {
-                        intent.putExtra("position", videoPosition.toInt())
-                        intent.putExtra("startfrom", videoPosition.toInt())
-                    } else if (playerTimeCode == "ask") {
-                        // use ViMu resume
-                        intent.putExtra("forcedirect", true)
-                        intent.putExtra("forceresume", true)
-                    }
-                }
-
-                else -> {
-                    intent.setPackage(SELECTED_PLAYER)
-                }
-            }
-            @Suppress("DEPRECATION")
-            try {
-                intent.flags = 0 // https://stackoverflow.com/a/47694122
-                if (BuildConfig.DEBUG) {
-                    printLog("INTENT: " + intent.toUri(0))
-                    intent.extras?.let {
-                        for (key in it.keySet()) {
-                            if (key == "headers")
-                                printLog(
-                                    "INTENT: data extras $key : ${
-                                        it.getStringArray(key)?.toList()
-                                    }"
-                                )
-                            else
-                                printLog("INTENT: data extras $key : ${it.get(key) ?: "NULL"}")
-                        }
-                    }
-                }
-                resultLauncher.launch(intent)
-            } catch (_: Exception) {
-                App.toast(R.string.no_launch_player, true)
-            }
-        }
-    }
-
-    private fun resultPlayer(
-        endedVideoUrl: String,
-        pos: Int = 0,
-        dur: Int = 0,
-        ended: Boolean = false
-    ) {
-        // store state and duration too for WatchNext
-        val editor = lastPlayedPrefs.edit()
-        editor?.putBoolean("ended", ended)
-        editor?.putInt("position", pos)
-        editor?.putInt("duration", dur)
-        editor.apply()
-
-        lifecycleScope.launch {
-            // Add | Remove Continue to Play
-            withContext(Dispatchers.Default) {
-                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
-                if (lampaActivity?.has("movie") == true) {
-                    val card = getJson(
-                        lampaActivity.getJSONObject("movie").toString(),
-                        LampaCard::class.java
-                    )
-                    card?.let {
-                        it.fixCard()
-                        try {
-                            printLog("resultPlayer PlayNext $it")
-                            if (!ended)
-                                WatchNext.addLastPlayed(it)
-                            else
-                                WatchNext.removeContinueWatch()
-                        } catch (e: Exception) {
-                            printLog("resultPlayer Error add $it to WatchNext: $e")
-                        }
-                    }
-                }
-            }
-        }
-
-        val videoUrl =
-            if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
-            else endedVideoUrl
-        if (videoUrl == "") return
-
-        var returnIndex = -1
-        for (i in playJSONArray.length() - 1 downTo 0) {
-            val io = playJSONArray.getJSONObject(i)
-            if (!io.has("timeline") || !io.has("url")) break
-
-            val timeline = io.optJSONObject("timeline")
-            val hash = timeline?.optString("hash", "0")
-
-            val qualityObj = io.optJSONObject("quality")
-            var foundInQuality = false
-            qualityObj?.let {
-                for (key in it.keys()) {
-                    if (it[key] == videoUrl) {
-                        foundInQuality = true
-                    }
-                }
-            }
-
-            if (io.optString("url") == videoUrl || foundInQuality) {
-                returnIndex = i
-                val time: Int = if (ended) 0 else pos / 1000
-                val duration: Int =
-                    if (ended) 0
-                    else if (dur == 0 && timeline?.has("duration") == true)
-                        timeline.optDouble("duration", 0.0).toInt()
-                    else dur / 1000
-                val percent: Int = if (duration > 0) time * 100 / duration else 100
-
-                val newTimeline = JSONObject()
-                newTimeline.put("hash", hash)
-                newTimeline.put("time", time.toDouble())
-                newTimeline.put("duration", duration.toDouble())
-                newTimeline.put("percent", percent)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                // for PlayNext
-                io.put("timeline", newTimeline)
-                val resumeio = JSONObject(io.toString())
-                resumeio.put("playlist", playJSONArray)
-                resumeJS = resumeio.toString()
-            }
-            if (i in playIndex until returnIndex) {
-                printLog("mark complete index $i (in range from $playIndex to $returnIndex)")
-                val newTimeline = JSONObject()
-                newTimeline.put("hash", hash)
-                newTimeline.put("percent", 100)
-                newTimeline.put("time", 0)
-                newTimeline.put("duration", 0)
-                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
-                io.put("timeline", newTimeline)
-            }
-        }
-    }
+//    private fun resultPlayerOld(
+//        endedVideoUrl: String,
+//        pos: Int = 0,
+//        dur: Int = 0,
+//        ended: Boolean = false
+//    ) {
+//        // store state and duration too for WatchNext
+//        val editor = lastPlayedPrefs.edit()
+//        editor?.putBoolean("ended", ended)
+//        editor?.putInt("position", pos)
+//        editor?.putInt("duration", dur)
+//        editor.apply()
+//
+//        lifecycleScope.launch {
+//            // Add | Remove Continue to Play
+//            withContext(Dispatchers.Default) {
+//                val lampaActivity = this@MainActivity.playActivityJS?.let { JSONObject(it) }
+//                if (lampaActivity?.has("movie") == true) {
+//                    val card = getJson(
+//                        lampaActivity.getJSONObject("movie").toString(),
+//                        LampaCard::class.java
+//                    )
+//                    card?.let {
+//                        it.fixCard()
+//                        try {
+//                            printLog("resultPlayer PlayNext $it")
+//                            if (!ended)
+//                                WatchNext.addLastPlayed(it)
+//                            else
+//                                WatchNext.removeContinueWatch()
+//                        } catch (e: Exception) {
+//                            printLog("resultPlayer Error add $it to WatchNext: $e")
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        val videoUrl =
+//            if (endedVideoUrl == "" || endedVideoUrl == "null") playVideoUrl
+//            else endedVideoUrl
+//        if (videoUrl == "") return
+//
+//        var returnIndex = -1
+//        for (i in playJSONArray.length() - 1 downTo 0) {
+//            val io = playJSONArray.getJSONObject(i)
+//            if (!io.has("timeline") || !io.has("url")) break
+//
+//            val timeline = io.optJSONObject("timeline")
+//            val hash = timeline?.optString("hash", "0")
+//
+//            val qualityObj = io.optJSONObject("quality")
+//            var foundInQuality = false
+//            qualityObj?.let {
+//                for (key in it.keys()) {
+//                    if (it[key] == videoUrl) {
+//                        foundInQuality = true
+//                    }
+//                }
+//            }
+//
+//            if (io.optString("url") == videoUrl || foundInQuality) {
+//                returnIndex = i
+//                val time: Int = if (ended) 0 else pos / 1000
+//                val duration: Int =
+//                    if (ended) 0
+//                    else if (dur == 0 && timeline?.has("duration") == true)
+//                        timeline.optDouble("duration", 0.0).toInt()
+//                    else dur / 1000
+//                val percent: Int = if (duration > 0) time * 100 / duration else 100
+//
+//                val newTimeline = JSONObject()
+//                newTimeline.put("hash", hash)
+//                newTimeline.put("time", time.toDouble())
+//                newTimeline.put("duration", duration.toDouble())
+//                newTimeline.put("percent", percent)
+//                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+//                // for PlayNext
+//                io.put("timeline", newTimeline)
+//                val resumeio = JSONObject(io.toString())
+//                resumeio.put("playlist", playJSONArray)
+//                resumeJS = resumeio.toString()
+//            }
+//            if (i in playIndex until returnIndex) {
+//                printLog("mark complete index $i (in range from $playIndex to $returnIndex)")
+//                val newTimeline = JSONObject()
+//                newTimeline.put("hash", hash)
+//                newTimeline.put("percent", 100)
+//                newTimeline.put("time", 0)
+//                newTimeline.put("duration", 0)
+//                runVoidJsFunc("Lampa.Timeline.update", newTimeline.toString())
+//                io.put("timeline", newTimeline)
+//            }
+//        }
+//    }
 
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
@@ -2464,4 +2455,800 @@ class MainActivity : BaseActivity(),
             delayedVoidJsFunc.add(listOf(funcName, params))
         }
     }
+
+    @SuppressLint("InflateParams")
+    fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "") {
+        printLog("runPlayer launchPlayer: $launchPlayer jsonObject: ${jsonObject.toString(2)}")
+        val videoUrl = jsonObject.optString("url")
+        if (videoUrl.isBlank()) {
+            // App.toast(R.string.no_video_url_found, true)
+            return
+        }
+        // Determine player type and package
+        val isIPTV = jsonObject.optBoolean("iptv", false)
+        val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
+        val selectedPlayer = launchPlayer.ifEmpty {
+            if (isIPTV || isLIVE) tvPlayer else appPlayer
+        }.takeIf { !it.isNullOrBlank() }
+
+        // Convert JSON to playlist using PlayerStateManager
+        val playlist = if (jsonObject.has("playlist") && playerAutoNext) {
+            playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
+        } else {
+            listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
+        }
+        // Find current index
+        val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
+            .takeIf { it >= 0 } ?: 0
+
+        // Save state
+        val state = playerStateManager.saveState(
+            activityJson = lampaActivity,
+            playlist = playlist,
+            currentIndex = currentIndex,
+            currentUrl = videoUrl,
+            extras = mapOf(
+                "isIPTV" to isIPTV,
+                "isLIVE" to isLIVE
+            )
+        )
+
+        // Prepare intent
+        val intent = createBaseIntent(state, isIPTV, isLIVE)
+        intent?.let {
+            // Get available players
+            val availablePlayers = getAvailablePlayers(intent).takeIf { it.isNotEmpty() } ?: run {
+                App.toast(R.string.no_player_activity_found, true)
+                return
+            }
+
+            // Check if selected player exists
+            if (selectedPlayer != null && availablePlayers.any {
+                    it.activityInfo.packageName.equals(selectedPlayer, true)
+                }) {
+                // Configure and launch the selected player
+                configurePlayerIntent(intent, jsonObject, selectedPlayer, isIPTV, state)
+                // Launch Player
+                launchPlayer(intent)
+            } else {
+                // Show player selection dialog
+                showPlayerSelectionDialog(availablePlayers, jsonObject, isIPTV)
+            }
+        }
+    }
+
+    private fun createBaseIntent(
+        state: PlayerStateManager.PlaybackState,
+        isIPTV: Boolean,
+        isLIVE: Boolean
+    ): Intent? {
+        state.currentItem?.let { currentItem ->
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse(currentItem.url)
+                setDataAndType(
+                    Uri.parse(currentItem.url),
+                    if (currentItem.url.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+                )
+                flags = 0 // Clear any default flags
+            }
+            return intent
+        }
+        return null
+    }
+
+    private fun getAvailablePlayers(intent: Intent): List<ResolveInfo> {
+        return packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            .filterNot { info ->
+                info.activityInfo.packageName.lowercase() in PLAYERS_BLACKLIST
+            }
+    }
+
+    private fun configurePlayerIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        isIPTV: Boolean,
+        state: PlayerStateManager.PlaybackState
+    ) {
+        val videoTitle = jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
+        val (videoPosition, videoDuration) = getPlaybackPosition(state)
+        val headers = prepareHeaders(jsonObject)
+
+        when (playerPackage.lowercase()) {
+            "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
+                configureUPlayerIntent(intent, jsonObject, playerPackage, videoTitle, videoPosition, state)
+            }
+
+            "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
+                configureMxPlayerIntent(
+                    intent,
+                    jsonObject,
+                    playerPackage,
+                    videoTitle,
+                    // headers,
+                    videoPosition
+                )
+            }
+
+            "is.xyz.mpv" -> {
+                configureMpvIntent(intent, jsonObject, playerPackage, videoPosition)
+            }
+
+            "org.videolan.vlc" -> {
+                configureVlcIntent(
+                    intent,
+                    jsonObject,
+                    playerPackage,
+                    videoTitle,
+                    videoPosition,
+                    videoDuration
+                )
+            }
+
+            "com.brouken.player" -> {
+                configureBroukenPlayerIntent(
+                    intent,
+                    jsonObject,
+                    playerPackage,
+                    videoTitle,
+                    videoPosition
+                )
+            }
+
+            "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
+                configureViMuIntent(
+                    intent,
+                    jsonObject,
+                    playerPackage,
+                    videoTitle,
+                    state = state,
+                    videoPosition,
+                    isIPTV
+                )
+            }
+
+            else -> {
+                intent.setPackage(playerPackage)
+                // Try to add headers to unknown players as a fallback
+                headers?.let {
+                    intent.putExtra("headers", it)
+                }
+            }
+        }
+    }
+
+    private fun preparePlaylist(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
+        if (!jsonObject.has("playlist") || !playerAutoNext) return null
+
+        val listUrls = ArrayList<String>()
+        val listTitles = ArrayList<String>()
+        val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload$".toRegex()
+        val processedItems = mutableListOf<PlayerStateManager.PlaylistItem>()
+        var currentIndex = 0
+
+        jsonObject.getJSONArray("playlist").let { playlist ->
+            for (i in 0 until playlist.length()) {
+                playlist.getJSONObject(i).let { item ->
+                    if (item.has("url")) {
+                        val originalUrl = item.optString("url")
+                        val processedUrl = if (torrserverPreload && internalTorrserve) {
+                            originalUrl.replace(badLinkPattern, "$1&play")
+                        } else {
+                            originalUrl
+                        }
+
+                        // Add to ArrayLists for player intent
+                        listUrls.add(processedUrl)
+                        listTitles.add(item.optString("title", (i + 1).toString()))
+
+                        // Create PlaylistItem for state management
+                        processedItems.add(
+                            PlayerStateManager.PlaylistItem(
+                                url = processedUrl,
+                                title = item.optString("title"),
+                                timeline = item.optJSONObject("timeline")?.toTimeline(),
+                                quality = item.optJSONObject("quality")?.toQualityMap()
+                            )
+                        )
+
+                        if (processedUrl == jsonObject.optString("url")) {
+                            currentIndex = i
+                        }
+                    }
+                }
+            }
+        }
+
+        if (listUrls.isEmpty()) return null
+
+        // Save state
+        playerStateManager.saveState(
+            activityJson = lampaActivity,
+            playlist = processedItems,
+            currentIndex = currentIndex,
+            currentUrl = jsonObject.optString("url")
+        )
+
+        return Pair(listUrls, listTitles)
+    }
+
+    // Helper extensions (add these to PlayerStateManager or keep local)
+    private fun JSONObject.toTimeline(): PlayerStateManager.PlaylistItem.Timeline {
+        return PlayerStateManager.PlaylistItem.Timeline(
+            hash = optString("hash", "0"),
+            time = optDouble("time", 0.0),
+            duration = optDouble("duration", 0.0),
+            percent = optInt("percent", 0)
+        )
+    }
+
+    private fun JSONObject.toQualityMap(): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        keys().forEach { key -> map[key] = getString(key) }
+        return map
+    }
+
+    private fun prepareSubtitles(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
+        if (!jsonObject.has("subtitles")) return null
+
+        val subsUrls = ArrayList<String>()
+        val subsTitles = ArrayList<String>()
+        val subsArray = jsonObject.getJSONArray("subtitles")
+
+        for (i in 0 until subsArray.length()) {
+            val sub = subsArray.getJSONObject(i)
+            if (sub.has("url")) {
+                subsUrls.add(sub.optString("url"))
+                subsTitles.add(sub.optString("label", "Sub ${i + 1}"))
+            }
+        }
+
+        return if (subsUrls.isNotEmpty()) Pair(subsUrls, subsTitles) else null
+    }
+
+    private fun hasMultiQualityStreams(jsonObject: JSONObject): Boolean {
+        return jsonObject.optJSONObject("quality")?.let { qualityObj ->
+            qualityObj.keys().asSequence().count() > 1
+        } == true
+    }
+
+    private fun prepareHeaders(jsonObject: JSONObject): Array<String>? {
+        val headersList = ArrayList<String>()
+        var hasHeaders = false
+
+        jsonObject.optJSONObject("headers")?.let { headersObj ->
+            headersObj.keys().forEach { key ->
+                when (key.lowercase(Locale.getDefault())) {
+                    "user-agent" -> {}  // Handled separately
+                    "content-length" -> {}  // Not needed
+                    else -> {
+                        headersList.add(key)
+                        headersList.add(headersObj.optString(key))
+                        hasHeaders = true
+                    }
+                }
+            }
+        }
+
+        // Always add User-Agent if available
+        HttpHelper.userAgent?.let {
+            headersList.add("User-Agent")
+            headersList.add(it)
+            hasHeaders = true
+        }
+
+        return if (hasHeaders) headersList.toTypedArray() else null
+    }
+
+    private fun getPlaybackPosition(state: PlayerStateManager.PlaybackState): Pair<Long, Long> {
+        return if (playerTimeCode == "continue") {
+            state.currentItem?.timeline?.let { timeline ->
+                (timeline.time * 1000).toLong() to (timeline.duration * 1000).toLong()
+            } ?: (0L to 0L)
+        } else {
+            0L to 0L
+        }
+    }
+
+    private fun configureMxPlayerIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        videoTitle: String,
+        // headers: ArrayList<String>,
+        position: Long
+    ) {
+        intent.apply {
+            component = ComponentName(
+                playerPackage,
+                "$playerPackage.ActivityScreen"
+            )
+            putExtra("title", videoTitle)
+            putExtra("sticky", false)
+            // putExtra("headers", headers.toTypedArray())
+            prepareHeaders(jsonObject)?.let {
+                putExtra("headers", it)
+            }
+            when {
+                playerTimeCode == "continue" && position > 0 ->
+                    putExtra("position", position.toInt())
+
+                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
+                    putExtra("position", 1)
+            }
+
+            // Handle playlists
+            preparePlaylist(jsonObject)?.let { (urls, titles) ->
+                putExtra("video_list", urls.map(Uri::parse).toTypedArray())
+                putExtra("video_list.name", titles.toTypedArray())
+                putExtra("video_list_is_explicit", true)
+            }
+
+            // Handle subtitles
+            prepareSubtitles(jsonObject)?.let { (urls, titles) ->
+                putExtra("subs", urls.map(Uri::parse).toTypedArray())
+                putExtra("subs.name", titles.toTypedArray())
+            }
+
+            putExtra("return_result", true)
+        }
+    }
+
+    private fun configureVlcIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        videoTitle: String,
+        position: Long,
+        duration: Long
+    ) {
+        intent.apply {
+            if (VERSION.SDK_INT > 32) {
+                setPackage(playerPackage)
+            } else {
+                component = ComponentName(
+                    playerPackage,
+                    "$playerPackage.gui.video.VideoPlayerActivity"
+                )
+            }
+            putExtra("title", videoTitle)
+            prepareHeaders(jsonObject)?.let {
+                putExtra("http-headers", it)  // VLC uses different extra name
+            }
+            when {
+                playerTimeCode == "continue" && position > 0 -> {
+                    putExtra("from_start", false)
+                    putExtra("position", position)
+                }
+
+                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) -> {
+                    putExtra("from_start", true)
+                    putExtra("position", 0L)
+                }
+            }
+
+            putExtra("extra_duration", duration)
+        }
+    }
+
+    private fun configureMpvIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        position: Long
+    ) {
+        intent.apply {
+            setPackage(playerPackage)
+            prepareHeaders(jsonObject)?.let { headers ->
+                // MPV requires headers as a single string with \r\n delimiters
+                val headerString = headers.toList()
+                    .chunked(2)
+                    .joinToString("\r\n") { (k, v) -> "$k: $v" }
+                putExtra("headers", headerString)
+            }
+            when {
+                playerTimeCode == "continue" && position > 0 ->
+                    putExtra("position", position.toInt())
+
+                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
+                    putExtra("position", 1)
+            }
+
+            prepareSubtitles(jsonObject)?.let { (urls, _) ->
+                putExtra("subs", urls.map(Uri::parse).toTypedArray())
+            }
+        }
+    }
+
+    private fun configureViMuIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        videoTitle: String,
+        state: PlayerStateManager.PlaybackState,
+        position: Long,
+        isIPTV: Boolean
+    ) {
+        val vimuVersion = getAppVersion(this, playerPackage)?.versionNumber ?: 0L
+        printLog("ViMu ($playerPackage) version $vimuVersion")
+
+        intent.apply {
+            setPackage(playerPackage)
+            prepareHeaders(jsonObject)?.let { putExtra("headers", it) }
+
+            preparePlaylist(jsonObject)?.let { (urls, titles) ->
+                if (urls.isEmpty()) return@let
+
+                val safeIndex = state.currentIndex.coerceIn(0, urls.size - 1)
+                val currentUrl = state.currentItem?.url ?: urls[safeIndex]
+
+                if (urls.size > 1) {
+                    setDataAndType(Uri.parse(currentUrl), "application/vnd.gtvbox.filelist")
+                    configureViMuPlaylist(this, urls, titles, safeIndex, vimuVersion)
+                } else {
+                    configureSingleViMuItem(this, currentUrl, videoTitle, jsonObject, isIPTV)
+                }
+            }
+
+            // Handle playback position
+            when {
+                playerTimeCode == "continue" || playerTimeCode == "again" -> {
+                    putExtra("position", position.toInt())
+                    putExtra("startfrom", position.toInt())
+                }
+                playerTimeCode == "ask" -> {
+                    putExtra("forcedirect", true)
+                    putExtra("forceresume", true)
+                }
+            }
+        }
+    }
+
+    private fun configureViMuPlaylist(
+        intent: Intent,
+        urls: ArrayList<String>,
+        titles: ArrayList<String>,
+        currentIndex: Int,
+        vimuVersion: Long
+    ) {
+        if (vimuVersion >= 799L) { // 7.99+ version
+            intent.apply {
+                putStringArrayListExtra("asusfilelist", urls)
+                putStringArrayListExtra("asusnamelist", titles)
+                putExtra("startindex", currentIndex)
+            }
+        } else { // Legacy version
+            intent.apply {
+                putStringArrayListExtra(
+                    "asusfilelist",
+                    ArrayList(urls.subList(currentIndex, urls.size))
+                )
+                putStringArrayListExtra(
+                    "asusnamelist",
+                    ArrayList(titles.subList(currentIndex, urls.size))
+                )
+            }
+        }
+    }
+
+    private fun configureSingleViMuItem(
+        intent: Intent,
+        currentUrl: String,
+        videoTitle: String,
+        jsonObject: JSONObject,
+        isIPTV: Boolean
+    ) {
+        intent.apply {
+            data = Uri.parse(currentUrl)
+            putExtra("forcename", videoTitle)
+
+            prepareSubtitles(jsonObject)?.let { (subUrls, _) ->
+                putStringArrayListExtra("asussrtlist", subUrls)
+            }
+
+            if (isIPTV) {
+                putExtra("forcelive", true)
+            } else {
+                removeExtra("forcelive")
+            }
+        }
+    }
+
+    private fun configureBroukenPlayerIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        videoTitle: String,
+        position: Long
+    ) {
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("title", videoTitle)
+
+            // Handle playback position
+            when {
+                playerTimeCode == "continue" || playerTimeCode == "again" ->
+                    putExtra("position", position.toInt())
+            }
+
+            // Handle subtitles
+            prepareSubtitles(jsonObject)?.let { (urls, titles) ->
+                putExtra("subs", urls.map(Uri::parse).toTypedArray())
+                putExtra("subs.name", titles.toTypedArray())
+            }
+
+            putExtra("return_result", true)
+        }
+    }
+
+    private fun configureUPlayerIntent(
+        intent: Intent,
+        jsonObject: JSONObject,
+        playerPackage: String,
+        videoTitle: String,
+        position: Long,
+        state: PlayerStateManager.PlaybackState
+    ) {
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("title", videoTitle)
+
+            // Handle resume/restart
+            when (playerTimeCode) {
+                "continue", "again" -> putExtra("resume", position)
+            }
+
+            // Handle playlists or multi-quality streams
+            if (hasMultiQualityStreams(jsonObject) || preparePlaylist(jsonObject) != null) {
+                configureUPlayerPlaylist(this, jsonObject, videoTitle, state = state)
+            }
+        }
+    }
+
+    private fun configureUPlayerPlaylist(
+        intent: Intent,
+        jsonObject: JSONObject,
+        videoTitle: String,
+        state: PlayerStateManager.PlaybackState
+    ) {
+        // Get first item's hash from state
+        val firstHash = state.playlist.firstOrNull()?.timeline?.hash ?: "0"
+
+        if (firstHash != "0") {
+            intent.putExtra("playlistTitle", firstHash)
+        }
+
+        // Handle quality variants
+        jsonObject.optJSONObject("quality")?.let { qualityObj ->
+            val qualityMap = LinkedHashMap<String, ArrayList<String>>()
+            qualityObj.keys().forEach { key ->
+                qualityMap.getOrPut(key) { ArrayList() }.add(qualityObj.getString(key))
+            }
+
+            intent.apply {
+                putStringArrayListExtra("videoGroupList", ArrayList(qualityMap.keys))
+                qualityMap.forEach { (key, urls) ->
+                    putStringArrayListExtra(key, urls)
+                }
+            }
+        } ?: run {
+            // Fallback to normal playlist handling
+            preparePlaylist(jsonObject)?.let { (urls, titles) ->
+                intent.apply {
+                    putStringArrayListExtra("videoList", urls)
+                    putStringArrayListExtra("titleList", titles)
+                    putExtra("playlistPosition", state.currentIndex) // Use state.currentIndex
+                }
+            } ?: run {
+                // Single item fallback
+                intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
+            }
+        }
+    }
+
+    private fun launchPlayer(intent: Intent) {
+        try {
+            logIntentData(intent)
+            resultLauncher.launch(intent)
+        } catch (e: Exception) {
+            printLog("Failed to launch player: ${e.message}")
+            App.toast(R.string.no_launch_player, true)
+        }
+    }
+
+    private fun showPlayerSelectionDialog(
+        players: List<ResolveInfo>,
+        jsonObject: JSONObject,
+        isIPTV: Boolean
+    ) {
+        val mainActivity = this
+        val listAdapter = AppListAdapter(mainActivity, players)
+        val playerChooser = AlertDialog.Builder(mainActivity)
+
+        val appTitleView = LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
+        val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
+        playerChooser.setCustomTitle(appTitleView)
+
+        playerChooser.setAdapter(listAdapter) { dialog, which ->
+            val setDefaultPlayer = switch.isChecked
+            val selectedPlayer = listAdapter.getItemPackage(which)
+
+            if (setDefaultPlayer) {
+                setPlayerPackage(selectedPlayer, isIPTV)
+            }
+
+            dialog.dismiss()
+            runPlayer(jsonObject, selectedPlayer)
+        }
+
+        val playerChooserDialog = playerChooser.create()
+        showFullScreenDialog(playerChooserDialog)
+        playerChooserDialog.listView.requestFocus()
+    }
+
+    private fun resultPlayer(
+        endedVideoUrl: String,
+        pos: Int = 0,
+        dur: Int = 0,
+        ended: Boolean = false
+    ) {
+        // Store playback state for WatchNext
+        storePlaybackState(ended, pos, dur)
+
+        // Process the current playback item
+        processPlaybackResult(endedVideoUrl, pos, dur, ended)
+
+        // Update WatchNext recommendations
+        updatePlayNext(ended)
+    }
+
+    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
+        lastPlayedPrefs.edit().apply {
+            putBoolean("ended", ended)
+            putInt("position", pos)
+            putInt("duration", dur)
+            apply()
+        }
+    }
+
+    private fun processPlaybackResult(
+        endedVideoUrl: String,
+        pos: Int,
+        dur: Int,
+        ended: Boolean
+    ) {
+        val currentState = playerStateManager.getState(lampaActivity)
+        val videoUrl = if (endedVideoUrl.isBlank() || endedVideoUrl == "null") {
+            currentState.currentUrl
+        } else {
+            endedVideoUrl
+        } ?: return
+
+        val updatedPlaylist = currentState.playlist.toMutableList()
+        var foundIndex = -1
+
+        // Process playlist to find and update the current item
+        updatedPlaylist.forEachIndexed { i, item ->
+            if (isCurrentPlaybackItem(item, videoUrl)) {
+                foundIndex = i
+                updatedPlaylist[i] = updatePlaylistItem(item, pos, dur, ended)
+            }
+        }
+
+        if (foundIndex >= 0) {
+            // Save updated state
+            playerStateManager.saveState(
+                activityJson = lampaActivity,
+                playlist = updatedPlaylist,
+                currentIndex = foundIndex,
+                currentUrl = videoUrl,
+                currentPosition = pos.toLong()
+            )
+
+            // Mark previous items as completed if needed
+            if (playerAutoNext) {
+                markPreviousItemsComplete(updatedPlaylist, foundIndex)
+            }
+
+            // Notify JS
+            updatedPlaylist[foundIndex].timeline?.let { timeline ->
+                runVoidJsFunc("Lampa.Timeline.update", timeline.toJson().toString())
+            }
+        }
+
+        if (ended) {
+            playerStateManager.clearState(lampaActivity)
+        }
+    }
+
+    // Helper functions
+    private fun isCurrentPlaybackItem(item: PlayerStateManager.PlaylistItem, videoUrl: String): Boolean {
+        return item.url == videoUrl ||
+                item.quality?.values?.any { it == videoUrl } == true
+    }
+
+    private fun updatePlaylistItem(
+        item: PlayerStateManager.PlaylistItem,
+        pos: Int,
+        dur: Int,
+        ended: Boolean
+    ): PlayerStateManager.PlaylistItem {
+        val percent = if (dur > 0) (pos * 100 / dur) else 100
+        val timeline = PlayerStateManager.PlaylistItem.Timeline(
+            hash = item.timeline?.hash ?: "0",
+            time = if (ended) 0.0 else pos.toDouble() / 1000,
+            duration = if (ended) 0.0 else dur.toDouble() / 1000,
+            percent = if (ended) 100 else percent
+        )
+        return item.copy(timeline = timeline)
+    }
+
+    private fun markPreviousItemsComplete(
+        playlist: MutableList<PlayerStateManager.PlaylistItem>,
+        currentIndex: Int
+    ) {
+        for (i in 0 until currentIndex) {
+            playlist[i] = playlist[i].copy(
+                timeline = PlayerStateManager.PlaylistItem.Timeline(
+                    hash = playlist[i].timeline?.hash ?: "0",
+                    time = 0.0,
+                    duration = 0.0,
+                    percent = 100
+                )
+            )
+        }
+    }
+
+    private fun PlayerStateManager.PlaylistItem.Timeline.toJson(): String {
+        return JSONObject().apply {
+            put("hash", hash)
+            put("time", time)
+            put("duration", duration)
+            put("percent", percent)
+        }.toString()
+    }
+    // TODO: match quality with PlayStateManager too
+    private fun isCurrentPlaybackItem(item: JSONObject, videoUrl: String): Boolean {
+        if (item.optString("url") == videoUrl) return true
+
+        // Check if URL exists in quality options
+        item.optJSONObject("quality")?.let { qualityObj ->
+            for (key in qualityObj.keys()) {
+                if (qualityObj[key] == videoUrl) return true
+            }
+        }
+        return false
+    }
+
+    private fun updatePlayNext(ended: Boolean) {
+        lifecycleScope.launch(Dispatchers.Default) {
+            playActivityJS?.let { jsonString ->
+                try {
+                    val lampaActivity = JSONObject(jsonString)
+                    if (lampaActivity.has("movie")) {
+                        val card = getJson(
+                            lampaActivity.getJSONObject("movie").toString(),
+                            LampaCard::class.java
+                        )?.apply { fixCard() }
+
+                        card?.let {
+                            if (!ended) {
+                                printLog("resultPlayer PlayNext $it")
+                                WatchNext.addLastPlayed(it)
+                            } else {
+                                WatchNext.removeContinueWatch()
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    printLog("resultPlayer Error processing PlayNext: $e")
+                }
+            }
+        }
+    }
+    // FIXME! Remove
+    private fun saveLastPlayed() {
+        printLog("saveLastPlayed() set playActivityJS to $playActivityJS")
+    }
+
 }
