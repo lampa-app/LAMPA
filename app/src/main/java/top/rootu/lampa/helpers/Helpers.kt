@@ -10,6 +10,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.Log
 import android.util.TypedValue
 import androidx.annotation.RequiresApi
@@ -34,6 +36,7 @@ import top.rootu.lampa.helpers.Prefs.addViewToRemove
 import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
 import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
 import top.rootu.lampa.models.CubBookmark
+import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
 import java.util.Locale
@@ -148,7 +151,7 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
+    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?, activityJson: String?): Intent {
         val intent = Intent(App.context, MainActivity::class.java).apply {
             // Set ID, source, and media type from the card
             card.id?.let { putExtra("id", it) }
@@ -157,10 +160,13 @@ object Helpers {
 
             // Serialize the card to JSON and add it to the intent
             val cardJson = serializeCardToJson(card)
-            cardJson?.let { putExtra("LampaCardJS", it) } // used to get card from HomeWatch
+            cardJson?.let { putExtra(LAMPA_CARD_KEY, it) } // used to get card from HomeWatch
 
-            // Add continueWatch flag if provided
-            continueWatch?.let { putExtra("continueWatch", it) }
+            // Add continueWatch flag if provided with lampaActivity
+            continueWatch?.let {
+                putExtra("continueWatch", it)
+                activityJson?.let { putExtra("lampaActivity", it) }
+            }
 
             // Set intent flags and action
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -363,7 +369,10 @@ object Helpers {
         }
     }
 
-    fun printLog(message: String, tag: String = "DEBUG") {
+    fun printLog(message: String) {
+        printLog("DEBUG", message)
+    }
+    fun printLog(tag: String = "DEBUG", message: String) {
         if (BuildConfig.DEBUG) {
             Log.d(tag, message)
         }
@@ -400,6 +409,56 @@ object Helpers {
                 true
             } catch (_: PackageManager.NameNotFoundException) {
                 false
+            }
+        }
+    }
+    // Helper function to log intent data
+    @Suppress("DEPRECATION")
+    fun logIntentData(intent: Intent?) {
+        if (!BuildConfig.DEBUG || intent == null) return
+        // Log basic intent info
+        printLog("Intent URI: ${intent.toUri(0)}")
+        // Log all extras
+        intent.extras?.let { bundle ->
+            val output = StringBuilder("Intent Extras:\n")
+            bundle.keySet().forEach { key ->
+                output.append("• $key = ${bundleValueToString(bundle.get(key))}\n")
+            }
+            printLog(output.toString())
+        } ?: printLog("No extras found in intent")
+    }
+
+    /**
+     * Safely converts bundle values to readable strings
+     */
+    private fun bundleValueToString(value: Any?): String {
+        return when (value) {
+            null -> "NULL"
+            is String -> value
+            is Int, is Long, is Float, is Double, is Boolean -> value.toString()
+            is Parcelable -> "Parcelable(${value.javaClass.simpleName})"
+            is Array<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is List<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is Bundle -> {
+                @Suppress("DEPRECATION")
+                val subItems =
+                    value.keySet().joinToString { "$it=${bundleValueToString(value.get(it))}" }
+                "Bundle{$subItems}"
+            }
+
+            else -> try {
+                // Fallback for other types
+                value.toString()
+            } catch (_: Exception) {
+                "Unprintable(${value.javaClass.simpleName ?: "null"})"
             }
         }
     }

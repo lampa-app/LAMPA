@@ -14,6 +14,7 @@ import androidx.tvprovider.media.tv.WatchNextProgram
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.rootu.lampa.App
+import top.rootu.lampa.PlayerStateManager
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
@@ -26,13 +27,14 @@ import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
 import java.util.Locale
 
 
 object WatchNext {
     private const val TAG = "WatchNext"
-    private const val RESUME_ID = "-1"
+    // private const val RESUME_ID = "-1"
 
     @SuppressLint("RestrictedApi")
     private val WATCH_NEXT_MAP_PROJECTION = arrayOf(
@@ -79,7 +81,7 @@ object WatchNext {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         val context = App.context
         val deleted = removeStale()
-        printLog("updateWatchNext() WatchNext stale cards removed: $deleted", TAG)
+        printLog(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
 
         val lst = when { // reversed order
             // CUB
@@ -100,42 +102,44 @@ object WatchNext {
             !context.wathToRemove.contains(it.id.toString())
         }
         printLog(
-            "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }} pending to remove: ${pending.size} ${pending.map { it.id }}",
-            TAG
+            TAG,
+            "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }}"
         )
+        printLog(TAG, "pending to remove: ${pending.size} ${pending.map { it.id }}")
 
         excludePending.forEach { card ->
             withContext(Dispatchers.Default) {
                 try {
                     add(card)
                 } catch (_: Exception) {
-                    // printLog("Error adding $card to WatchNext: $e", TAG)
+                    // printLog(TAG, "Error adding $card to WatchNext: $e")
                 }
             }
         }
     }
 
-    @SuppressLint("RestrictedApi")
-    fun addLastPlayed(card: LampaCard) {
+    fun addLastPlayed(card: LampaCard, lampaActivity: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+
         card.id?.let { movieId ->
-            // TODO: Implement update by ID
-            if (movieId.isNotEmpty()) {
-                deleteFromWatchNext(RESUME_ID)
-            }
+            // deleteFromWatchNext(RESUME_ID) // Clear any existing continue watch
+            deleteFromWatchNext(movieId)
+
             val programUri = App.context.contentResolver.insert(
                 TvContractCompat.WatchNextPrograms.CONTENT_URI,
-                createWatchNextProgram(card, true).toContentValues()
+                createWatchNextProgram(card, true, lampaActivity).toContentValues()
             )
-            if (programUri == null || programUri == Uri.EMPTY) {
-                Log.e(TAG, "Failed to insert movie $movieId into the Watch Next")
+
+            if (programUri == null) {
+                Log.e(TAG, "Failed to insert continue watch for $movieId")
             }
         }
     }
 
-    fun removeContinueWatch() {
+    fun removeContinueWatch(card: LampaCard) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
-        deleteFromWatchNext(RESUME_ID)
+        // deleteFromWatchNext(RESUME_ID)
+        card.id?.let { movieId -> deleteFromWatchNext(movieId) }
     }
 
     @SuppressLint("RestrictedApi")
@@ -157,7 +161,7 @@ object WatchNext {
         )?.use { cursor ->
             if (cursor.moveToFirst()) {
                 val watchNextProgram = WatchNextProgram.fromCursor(cursor)
-                val json = watchNextProgram?.intent?.getStringExtra("LampaCardJS")
+                val json = watchNextProgram?.intent?.getStringExtra(LAMPA_CARD_KEY)
                 getJson(json, LampaCard::class.java)
             } else null
         }
@@ -167,7 +171,7 @@ object WatchNext {
     private fun deleteFromWatchNext(movieId: String) {
         val program = findProgramByMovieId(movieId)
         program?.let {
-            printLog("deleteFromWatchNext($movieId) removeProgram(${it.id})", TAG)
+            printLog(TAG, "deleteFromWatchNext($movieId) removeProgram(${it.id})")
             removeProgram(it.id)
         }
     }
@@ -208,7 +212,7 @@ object WatchNext {
             if (cursor.moveToFirst()) {
                 do {
                     val program = WatchNextProgram.fromCursor(cursor)
-                    if (!App.context.isInWatchNext(program.internalProviderId) && program.internalProviderId != RESUME_ID) {
+                    if (!App.context.isInWatchNext(program.internalProviderId) /* && program.internalProviderId != RESUME_ID */) {
                         count++
                         removeProgram(program.id)
                     }
@@ -239,9 +243,13 @@ object WatchNext {
     }
 
     @SuppressLint("RestrictedApi")
-    private fun createWatchNextProgram(card: LampaCard, resume: Boolean = false): WatchNextProgram {
+    private fun createWatchNextProgram(
+        card: LampaCard,
+        resume: Boolean = false,
+        activityJson: String? = null
+    ): WatchNextProgram {
         val info = mutableListOf<String>()
-        val programId = if (resume) RESUME_ID else card.id
+        val programId = /* if (resume) RESUME_ID else */ card.id
 
         card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
@@ -271,7 +279,7 @@ object WatchNext {
             .setDescription(card.overview)
             .setGenre(info.joinToString(" · "))
             .setReviewRating((card.vote_average?.div(2) ?: 0).toString())
-            .setIntent(Helpers.buildPendingIntent(card, resume))
+            .setIntent(Helpers.buildPendingIntent(card, resume, activityJson))
             .setInternalProviderId(programId) // Our internal ID
             .setDurationMillis(card.runtime?.times(60000) ?: 0)
             .setReleaseDate(card.release_year)
@@ -289,10 +297,34 @@ object WatchNext {
 //            builder.setTitle(video.category)
 //        }
         if (resume) {
-            val watchPosition = App.context.lastPlayedPrefs.getInt("last_duration", 0)
-            val duration = App.context.lastPlayedPrefs.getInt("last_duration", 0)
-            builder.setLastPlaybackPositionMillis(watchPosition)
-                .setDurationMillis(duration)
+            // Get the player state manager instance
+            val playerStateManager = PlayerStateManager(App.context)
+
+            // Find the state for this card
+            val state = playerStateManager.findStateByCard(card)
+
+            // Calculate watch position and duration
+            val (watchPosition, duration) = if (state != null) {
+                // Get position from current timeline if available
+                val positionMs = state.currentItem?.timeline?.let { timeline ->
+                    (timeline.time * 1000).toLong() // Convert seconds to ms
+                } ?: state.currentPosition
+
+                // Get duration from timeline or fallback
+                val durationMs = state.currentItem?.timeline?.let { timeline ->
+                    (timeline.duration * 1000).toLong() // Convert seconds to ms
+                } ?: 0L
+
+                positionMs to durationMs
+            } else {
+                // Fallback to shared prefs if no state found
+                val prefs = App.context.lastPlayedPrefs
+                prefs.getLong("last_position", 0L) to
+                        prefs.getLong("last_duration", 0L)
+            }
+
+            builder.setLastPlaybackPositionMillis(watchPosition.toInt())
+                .setDurationMillis(duration.toInt())
         }
 
         val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()
