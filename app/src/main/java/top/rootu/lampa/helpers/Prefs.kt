@@ -46,8 +46,6 @@ object Prefs {
     private const val COR_KEY = "cont_rem"
     private const val THR_KEY = "thrw_rem"
     private const val SYNC_KEY = "sync_account"
-    private const val PLAY_ACT_KEY = "playActivityJS"
-    private const val RESUME_KEY = "resumeJS"
     private const val MIGRATE_KEY = "migrate"
 
     // Extension properties for SharedPreferences
@@ -105,15 +103,6 @@ object Prefs {
                 .apply()
             return isFirstRun
         }
-
-    // Extension properties for Continue Watch
-    var Context.playActivityJS: String?
-        get() = defPrefs.getString(PLAY_ACT_KEY, "{}")
-        set(json) = defPrefs.edit().putString(PLAY_ACT_KEY, json).apply()
-
-    var Context.resumeJS: String?
-        get() = defPrefs.getString(RESUME_KEY, "{}")
-        set(json) = defPrefs.edit().putString(RESUME_KEY, json).apply()
 
     // Extension properties for favorites and bookmarks
     val Context.FAV: Favorite?

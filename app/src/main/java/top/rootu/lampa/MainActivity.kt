@@ -16,8 +16,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
@@ -125,7 +123,6 @@ import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
-import kotlin.concurrent.thread
 
 
 class MainActivity : BaseActivity(),
@@ -248,7 +245,7 @@ class MainActivity : BaseActivity(),
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         printLog(TAG, "onNewIntent() processIntent")
-        setIntent(intent) // getIntent() should always return the most recent
+        // setIntent(intent) // getIntent() should always return the most recent
         processIntent(intent)
     }
 
@@ -745,7 +742,7 @@ class MainActivity : BaseActivity(),
         mXWalkUpdater!!.setXWalkApkUrl(apkUrl)
     }
 
-    fun migrateSettings() {
+    private fun migrateSettings() {
         lifecycleScope.launch {
             restoreStorage { callback ->
                 if (callback.contains(JS_SUCCESS, true)) {
@@ -759,7 +756,7 @@ class MainActivity : BaseActivity(),
         }
     }
 
-    fun setupListener() {
+    private fun setupListener() {
         if (!isStorageListenerAdded)
             runVoidJsFunc(
                 "Lampa.Storage.listener.add",
@@ -769,7 +766,7 @@ class MainActivity : BaseActivity(),
         isStorageListenerAdded = true
     }
 
-    fun syncStorage() {
+    private fun syncStorage() {
         runJsStorageChangeField("activity", "{}") // get current lampaActivity
         runJsStorageChangeField("player_timecode")
         runJsStorageChangeField("playlist_next")
@@ -1984,8 +1981,6 @@ class MainActivity : BaseActivity(),
     /**
      *  AI roxxx
      */
-
-
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", activity: String? = null) {
         try {
@@ -2033,7 +2028,6 @@ class MainActivity : BaseActivity(),
                     currentUrl = videoUrl,
                     extras = extras
                 )
-                // Continue with player launch...
                 // Prepare intent
                 val intent = createBaseIntent(state)
                 intent?.let {
@@ -2719,7 +2713,7 @@ class MainActivity : BaseActivity(),
         ended: Boolean = false
     ) {
         // Store playback state for WatchNext
-        storePlaybackState(ended, pos, dur)
+        // storePlaybackState(ended, pos, dur)
 
         // Process the current playback item
         processPlaybackResult(endedVideoUrl, pos, dur, ended)
@@ -2728,14 +2722,14 @@ class MainActivity : BaseActivity(),
         updatePlayNext(ended)
     }
 
-    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
-        lastPlayedPrefs.edit().apply {
-            putBoolean("ended", ended)
-            putInt("position", pos)
-            putInt("duration", dur)
-            apply()
-        }
-    }
+//    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
+//        lastPlayedPrefs.edit().apply {
+//            putBoolean("ended", ended)
+//            putInt("position", pos)
+//            putInt("duration", dur)
+//            apply()
+//        }
+//    }
 
     private fun processPlaybackResult(
         endedVideoUrl: String,
