@@ -125,6 +125,7 @@ import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 
 
+
 class MainActivity : BaseActivity(),
     Browser.Listener,
     XWalkInitializer.XWalkInitListener, MyXWalkUpdater.XWalkUpdateListener {
@@ -245,7 +246,7 @@ class MainActivity : BaseActivity(),
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         printLog(TAG, "onNewIntent() processIntent")
-        // setIntent(intent) // getIntent() should always return the most recent
+        setIntent(intent) // getIntent() should always return the most recent
         processIntent(intent)
     }
 
@@ -1037,51 +1038,52 @@ class MainActivity : BaseActivity(),
                 if (isValidJson(content))
                     openLampaContent(content.toString(), delay)
                 delay(delay) // just4sure
-            }
-            if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
-                // Try to find matching state for activity key
-                val state = playerStateManager.getState(lampaActivity)
-                printLog(TAG, "handleContinueWatch state: $state")
-                // Find the card in extras if it exists
-                val storedCardJson = state.extras[LAMPA_CARD_KEY] as? String
-                val storedCard = storedCardJson?.let {
-                    getJson(it, LampaCard::class.java)?.apply { fixCard() }
-                }
-                // Check if we have a matching card
-                if (lampaCard != null && storedCard != null && lampaCard.id == storedCard.id) {
-                    // Reconstruct the JSONObject from state
-                    val jsonObject = createJsonObjectFromState(state).apply {
-                        // Update with current timeline if needed
-                        state.currentItem?.timeline?.let { timeline ->
-                            put("timeline", JSONObject().apply {
-                                put("hash", timeline.hash)
-                                put("time", timeline.time)
-                                put("duration", timeline.duration)
-                                put("percent", timeline.percent)
-                                timeline.profile?.let { put("profile", it) }
-                            })
-                        }
+                if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
+                    // Try to find matching state for activity key
+                    // lampaActivity from prefs also match as it's set after openLampaContent
+                    val state = playerStateManager.getState(it) // this.lampaActivity
+                    printLog(TAG, "handleContinueWatch state: $state")
+                    // Find the card in extras if it exists
+                    val storedCardJson = state.extras[LAMPA_CARD_KEY] as? String
+                    val storedCard = storedCardJson?.let {
+                        getJson(it, LampaCard::class.java)?.apply { fixCard() }
                     }
-                    printLog(TAG, "handleContinueWatch: we have a matching card")
-                    runPlayer(jsonObject = jsonObject)
-                } else {
-                    // Fallback to default behavior
-                    val jsonObject = JSONObject().apply {
-                        put("url", state.currentUrl)
-                        state.currentItem?.let { item ->
-                            item.title?.let { put("title", it) }
-                            item.timeline?.let { timeline ->
+                    // Check if we have a matching card
+                    if (lampaCard != null && storedCard != null && lampaCard.id == storedCard.id) {
+                        // Reconstruct the JSONObject from state
+                        val jsonObject = createJsonObjectFromState(state).apply {
+                            // Update with current timeline if needed
+                            state.currentItem?.timeline?.let { timeline ->
                                 put("timeline", JSONObject().apply {
                                     put("hash", timeline.hash)
                                     put("time", timeline.time)
                                     put("duration", timeline.duration)
                                     put("percent", timeline.percent)
+                                    timeline.profile?.let { put("profile", it) }
                                 })
                             }
                         }
+                        printLog(TAG, "handleContinueWatch: we have a matching card")
+                        runPlayer(jsonObject = jsonObject)
+                    } else {
+                        // Fallback to default behavior
+                        val jsonObject = JSONObject().apply {
+                            put("url", state.currentUrl)
+                            state.currentItem?.let { item ->
+                                item.title?.let { put("title", it) }
+                                item.timeline?.let { timeline ->
+                                    put("timeline", JSONObject().apply {
+                                        put("hash", timeline.hash)
+                                        put("time", timeline.time)
+                                        put("duration", timeline.duration)
+                                        put("percent", timeline.percent)
+                                    })
+                                }
+                            }
+                        }
+                        printLog(TAG, "handleContinueWatch: fallback to default behavior")
+                        runPlayer(jsonObject = jsonObject)
                     }
-                    printLog(TAG, "handleContinueWatch: fallback to default behavior")
-                    runPlayer(jsonObject = jsonObject)
                 }
             }
         }
@@ -1981,6 +1983,8 @@ class MainActivity : BaseActivity(),
     /**
      *  AI roxxx
      */
+
+
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", activity: String? = null) {
         try {
@@ -2016,7 +2020,7 @@ class MainActivity : BaseActivity(),
             val extras = mutableMapOf<String, Any>(
                 "isIPTV" to isIPTV,
                 "isLIVE" to isLIVE
-            ).apply {
+            ).apply { // NOTE: it used in PlayerStateManager as a KEY
                 activity?.let { put("lampaActivity", it) }
             }
             // Save state with error handling
@@ -2062,66 +2066,6 @@ class MainActivity : BaseActivity(),
         }
     }
 
-//    fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", card: LampaCard?) {
-//        printLog(TAG, "runPlayer launchPlayer[$launchPlayer] jsonObject: ${jsonObject.toString(2)}")
-//        val videoUrl = jsonObject.optString("url")
-//        if (videoUrl.isBlank()) {
-//            // App.toast(R.string.no_video_url_found, true)
-//            return
-//        }
-//        // Determine player type and package
-//        val isIPTV = jsonObject.optBoolean("iptv", false)
-//        val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
-//        val selectedPlayer = launchPlayer.ifEmpty {
-//            if (isIPTV || isLIVE) tvPlayer else appPlayer
-//        }.takeIf { !it.isNullOrBlank() }
-//        //printLog(TAG, "runPlayer selectedPlayer[$selectedPlayer]")
-//        // Convert JSON to playlist using PlayerStateManager
-//        val playlist = if (jsonObject.has("playlist") && playerAutoNext) {
-//            playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
-//        } else {
-//            listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
-//        }
-//        // Find current index
-//        val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
-//            .takeIf { it >= 0 } ?: 0
-//
-//        // Save state
-//        val state = playerStateManager.saveState(
-//            activityJson = lampaActivity,
-//            playlist = playlist,
-//            currentIndex = currentIndex,
-//            currentUrl = videoUrl,
-//            extras = mapOf(
-//                "LampaCard" to card
-//                "isIPTV" to isIPTV,
-//                "isLIVE" to isLIVE
-//            )
-//        )
-//
-//        // Prepare intent
-//        val intent = createBaseIntent(state)
-//        intent?.let {
-//            // Get available players
-//            val availablePlayers = getAvailablePlayers(intent).takeIf { it.isNotEmpty() } ?: run {
-//                App.toast(R.string.no_player_activity_found, true)
-//                return
-//            }
-//            // Check if selected player exists
-//            if (selectedPlayer != null && availablePlayers.any {
-//                    it.activityInfo.packageName.equals(selectedPlayer, true)
-//                }) {
-//                // Configure and launch the selected player
-//                configurePlayerIntent(intent, jsonObject, selectedPlayer, isIPTV, state)
-//                // Launch Player
-//                launchPlayer(intent)
-//            } else {
-//                // Show player selection dialog
-//                showPlayerSelectionDialog(availablePlayers, jsonObject, isIPTV)
-//            }
-//        }
-//    }
-
     private fun createBaseIntent(
         state: PlayerStateManager.PlaybackState,
     ): Intent? {
@@ -2156,72 +2100,91 @@ class MainActivity : BaseActivity(),
         val videoTitle = jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
         val (videoPosition, videoDuration) = getPlaybackPosition(state)
         val headers = prepareHeaders(jsonObject)
+        val playlist = preparePlaylist(jsonObject) // initialise
+        val subtitles = prepareSubtitles(jsonObject)
 
         when (playerPackage.lowercase()) {
             "com.uapplication.uplayer", "com.uapplication.uplayer.beta" -> {
                 configureUPlayerIntent(
                     intent,
-                    jsonObject,
                     playerPackage,
+                    state = state,
                     videoTitle,
-                    videoPosition,
-                    state
+                    videoPosition
                 )
             }
 
             "com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad", "com.mxtech.videoplayer.beta" -> {
                 configureMxPlayerIntent(
                     intent,
-                    jsonObject,
                     playerPackage,
+                    state = state,
                     videoTitle,
-                    videoPosition
+                    videoPosition,
+                    headers = headers,
                 )
             }
 
             "is.xyz.mpv" -> {
-                configureMpvIntent(intent, jsonObject, playerPackage, videoPosition)
+                configureMpvIntent(
+                    intent,
+                    playerPackage,
+                    videoPosition,
+                    headers = headers,
+                    subtitles = subtitles
+                )
             }
 
             "org.videolan.vlc" -> {
                 configureVlcIntent(
                     intent,
-                    jsonObject,
                     playerPackage,
                     videoTitle,
                     videoPosition,
-                    videoDuration
+                    videoDuration,
+                    headers = headers,
+                    subtitles = subtitles
                 )
             }
 
             "com.brouken.player" -> {
                 configureBroukenPlayerIntent(
                     intent,
-                    jsonObject,
                     playerPackage,
+                    state = state,
                     videoTitle,
-                    videoPosition
+                    videoPosition,
+                    headers = headers
                 )
             }
 
             "net.gtvbox.videoplayer", "net.gtvbox.vimuhd" -> {
                 configureViMuIntent(
                     intent,
-                    jsonObject,
                     playerPackage,
-                    videoTitle,
                     state = state,
+                    videoTitle,
                     videoPosition,
-                    isIPTV
+                    isIPTV,
+                    headers = headers
+                )
+            }
+
+            "com.exoplayer.gold" -> {
+                configureExoPlayerIntent(
+                    intent,
+                    playerPackage,
+                    state = state,
+                    videoTitle,
+                    videoPosition,
+                    headers,
                 )
             }
 
             else -> {
                 intent.setPackage(playerPackage)
                 // Try to add headers to unknown players as a fallback
-                headers?.let {
-                    intent.putExtra("headers", it)
-                }
+                headers?.let { intent.putExtra("headers", it) }
             }
         }
     }
@@ -2363,13 +2326,47 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    private fun configureExoPlayerIntent(
+        intent: Intent,
+        playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
+        videoTitle: String,
+        position: Long,
+        headers: Array<String>? = null
+    ) {
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("title", videoTitle)
+            putExtra("secure_uri", true)
+            headers?.let { putExtra("headers", it) }
+
+            // Handle playback position
+            when {
+                playerTimeCode == "continue" && position > 0 ->
+                    putExtra("position", position)
+
+                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
+                    putExtra("position", 0L)
+            }
+
+            // Handle current video URL
+            state.currentItem?.let { currentItem ->
+                // Handle subtitles from state
+                currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
+                    putExtra("subs", subtitles.map { it.url }.toTypedArray())
+                    putExtra("subs.name", subtitles.map { it.label }.toTypedArray())
+                }
+            }
+        }
+    }
+
     private fun configureMxPlayerIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
         videoTitle: String,
-        // headers: ArrayList<String>,
-        position: Long
+        position: Long,
+        headers: Array<String>? = null
     ) {
         intent.apply {
             component = ComponentName(
@@ -2378,29 +2375,33 @@ class MainActivity : BaseActivity(),
             )
             putExtra("title", videoTitle)
             putExtra("sticky", false)
-            // putExtra("headers", headers.toTypedArray())
-            prepareHeaders(jsonObject)?.let {
-                putExtra("headers", it)
-            }
+            headers?.let { putExtra("headers", it) }
+
+            // Handle playback position
             when {
                 playerTimeCode == "continue" && position > 0 ->
                     putExtra("position", position.toInt())
-
                 playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
                     putExtra("position", 1)
             }
 
-            // Handle playlists
-            preparePlaylist(jsonObject)?.let { (urls, titles) ->
+            // Handle playlist from state
+            if (state.playlist.isNotEmpty()) {
+                val urls = state.playlist.map { it.url }
+                val titles = state.playlist.map { it.title ?: videoTitle }
+
                 putExtra("video_list", urls.map(Uri::parse).toTypedArray())
                 putExtra("video_list.name", titles.toTypedArray())
                 putExtra("video_list_is_explicit", true)
             }
 
-            // Handle subtitles
-            prepareSubtitles(jsonObject)?.let { (urls, titles) ->
-                putExtra("subs", urls.map(Uri::parse).toTypedArray())
-                putExtra("subs.name", titles.toTypedArray())
+            // Handle subtitles from current item
+            state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
+                val subUrls = subtitles.map { it.url }
+                val subTitles = subtitles.map { it.label }
+
+                putExtra("subs", subUrls.map(Uri::parse).toTypedArray())
+                putExtra("subs.name", subTitles.toTypedArray())
             }
 
             putExtra("return_result", true)
@@ -2409,11 +2410,12 @@ class MainActivity : BaseActivity(),
 
     private fun configureVlcIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
         videoTitle: String,
         position: Long,
-        duration: Long
+        duration: Long,
+        headers: Array<String>? = null,
+        subtitles: Pair<ArrayList<String>, ArrayList<String>>?
     ) {
         intent.apply {
             if (VERSION.SDK_INT > 32) {
@@ -2425,9 +2427,8 @@ class MainActivity : BaseActivity(),
                 )
             }
             putExtra("title", videoTitle)
-            prepareHeaders(jsonObject)?.let {
-                putExtra("http-headers", it)  // VLC uses different extra name
-            }
+            // Headers
+            headers?.let { putExtra("http-headers", it) } // VLC uses different extra name
             when {
                 playerTimeCode == "continue" && position > 0 -> {
                     putExtra("from_start", false)
@@ -2439,22 +2440,26 @@ class MainActivity : BaseActivity(),
                     putExtra("position", 0L)
                 }
             }
-
             putExtra("extra_duration", duration)
+            // Subtitles
+            subtitles?.let { (subUrls, _) ->
+                if (subUrls.isNotEmpty()) putExtra("subtitles_location", subUrls[0])
+            }
         }
     }
 
     private fun configureMpvIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
-        position: Long
+        position: Long,
+        headers: Array<String>? = null,
+        subtitles: Pair<ArrayList<String>, ArrayList<String>>?
     ) {
         intent.apply {
             setPackage(playerPackage)
-            prepareHeaders(jsonObject)?.let { headers ->
+            headers?.let {
                 // MPV requires headers as a single string with \r\n delimiters
-                val headerString = headers.toList()
+                val headerString = it.toList()
                     .chunked(2)
                     .joinToString("\r\n") { (k, v) -> "$k: $v" }
                 putExtra("headers", headerString)
@@ -2466,8 +2471,8 @@ class MainActivity : BaseActivity(),
                 playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
                     putExtra("position", 1)
             }
-
-            prepareSubtitles(jsonObject)?.let { (urls, _) ->
+            // Handle subtitles
+            subtitles?.let { (urls, _) ->
                 putExtra("subs", urls.map(Uri::parse).toTypedArray())
             }
         }
@@ -2475,40 +2480,38 @@ class MainActivity : BaseActivity(),
 
     private fun configureViMuIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
-        videoTitle: String,
         state: PlayerStateManager.PlaybackState,
+        videoTitle: String,
         position: Long,
-        isIPTV: Boolean
+        isIPTV: Boolean,
+        headers: Array<String>? = null
     ) {
         val vimuVersion = getAppVersion(this, playerPackage)?.versionNumber ?: 0L
         printLog(TAG, "ViMu ($playerPackage) version $vimuVersion")
 
         intent.apply {
             setPackage(playerPackage)
-            prepareHeaders(jsonObject)?.let { putExtra("headers", it) }
+            headers?.let { putExtra("headers", it) }
 
-            preparePlaylist(jsonObject)?.let { (urls, titles) ->
-                if (urls.isEmpty()) return@let
-
-                val safeIndex = state.currentIndex.coerceIn(0, urls.size - 1)
-                val currentUrl = state.currentItem?.url ?: urls[safeIndex]
-
-                if (urls.size > 1) {
-                    setDataAndType(Uri.parse(currentUrl), "application/vnd.gtvbox.filelist")
-                    configureViMuPlaylist(this, urls, titles, safeIndex, vimuVersion)
-                } else {
-                    configureSingleViMuItem(this, currentUrl, videoTitle, jsonObject, isIPTV)
+            when {
+                state.playlist.size > 1 -> {
+                    state.currentItem?.url?.let { url ->
+                        setDataAndType(Uri.parse(url), "application/vnd.gtvbox.filelist")
+                        configureViMuPlaylist(this, state, vimuVersion)
+                    }
+                }
+                !state.playlist.isEmpty() -> {
+                    configureSingleViMuItem(this, state, videoTitle, isIPTV)
                 }
             }
+
             // Handle playback position
             when (playerTimeCode) {
                 "continue", "again" -> {
                     putExtra("position", position.toInt())
                     putExtra("startfrom", position.toInt())
                 }
-
                 "ask" -> {
                     putExtra("forcedirect", true)
                     putExtra("forceresume", true)
@@ -2519,26 +2522,28 @@ class MainActivity : BaseActivity(),
 
     private fun configureViMuPlaylist(
         intent: Intent,
-        urls: ArrayList<String>,
-        titles: ArrayList<String>,
-        currentIndex: Int,
+        state: PlayerStateManager.PlaybackState,
         vimuVersion: Long
     ) {
+        val urls = state.playlist.map { it.url }
+        val titles = state.playlist.map { it.title ?: "" }
+        val safeIndex = state.currentIndex.coerceIn(0, urls.size - 1)
+
         if (vimuVersion >= 799L) { // 7.99+ version
             intent.apply {
-                putStringArrayListExtra("asusfilelist", urls)
-                putStringArrayListExtra("asusnamelist", titles)
-                putExtra("startindex", currentIndex)
+                putStringArrayListExtra("asusfilelist", ArrayList(urls))
+                putStringArrayListExtra("asusnamelist", ArrayList(titles))
+                putExtra("startindex", safeIndex)
             }
         } else { // Legacy version
             intent.apply {
                 putStringArrayListExtra(
                     "asusfilelist",
-                    ArrayList(urls.subList(currentIndex, urls.size))
+                    ArrayList(urls.subList(safeIndex, urls.size))
                 )
                 putStringArrayListExtra(
                     "asusnamelist",
-                    ArrayList(titles.subList(currentIndex, urls.size))
+                    ArrayList(titles.subList(safeIndex, urls.size))
                 )
             }
         }
@@ -2546,68 +2551,96 @@ class MainActivity : BaseActivity(),
 
     private fun configureSingleViMuItem(
         intent: Intent,
-        currentUrl: String,
-        videoTitle: String,
-        jsonObject: JSONObject,
+        state: PlayerStateManager.PlaybackState,
+        fallbackTitle: String,
         isIPTV: Boolean
     ) {
-        intent.apply {
-            data = Uri.parse(currentUrl)
-            putExtra("forcename", videoTitle)
-
-            // Safely handle subtitles
-            try {
-                prepareSubtitles(jsonObject)?.let { (subUrls, _) ->
-                    if (subUrls.isNotEmpty()) {
-                        putStringArrayListExtra("asussrtlist", subUrls)
-                    }
+        state.currentItem?.let { currentItem ->
+            intent.apply {
+                putExtra("forcename", currentItem.title ?: fallbackTitle)
+                currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
+                    putStringArrayListExtra(
+                        "asussrtlist",
+                        subtitles.map { it.url }.toCollection(ArrayList())
+                    )
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to process subtitles", e)
-            }
-
-            if (isIPTV) {
-                putExtra("forcelive", true)
-            } else {
-                removeExtra("forcelive")
+                if (isIPTV) {
+                    putExtra("forcelive", true)
+                } else {
+                    removeExtra("forcelive")
+                }
             }
         }
     }
 
     private fun configureBroukenPlayerIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
         videoTitle: String,
-        position: Long
+        position: Long,
+        headers: Array<String>? = null,
+        additionalExtras: Bundle? = null
     ) {
         intent.apply {
             setPackage(playerPackage)
             putExtra("title", videoTitle)
+            headers?.let { putExtra("headers", it) }
 
             // Handle playback position
             when {
-                playerTimeCode == "continue" || playerTimeCode == "again" ->
+                playerTimeCode == "continue" || playerTimeCode == "again" -> {
                     putExtra("position", position.toInt())
+                    // Add precise position if available from state
+                    state.currentItem?.timeline?.time?.toLong()?.let {
+                        putExtra("precise_position", it)
+                    }
+                }
             }
-
-            // Handle subtitles
-            prepareSubtitles(jsonObject)?.let { (urls, titles) ->
-                putExtra("subs", urls.map(Uri::parse).toTypedArray())
-                putExtra("subs.name", titles.toTypedArray())
+            // Handle current media item
+            state.currentItem?.let { currentItem ->
+                // Handle subtitles from state
+                currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
+                    putExtra("subs", subtitles.map { Uri.parse(it.url) }.toTypedArray())
+                    putExtra("subs.name", subtitles.map { it.label }.toTypedArray())
+                    // Add language codes if available
+                    subtitles.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
+                        putExtra("subs.lang", langs.toTypedArray())
+                    }
+                }
+                // Handle quality variants if available
+                currentItem.quality?.takeIf { it.isNotEmpty() }?.let { qualities ->
+                    putExtra("quality_levels", qualities.keys.toTypedArray())
+                    putExtra("quality_urls", qualities.values.map { Uri.parse(it) }.toTypedArray())
+                }
             }
+            // Handle playlist if available
+            if (state.playlist.size > 1) {
+                putExtra(
+                    "playlist",
+                    state.playlist.map { Uri.parse(it.url) }.toTypedArray()
+                )
+                putExtra(
+                    "playlist_titles",
+                    state.playlist.map { it.title ?: videoTitle }.toTypedArray()
+                )
+            }
+            // Additional custom extras
+            additionalExtras?.let { putExtras(it) }
 
+            // Common Brouken player flags
             putExtra("return_result", true)
+            putExtra("secure_playback", true)
+            putExtra("hw_accel", true)  // Enable hardware acceleration by default
         }
     }
 
     private fun configureUPlayerIntent(
         intent: Intent,
-        jsonObject: JSONObject,
         playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
         videoTitle: String,
-        position: Long,
-        state: PlayerStateManager.PlaybackState
+        position: Long
     ) {
         intent.apply {
             setPackage(playerPackage)
@@ -2618,16 +2651,24 @@ class MainActivity : BaseActivity(),
                 "continue", "again" -> putExtra("resume", position)
             }
 
+            // Check for multi-quality streams or playlist
+            val hasQualityVariants = state.currentItem?.quality?.isNotEmpty() == true
+            val hasPlaylist = state.playlist.size > 1
+
             // Handle playlists or multi-quality streams
-            if (hasMultiQualityStreams(jsonObject) || preparePlaylist(jsonObject) != null) {
-                configureUPlayerPlaylist(this, jsonObject, videoTitle, state = state)
+            if (hasQualityVariants || hasPlaylist) {
+                configureUPlayerPlaylist(this, videoTitle, state)
+            } else {
+                // Single video fallback
+                state.currentItem?.let { currentItem ->
+                    putExtra("video", currentItem.url)
+                }
             }
         }
     }
 
     private fun configureUPlayerPlaylist(
         intent: Intent,
-        jsonObject: JSONObject,
         videoTitle: String,
         state: PlayerStateManager.PlaybackState
     ) {
@@ -2637,32 +2678,36 @@ class MainActivity : BaseActivity(),
         if (firstHash != "0") {
             intent.putExtra("playlistTitle", firstHash)
         }
+        // Handle quality variants from current item
+        state.currentItem?.quality?.let { qualityMap ->
+            if (qualityMap.isNotEmpty()) {
+                intent.apply {
+                    putStringArrayListExtra("videoGroupList", ArrayList(qualityMap.keys))
+                    qualityMap.forEach { (key, url) ->
+                        putStringArrayListExtra(key, arrayListOf(url))
+                    }
+                }
+                return
+            }
+        }
+        // Fallback to normal playlist handling
+        if (state.playlist.isNotEmpty()) {
+            val urls = ArrayList<String>()
+            val titles = ArrayList<String>()
 
-        // Handle quality variants
-        jsonObject.optJSONObject("quality")?.let { qualityObj ->
-            val qualityMap = LinkedHashMap<String, ArrayList<String>>()
-            qualityObj.keys().forEach { key ->
-                qualityMap.getOrPut(key) { ArrayList() }.add(qualityObj.getString(key))
+            state.playlist.forEach { item ->
+                urls.add(item.url)
+                titles.add(item.title ?: videoTitle)
             }
 
             intent.apply {
-                putStringArrayListExtra("videoGroupList", ArrayList(qualityMap.keys))
-                qualityMap.forEach { (key, urls) ->
-                    putStringArrayListExtra(key, urls)
-                }
+                putStringArrayListExtra("videoList", urls)
+                putStringArrayListExtra("titleList", titles)
+                putExtra("playlistPosition", state.currentIndex)
             }
-        } ?: run {
-            // Fallback to normal playlist handling
-            preparePlaylist(jsonObject)?.let { (urls, titles) ->
-                intent.apply {
-                    putStringArrayListExtra("videoList", urls)
-                    putStringArrayListExtra("titleList", titles)
-                    putExtra("playlistPosition", state.currentIndex) // Use state.currentIndex
-                }
-            } ?: run {
-                // Single item fallback
-                intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
-            }
+        } else {
+            // Single item fallback
+            intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
         }
     }
 
@@ -2722,14 +2767,15 @@ class MainActivity : BaseActivity(),
         updatePlayNext(ended)
     }
 
-//    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
-//        lastPlayedPrefs.edit().apply {
-//            putBoolean("ended", ended)
-//            putInt("position", pos)
-//            putInt("duration", dur)
-//            apply()
-//        }
-//    }
+    // FIXME: do it as fallback with new prefs names or remove
+    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
+        lastPlayedPrefs.edit().apply {
+            putBoolean("ended", ended)
+            putInt("position", pos) // last_position (Long)
+            putInt("duration", dur) // last_duration (Long)
+            apply()
+        }
+    }
 
     private fun processPlaybackResult(
         endedVideoUrl: String,

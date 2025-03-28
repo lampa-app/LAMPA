@@ -21,7 +21,7 @@ class PlayerStateManager(context: Context) {
         const val TAG = "PlayerStateManager"
     }
 
-    private val prefs = App.context.lastPlayedPrefs // getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = context.lastPlayedPrefs // getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val stateCache = ConcurrentHashMap<String, PlaybackState>()
 
     data class PlaybackState(

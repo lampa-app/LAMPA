@@ -30,6 +30,17 @@ import top.rootu.lampa.helpers.Prefs.appLang
 import java.util.Locale
 import kotlin.system.exitProcess
 
+
+val Context.isAmazonDev: Boolean
+    get() {
+        return packageManager.hasSystemFeature("amazon.hardware.fire_tv")
+    }
+
+val Context.isGoogleTV: Boolean // wide posters
+    get() {
+        return packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+    }
+
 /**
  * Sets up a global exception handler to catch uncaught exceptions and display them in a crash activity.
  *
@@ -67,10 +78,12 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
         otherwise you may set the throwable variable to _ if it'll remain unused
          */
         val errorReport = StringBuilder()
+
+        @Suppress("DEPRECATION")
         val version = try {
             val pInfo = App.context.packageManager.getPackageInfo(App.context.packageName, 0)
             "${pInfo.versionName} (${pInfo.versionCode})"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "Unknown"
         }
         CoroutineScope(Dispatchers.IO).launch {
@@ -116,15 +129,6 @@ fun Application.handleUncaughtException(showLogs: Boolean? = null) {
             exitProcess(2)
 
         }
-    }
-}
-
-private fun getVersionInfo(context: Context): String {
-    return try {
-        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        "${pInfo.versionName} (${pInfo.versionCode})"
-    } catch (e: Exception) {
-        "Unknown"
     }
 }
 
@@ -509,14 +513,4 @@ val Context.isTvBox: Boolean
         }
         // Default: No TV - use SAF
         return false
-    }
-
-val Context.isAmazonDev: Boolean
-    get() {
-        return packageManager.hasSystemFeature("amazon.hardware.fire_tv")
-    }
-
-val Context.isGoogleTV: Boolean // wide posters
-    get() {
-        return packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     }
