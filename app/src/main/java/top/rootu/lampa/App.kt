@@ -105,6 +105,7 @@ class App : MultiDexApplication() {
 
         // app crash handler
         handleUncaughtException(showLogs = true)
+        //CrashHandler(this).initialize(showLogs = BuildConfig.DEBUG)
 
         // Initialize components
         initializeComponents()
@@ -122,6 +123,7 @@ class App : MultiDexApplication() {
         applicationScope.launch {
             TMDB.initGenres()
         }
+
     }
 
     private suspend fun checkForUpdates() {

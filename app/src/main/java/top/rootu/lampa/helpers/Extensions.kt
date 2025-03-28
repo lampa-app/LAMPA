@@ -10,7 +10,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
-import android.os.Handler
 import android.os.LocaleList
 import android.os.Process
 import android.util.Log
@@ -22,7 +21,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.App
 import top.rootu.lampa.CrashActivity
 import top.rootu.lampa.R
 import top.rootu.lampa.browser.Browser
@@ -63,71 +62,69 @@ import kotlin.system.exitProcess
  */
 fun Application.handleUncaughtException(showLogs: Boolean? = null) {
     Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-        val errorReport = StringBuilder().apply {
-            append("Thread: ${thread.name}\n")  // Add thread info
+        /**
+        here you can report the throwable exception to Sentry or Crashlytics or whatever crash reporting service you're using,
+        otherwise you may set the throwable variable to _ if it'll remain unused
+         */
+        val errorReport = StringBuilder()
+        val version = try {
+            val pInfo = App.context.packageManager.getPackageInfo(App.context.packageName, 0)
+            "${pInfo.versionName} (${pInfo.versionCode})"
+        } catch (e: Exception) {
+            "Unknown"
         }
-
         CoroutineScope(Dispatchers.IO).launch {
-            // Build device info section
-            errorReport.append(
-                """
-                |---------------- Device Info ----------------
-                |Model: ${Helpers.deviceName}
-                |Android SDK: ${Build.VERSION.SDK_INT}
-                |App Version: ${packageManager.getPackageInfo(packageName, 0).versionName}
-                |""".trimMargin()
-            )
-
-            // Main exception details
-            errorReport.append(
-                """
-                |
-                |---------------- Main Crash ----------------
-                |${throwable.javaClass.name}: ${throwable.message}
-                |""".trimMargin()
-            )
-
-            // Full stack trace
-            errorReport.append(
-                """
-                |
-                |---------------- Stack Trace ----------------
-                |${throwable.stackTrace.joinToString("\n")}
-                |""".trimMargin()
-            )
-
-            // Root cause analysis
-            throwable.cause?.let { cause ->
-                errorReport.append(
-                    """
-                    |
-                    |---------------- Root Cause ----------------
-                    |${cause.javaClass.name}: ${cause.message}
-                    |${cause.stackTrace.joinToString("\n")}
-                    |""".trimMargin()
-                )
+            var arr = throwable.stackTrace
+            errorReport.append("---------------- Device Info ----------------\n")
+            errorReport.append("| Model: ${Helpers.deviceName}\n")
+            errorReport.append("| Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\n")
+            errorReport.append("| App version: $version\n")
+            errorReport.append("\n---------------- Main Crash ----------------\n\n")
+            errorReport.append(throwable)
+            errorReport.append("\n\n")
+            errorReport.append("---------------- Stack Strace ----------------\n\n")
+            for (i in arr) {
+                errorReport.append(i)
+                errorReport.append("\n")
             }
+            errorReport.append("\n---------------- end of crash details ----------------\n\n")
 
-            errorReport.append("\n---------------- End of Report ----------------")
+            /** If the exception was thrown in a background thread inside
+            then the actual exception can be found with getCause*/
+            errorReport.append("| background thread crash log\n")
+            val cause: Throwable? = throwable.cause
+            if (cause != null) {
+                errorReport.append("| Main Crash Name - $cause".trimIndent())
 
-            // Launch crash activity
-            Intent(this@handleUncaughtException, CrashActivity::class.java).apply {
-                putExtra("errorDetails", errorReport.toString())
-                putExtra("isShownLogs", showLogs?.toString() ?: BuildConfig.DEBUG.toString())
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
-                        Intent.FLAG_ACTIVITY_NEW_TASK
-
-                // Ensure activity starts even from background threads
-                with(this@handleUncaughtException) {
-                    Handler(mainLooper).post {
-                        startActivity(this@apply)
-                        Process.killProcess(Process.myPid())
-                        exitProcess(2)
-                    }
+                arr = cause.stackTrace
+                for (i in arr) {
+                    errorReport.append(i)
+                    errorReport.append("\n")
                 }
             }
+            errorReport.append("\n| end of background thread crash log\n\n")
+
+            val intent = Intent(this@handleUncaughtException, CrashActivity::class.java).apply {
+                putExtra("errorDetails", errorReport.toString())
+                putExtra("isShownLogs", showLogs.toString())
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            startActivity(intent)
+
+            Process.killProcess(Process.myPid())
+            exitProcess(2)
+
         }
+    }
+}
+
+private fun getVersionInfo(context: Context): String {
+    return try {
+        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        "${pInfo.versionName} (${pInfo.versionCode})"
+    } catch (e: Exception) {
+        "Unknown"
     }
 }
 

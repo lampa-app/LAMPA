@@ -2,11 +2,15 @@ package top.rootu.lampa
 
 import android.content.Context
 import android.util.Log
+import com.google.gson.Gson
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.MainActivity.Companion.VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
+import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
+import top.rootu.lampa.models.LAMPA_CARD_KEY
+import top.rootu.lampa.models.LampaCard
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.text.isNotEmpty
 
@@ -79,16 +83,20 @@ class PlayerStateManager(context: Context) {
         currentIndex: Int = 0,
         currentUrl: String? = null,
         currentPosition: Long = 0,
-        extras: Map<String, Any> = emptyMap()
+        extras: Map<String, Any> = emptyMap(),
+        card: LampaCard? = null
     ): PlaybackState {
         val key = generateActivityKey(activityJson)
+        val updatedExtras = extras.toMutableMap().apply {
+            card?.let { put(LAMPA_CARD_KEY, Gson().toJson(it)) }
+        }
         val state = PlaybackState(
             activityKey = key,
             playlist = playlist,
             currentIndex = currentIndex,
             currentUrl = currentUrl ?: playlist.getOrNull(currentIndex)?.url,
             currentPosition = currentPosition,
-            extras = extras
+            extras = updatedExtras
         )
 
         synchronized(this) {
@@ -110,6 +118,35 @@ class PlayerStateManager(context: Context) {
             val loadedState = loadPersistedState(key) ?: createDefaultState(key)
             stateCache[key] = loadedState
             loadedState
+        }
+    }
+
+    fun findStateByCard(card: LampaCard): PlaybackState? {
+        return stateCache.values.firstOrNull { state ->
+            (state.extras[LAMPA_CARD_KEY] as? String)?.let { json ->
+                getJson(json, LampaCard::class.java)?.let { storedCard ->
+                    // Match by ID first
+                    storedCard.id == card.id ||
+                            // Fallback match by title/year for legacy cases
+                            (storedCard.title == card.title && storedCard.release_year == card.release_year)
+                }
+            } == true
+        } ?: run {
+            // Check persisted states if not found in cache
+            prefs.all.keys
+                .filter { it.startsWith("state_") }
+                .mapNotNull { key ->
+                    try {
+                        loadPersistedState(key.removePrefix("state_"))
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                .firstOrNull { state ->
+                    (state.extras[LAMPA_CARD_KEY] as? String)?.let { json ->
+                        getJson(json, LampaCard::class.java)?.id == card.id
+                    } == true
+                }
         }
     }
 
@@ -329,7 +366,7 @@ class PlayerStateManager(context: Context) {
                     has("profile") -> getInt("profile").takeIf { it > 0 }
                     else -> null
                 }
-            } catch (e: JSONException) {
+            } catch (_: JSONException) {
                 null  // Fallback if profile exists but isn't an Int
             }
         )

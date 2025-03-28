@@ -3,6 +3,8 @@ package top.rootu.lampa.models
 import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 
+const val LAMPA_CARD_KEY = "lampaCardJSON" // Used in Intents and PlayStateManager
+
 data class Favorite(
     val card: List<LampaCard>?,
     val like: List<String>?,

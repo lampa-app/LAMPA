@@ -102,7 +102,7 @@ object RecsService {
             .setGenres(genres)
             .setContentIntentData(
                 ContentRecommendation.INTENT_TYPE_ACTIVITY,
-                buildPendingIntent(card, null),
+                buildPendingIntent(card, null, null),
                 0,
                 null
             )
