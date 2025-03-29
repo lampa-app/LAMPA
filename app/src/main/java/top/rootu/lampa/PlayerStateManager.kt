@@ -376,9 +376,9 @@ class PlayerStateManager(context: Context) {
             // 1. Exact key match
             state.activityKey == targetKey ||
                     // 2. Normalized JSON match
-                    (state.rawActivityJson?.let { normalizeJson(it) == normalizedInput } ?: false) ||
+                    (state.rawActivityJson?.let { normalizeJson(it) == normalizedInput } == true) ||
                     // 3. Partial content match (fallback)
-                    (state.extras["lampaActivity"] as? String)?.let { normalizeJson(it) == normalizedInput } ?: false
+                    (state.extras["lampaActivity"] as? String)?.let { normalizeJson(it) == normalizedInput } == true
         }.ifEmpty {
             // Check persisted states if cache has no matches
             prefs.all.keys

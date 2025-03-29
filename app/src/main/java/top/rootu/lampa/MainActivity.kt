@@ -141,30 +141,21 @@ class MainActivity : BaseActivity(),
     private lateinit var progressIndicator: LinearProgressIndicator
     private lateinit var playerStateManager: PlayerStateManager
 
-    val MX_PLAYER = setOf(
-        "com.mxtech.videoplayer.ad",
-        "com.mxtech.videoplayer.pro",
-        "com.mxtech.videoplayer.beta"
-    )
-    val VIMU = setOf(
-        "net.gtvbox.videoplayer",
-        "net.gtvbox.vimuhd"
-    )
-    val UPLAYER = setOf(
-        "com.uapplication.uplayer",
-        "com.uapplication.uplayer.beta"
-    )
-    val BROUKEN_PLAYER = setOf("com.brouken.player")
-    val EXO_PLAYER = setOf("com.exoplayer.gold")
-    val VLC = setOf("org.videolan.vlc")
-    val MPV = setOf("is.xyz.mpv")
-
     // Data class for menu items
     private data class MenuItem(
         val title: String,
         val action: String,
         val icon: Int
     )
+
+    // Class for URL history
+    private class UrlAdapter(context: Context) :
+        ArrayAdapter<String>(
+            context,
+            R.layout.lampa_dropdown_item, // Custom dropdown layout
+            android.R.id.text1, // ID of the TextView in the custom layout
+            context.urlHistory.toMutableList() // Load URL history
+        )
 
     companion object {
         // Constants
@@ -175,6 +166,23 @@ class MainActivity : BaseActivity(),
         const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.95
         const val JS_SUCCESS = "SUCCESS"
         const val JS_FAILURE = "FAILED"
+        val MX_PLAYER = setOf(
+            "com.mxtech.videoplayer.ad",
+            "com.mxtech.videoplayer.pro",
+            "com.mxtech.videoplayer.beta"
+        )
+        val VIMU = setOf(
+            "net.gtvbox.videoplayer",
+            "net.gtvbox.vimuhd"
+        )
+        val UPLAYER = setOf(
+            "com.uapplication.uplayer",
+            "com.uapplication.uplayer.beta"
+        )
+        val BROUKEN_PLAYER = setOf("com.brouken.player")
+        val EXO_PLAYER = setOf("com.exoplayer.gold")
+        val VLC = setOf("org.videolan.vlc")
+        val MPV = setOf("is.xyz.mpv")
         val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
             "com.android.tv.frameworkpackagestubs",
@@ -1073,9 +1081,10 @@ class MainActivity : BaseActivity(),
                                 // Player-specific flag
                                 put("from_state", true)
                             }
-                            //printLog(TAG, "playJsonObj ${playJsonObj.toString(2)}")
+                            // printLog(TAG, "playJsonObj ${playJsonObj.toString(2)}")
                             runPlayer(playJsonObj, "", activityJson)
                         }
+
                         else -> {
                             printLog(TAG, "No matching state found for activity")
                         }
@@ -1392,14 +1401,6 @@ class MainActivity : BaseActivity(),
         showFullScreenDialog(dialogBuilder.create())
     }
 
-    private class UrlAdapter(context: Context) :
-        ArrayAdapter<String>(
-            context,
-            R.layout.lampa_dropdown_item, // Custom dropdown layout
-            android.R.id.text1, // ID of the TextView in the custom layout
-            context.urlHistory.toMutableList() // Load URL history
-        )
-
     fun showUrlInputDialog(msg: String = "") {
         val mainActivity = this
         urlAdapter = UrlAdapter(mainActivity)
@@ -1618,7 +1619,7 @@ class MainActivity : BaseActivity(),
 
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
-        printLog(TAG, "runPlayer(jsonObject) - add params $lampaActivity")
+        printLog(TAG, "runPlayer(jsonObject) - add lampaActivity to params")
         runPlayer(jsonObject, "", lampaActivity)
     }
 
@@ -1994,8 +1995,8 @@ class MainActivity : BaseActivity(),
             // val subs = prepareSubtitles(jsonObject) // initialize
             // val playlist = preparePlaylist(jsonObject) // initialise
 
-            // Debug
-            playerStateManager.debugLogAllStates()
+            // DEBUG
+            // playerStateManager.debugLogAllStates()
             try {
                 // get playlist safely
                 val playlist = try {
@@ -2020,10 +2021,10 @@ class MainActivity : BaseActivity(),
                 ).apply { // NOTE: it used in PlayerStateManager as a KEY
                     activity?.let { put("lampaActivity", it) }
                 }
-
-                playerStateManager.debugKeyMatching(playActivity)
-                val count = playerStateManager.findMatchingStates(playActivity)
-                printLog(TAG, "found matching playActivity $count")
+                // DEBUG
+                // playerStateManager.debugKeyMatching(playActivity)
+                // val count = playerStateManager.findMatchingStates(playActivity)
+                // printLog(TAG, "found matching playActivity $count")
                 val state = playerStateManager.saveState(
                     activityJson = playActivity,
                     playlist = playlist,
@@ -2317,7 +2318,6 @@ class MainActivity : BaseActivity(),
             putExtra("title", videoTitle)
             putExtra("secure_uri", true)
             headers?.let { putExtra("headers", it) }
-
             // Handle playback position
             when {
                 playerTimeCode == "continue" && position > 0 ->
@@ -2326,7 +2326,6 @@ class MainActivity : BaseActivity(),
                 playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
                     putExtra("position", 0L)
             }
-
             // Handle current video URL
             state.currentItem?.let { currentItem ->
                 // Handle subtitles from state
@@ -2482,11 +2481,10 @@ class MainActivity : BaseActivity(),
     ) {
         val vimuVersion = getAppVersion(this, playerPackage)?.versionNumber ?: 0L
         printLog(TAG, "ViMu ($playerPackage) version $vimuVersion")
-
         intent.apply {
             setPackage(playerPackage)
             headers?.let { putExtra("headers", it) }
-
+            // Handle playlist
             when {
                 state.playlist.size > 1 -> {
                     state.currentItem?.url?.let { url ->
@@ -2499,7 +2497,6 @@ class MainActivity : BaseActivity(),
                     configureSingleViMuItem(this, state, videoTitle, isIPTV)
                 }
             }
-
             // Handle playback position
             when (playerTimeCode) {
                 "continue", "again" -> {
@@ -2581,7 +2578,6 @@ class MainActivity : BaseActivity(),
             setPackage(playerPackage)
             putExtra("title", videoTitle)
             headers?.let { putExtra("headers", it) }
-
             // Handle playback position
             when {
                 playerTimeCode == "continue" || playerTimeCode == "again" -> {
@@ -2622,7 +2618,6 @@ class MainActivity : BaseActivity(),
             }
             // Additional custom extras
             additionalExtras?.let { putExtras(it) }
-
             // Common Brouken player flags
             putExtra("return_result", true)
             putExtra("secure_playback", true)
@@ -2640,16 +2635,13 @@ class MainActivity : BaseActivity(),
         intent.apply {
             setPackage(playerPackage)
             putExtra("title", videoTitle)
-
             // Handle resume/restart
             when (playerTimeCode) {
                 "continue", "again" -> putExtra("resume", position)
             }
-
             // Check for multi-quality streams or playlist
             val hasQualityVariants = state.currentItem?.quality?.isNotEmpty() == true
             val hasPlaylist = state.playlist.size > 1
-
             // Handle playlists or multi-quality streams
             if (hasQualityVariants || hasPlaylist) {
                 configureUPlayerPlaylist(this, videoTitle, state)
@@ -2669,7 +2661,6 @@ class MainActivity : BaseActivity(),
     ) {
         // Get first item's hash from state
         val firstHash = state.playlist.firstOrNull()?.timeline?.hash ?: "0"
-
         if (firstHash != "0") {
             intent.putExtra("playlistTitle", firstHash)
         }
