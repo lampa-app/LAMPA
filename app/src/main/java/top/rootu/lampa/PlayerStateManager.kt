@@ -134,6 +134,7 @@ class PlayerStateManager(context: Context) {
      * @param currentIndex Current position in playlist
      * @param currentUrl Currently playing URL
      * @param currentPosition Current playback position in milliseconds
+     * @param startIndex Initial playback position in playlist
      * @param extras Additional metadata to store
      * @param card Associated LampaCard if available
      * @return The saved PlaybackState
@@ -149,6 +150,7 @@ class PlayerStateManager(context: Context) {
         card: LampaCard? = null
     ): PlaybackState {
         val key = generateActivityKey(activityJson)
+        val validatedStartIndex = startIndex.coerceIn(0, playlist.size - 1)
         val updatedExtras = extras.toMutableMap().apply {
             card?.let { put(LAMPA_CARD_KEY, Gson().toJson(it)) }
         }
@@ -159,7 +161,7 @@ class PlayerStateManager(context: Context) {
             currentIndex = currentIndex,
             currentUrl = currentUrl ?: playlist.getOrNull(currentIndex)?.url,
             currentPosition = currentPosition,
-            startIndex = startIndex,
+            startIndex = validatedStartIndex,
             extras = updatedExtras
         )
 
@@ -623,7 +625,7 @@ class PlayerStateManager(context: Context) {
             currentIndex = getInt("current_index"),
             currentUrl = optString("url").takeIf { it.isNotEmpty() }, // was "current_url"
             currentPosition = getLong("position"), // was "current_position"
-            startIndex = optInt("start_index", 0),
+            startIndex = optInt("start_index"),
             lastUpdated = getLong("last_updated"),
             extras = optJSONObject("extras")?.toMap() ?: emptyMap()
         )
