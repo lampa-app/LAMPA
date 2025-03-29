@@ -38,6 +38,7 @@ class PlayerStateManager(context: Context) {
      * @property currentIndex Current position in the playlist
      * @property currentUrl Currently playing URL
      * @property currentPosition Current playback position in milliseconds
+     * @property startIndex Initial playback position in playlist
      * @property lastUpdated Timestamp of last update
      * @property extras Additional metadata associated with the state
      */
@@ -48,6 +49,7 @@ class PlayerStateManager(context: Context) {
         val currentIndex: Int, // in playlist
         val currentUrl: String? = null,
         val currentPosition: Long = 0,
+        val startIndex: Int = 0,
         val lastUpdated: Long = System.currentTimeMillis(),
         val extras: Map<String, Any> = emptyMap()
     ) {
@@ -142,6 +144,7 @@ class PlayerStateManager(context: Context) {
         currentIndex: Int = 0,
         currentUrl: String? = null,
         currentPosition: Long = 0,
+        startIndex: Int = 0,
         extras: Map<String, Any> = emptyMap(),
         card: LampaCard? = null
     ): PlaybackState {
@@ -156,6 +159,7 @@ class PlayerStateManager(context: Context) {
             currentIndex = currentIndex,
             currentUrl = currentUrl ?: playlist.getOrNull(currentIndex)?.url,
             currentPosition = currentPosition,
+            startIndex = startIndex,
             extras = updatedExtras
         )
 
@@ -236,6 +240,7 @@ class PlayerStateManager(context: Context) {
             currentIndex = currentState.currentIndex,
             currentUrl = currentState.currentUrl,
             currentPosition = position,
+            startIndex = currentState.startIndex,
             extras = currentState.extras
         )
     }
@@ -322,6 +327,7 @@ class PlayerStateManager(context: Context) {
     fun getStateJson(state: PlaybackState): JSONObject {
         return JSONObject().apply {
             put("activity_key", state.activityKey)
+            put("activity_json", state.rawActivityJson)
             put("playlist", JSONArray().apply {
                 state.playlist.forEach { item ->
                     put(JSONObject().apply {
@@ -356,6 +362,7 @@ class PlayerStateManager(context: Context) {
             put("current_index", state.currentIndex)
             put("url", state.currentUrl)
             put("position", state.currentPosition)
+            put("start_index", state.startIndex)
             put("last_updated", state.lastUpdated)
             put("extras", JSONObject(state.extras))
         }
@@ -524,7 +531,8 @@ class PlayerStateManager(context: Context) {
         return PlaybackState(
             activityKey = key,
             playlist = emptyList(),
-            currentIndex = 0
+            currentIndex = 0,
+            startIndex = 0
         )
     }
 
@@ -579,12 +587,14 @@ class PlayerStateManager(context: Context) {
     private fun PlaybackState.toJson(): JSONObject {
         return JSONObject().apply {
             put("activity_key", activityKey)
+            put("activity_json", rawActivityJson)
             put("playlist", JSONArray().apply {
                 playlist.forEach { put(it.toJson()) }
             })
             put("current_index", currentIndex)
             put("url", currentUrl) // was "current_url"
             put("position", currentPosition) // was "current_position"
+            put("start_index", startIndex)
             put("last_updated", lastUpdated)
             put("extras", JSONObject().apply {
                 extras.forEach { (key, value) ->
@@ -608,10 +618,12 @@ class PlayerStateManager(context: Context) {
     private fun JSONObject.toPlaybackState(): PlaybackState {
         return PlaybackState(
             activityKey = getString("activity_key"),
+            rawActivityJson = getString("activity_json"),
             playlist = getJSONArray("playlist").toPlaylist(),
             currentIndex = getInt("current_index"),
             currentUrl = optString("url").takeIf { it.isNotEmpty() }, // was "current_url"
             currentPosition = getLong("position"), // was "current_position"
+            startIndex = optInt("start_index", 0),
             lastUpdated = getLong("last_updated"),
             extras = optJSONObject("extras")?.toMap() ?: emptyMap()
         )
