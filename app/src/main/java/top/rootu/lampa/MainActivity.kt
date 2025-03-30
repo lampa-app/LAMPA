@@ -2747,18 +2747,6 @@ class MainActivity : BaseActivity(),
         playerChooserDialog.listView.requestFocus()
     }
 
-    private fun resultPlayer(
-        endedVideoUrl: String,
-        pos: Int = 0,
-        dur: Int = 0,
-        ended: Boolean = false
-    ) {
-        // Process the current playback item
-        processPlaybackResult(endedVideoUrl, pos, dur, ended)
-        // Update PlayNext
-        updatePlayNext(ended)
-    }
-
     /**
      * Processes playback results and updates the player state accordingly.
      *
@@ -2767,7 +2755,8 @@ class MainActivity : BaseActivity(),
      * 2. Updating its playback position and completion status
      * 3. Marking previous items as completed (if auto-next is enabled)
      * 4. Sending timeline updates to the UI
-     * 5. Clearing state when playback ends
+     * 5. Sending updates to WatchNext channel on Android TV
+     * 6. Clearing state when playback ends
      *
      * @param endedVideoUrl The URL of the video that ended playback (may be blank/null for current item)
      * @param positionMillis The current playback position in milliseconds
@@ -2775,7 +2764,7 @@ class MainActivity : BaseActivity(),
      * @param ended Boolean indicating whether playback has fully completed
      *
      */
-    private fun processPlaybackResult(
+    private fun resultPlayer(
         endedVideoUrl: String,
         positionMillis: Int,
         durationMillis: Int,
@@ -2824,10 +2813,15 @@ class MainActivity : BaseActivity(),
                 playerStateManager.convertTimelineToJsonString(timeline)
             )
         }
-        // Clean up state when playback fully completes
-        if (ended) {
-            printLog(TAG, "processPlaybackResult clearState [ended]")
-            playerStateManager.clearState(lampaActivity)
+        // Update PlayNext (must finish before clearState)
+        lifecycleScope.launch(Dispatchers.IO) {
+            updatePlayNext(ended)
+        }.invokeOnCompletion {
+            // Clean up state when playback fully completes
+            if (ended) {
+                printLog(TAG, "processPlaybackResult clearState [ended]")
+                playerStateManager.clearState(lampaActivity)
+            }
         }
     }
 
@@ -2956,42 +2950,31 @@ class MainActivity : BaseActivity(),
     }
 
     private fun updatePlayNext(ended: Boolean) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val card = getCardFromActivity(lampaActivity) ?: return@launch
-                // Get current playback state
-                // val state = playerStateManager.getState(lampaActivity)
-                // Get state by matching card (must be added with saveState!)
-                val state = playerStateManager.findStateByCard(card) ?: return@launch
-                // playerStateManager.debugKeyMatching(lampaActivity)
-                when {
-                    // Case 1: Playback ended - remove from Continue Watching
-                    ended -> {
-                        printLog(
-                            TAG,
-                            "PlayNext: Removing ${card.id} from Continue Watching [state:ended]"
-                        )
-                        WatchNext.removeContinueWatch(card)
-                        // FIXME: don't remove if added to PlayNext by user
-                        // at least for serials
-                        playerStateManager.clearState(lampaActivity)
-                    }
-                    // Case 2: Valid ongoing playback - update Continue Watching
-                    state.currentItem != null && !state.isEnded -> {
-                        printLog(TAG, "PlayNext: Updating Continue Watching for ${card.id}")
-                        WatchNext.addLastPlayed(card, lampaActivity)
-                        // Update last played position in preferences (using Long values)
-                        state.currentItem?.timeline?.let { timeline ->
-                        }
-                    }
-                    // Case 3: No valid state - just log
-                    else -> {
-                        printLog(TAG, "PlayNext: No valid playback state for ${card.id}")
-                    }
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        try {
+            val card = getCardFromActivity(lampaActivity) ?: return
+            // Get current playback state
+            // val state = playerStateManager.getState(lampaActivity)
+            // Get state by matching card (must be added with saveState!)
+            val state = playerStateManager.findStateByCard(card) ?: return
+            // playerStateManager.debugKeyMatching(lampaActivity)
+            when {
+                ended -> { // Case 1: Playback ended - remove from Continue Watching
+                    printLog(TAG, "PlayNext: remove ${card.id} and clearState [ended]")
+                    WatchNext.removeContinueWatch(card) // FIXME: don't remove if added to PlayNext by user
+                    playerStateManager.clearState(lampaActivity)
                 }
-            } catch (e: Exception) {
-                printLog(TAG, "Error in updatePlayNext: ${e.javaClass.simpleName} - ${e.message}")
+                // Case 2: Valid ongoing playback - update Continue Watching
+                state.currentItem != null && !state.isEnded -> {
+                    printLog(TAG, "PlayNext: Updating ${card.id}")
+                    WatchNext.addLastPlayed(card, lampaActivity)
+                }
+                else -> { // Case 3: No valid state - just log
+                    printLog(TAG, "PlayNext: No valid playback state for ${card.id}")
+                }
             }
+        } catch (e: Exception) {
+            printLog(TAG, "Error in updatePlayNext: ${e.javaClass.simpleName} - ${e.message}")
         }
     }
 }
