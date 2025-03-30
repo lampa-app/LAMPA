@@ -2030,8 +2030,8 @@ class MainActivity : BaseActivity(),
                     "isLIVE" to isLIVE
                 )
                     .apply { // NOTE: it used in PlayerStateManager for state match
-                    activity?.let { put("lampaActivity", it) }
-                }
+                        activity?.let { put("lampaActivity", it) }
+                    }
                 val card = getCardFromActivity(playActivity)
                 // DEBUG
                 // playerStateManager.debugLogAllStates()
@@ -2953,6 +2953,9 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    /**
+     * Updates Watch Next on Android TV.
+     */
     private fun updatePlayNext(ended: Boolean) {
         if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
         try {
@@ -2973,6 +2976,7 @@ class MainActivity : BaseActivity(),
                     printLog(TAG, "PlayNext: Updating ${card.id}")
                     WatchNext.addLastPlayed(card, lampaActivity)
                 }
+
                 else -> { // Case 3: No valid state - just log
                     printLog(TAG, "PlayNext: No valid playback state for ${card.id}")
                 }
