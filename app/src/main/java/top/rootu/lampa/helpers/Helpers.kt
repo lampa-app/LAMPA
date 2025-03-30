@@ -151,7 +151,11 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?, activityJson: String?): Intent {
+    fun buildPendingIntent(
+        card: LampaCard,
+        continueWatch: Boolean?,
+        activityJson: String?
+    ): Intent {
         val intent = Intent(App.context, MainActivity::class.java).apply {
             // Set ID, source, and media type from the card
             card.id?.let { putExtra("id", it) }
@@ -372,6 +376,7 @@ object Helpers {
     fun printLog(message: String) {
         printLog("DEBUG", message)
     }
+
     fun printLog(tag: String = "DEBUG", message: String) {
         if (BuildConfig.DEBUG) {
             Log.d(tag, message)
@@ -412,20 +417,69 @@ object Helpers {
             }
         }
     }
+
     // Helper function to log intent data
     @Suppress("DEPRECATION")
-    fun logIntentData(intent: Intent?) {
+    fun debugLogIntentData(tag: String = "DEBUG", intent: Intent?) {
         if (!BuildConfig.DEBUG || intent == null) return
         // Log basic intent info
-        printLog("Intent URI: ${intent.toUri(0)}")
+        Log.d(tag, "Intent URI: ${intent.toUri(0)}")
         // Log all extras
         intent.extras?.let { bundle ->
             val output = StringBuilder("Intent Extras:\n")
             bundle.keySet().forEach { key ->
                 output.append("• $key = ${bundleValueToString(bundle.get(key))}\n")
             }
-            printLog(output.toString())
-        } ?: printLog("No extras found in intent")
+            Log.d(tag, output.toString())
+        } ?: Log.d(tag, "No extras found in intent")
+    }
+
+    fun logIntentContent(tag: String, intent: Intent?) {
+        if (intent == null) {
+            Log.d(tag, "Intent is null")
+            return
+        }
+
+        Log.d(tag, "Intent Action: ${intent.action ?: "null"}")
+        Log.d(tag, "Intent Data: ${intent.dataString ?: "null"}")
+        Log.d(tag, "Intent Type: ${intent.type ?: "null"}")
+        Log.d(tag, "Intent Package: ${intent.`package` ?: "null"}")
+        Log.d(tag, "Intent Component: ${intent.component?.flattenToString() ?: "null"}")
+        Log.d(tag, "Intent Flags: ${intent.flags} (hex: 0x${Integer.toHexString(intent.flags)})")
+
+        // Log categories if they exist
+        if (intent.categories != null) {
+            for (category in intent.categories) {
+                Log.d(tag, "Intent Category: $category")
+            }
+        } else {
+            Log.d(tag, "Intent Categories: null")
+        }
+
+        // Log extras
+        val extras: Bundle? = intent.extras
+        if (extras != null && !extras.isEmpty) {
+            Log.d(tag, "Intent Extras:")
+            for (key in extras.keySet()) {
+                val value = extras.get(key)
+                Log.d(tag, "  $key = $value (${value?.javaClass?.simpleName ?: "null"})")
+            }
+        } else {
+            Log.d(tag, "Intent Extras: null or empty")
+        }
+
+        // Log clipboard data if it exists
+        if (intent.clipData != null) {
+            Log.d(tag, "Intent ClipData:")
+            val clipData = intent.clipData
+            for (i in 0 until clipData!!.itemCount) {
+                val item = clipData.getItemAt(i)
+                Log.d(tag, "  Item $i:")
+                Log.d(tag, "    Text: ${item.text}")
+                Log.d(tag, "    URI: ${item.uri}")
+                Log.d(tag, "    Intent: ${item.intent}")
+            }
+        }
     }
 
     /**

@@ -515,6 +515,7 @@ class MainActivity : BaseActivity(),
 
         if (BuildConfig.DEBUG) {
             logDebugInfo(data, resultCode, videoUrl)
+            Helpers.debugLogIntentData(TAG, data)
         }
 
         data?.let { intent ->
@@ -616,11 +617,14 @@ class MainActivity : BaseActivity(),
                 }
 
                 pos == 0L && dur == 0L -> {
-                    Log.i(TAG, "Playback completed")
-                    resultPlayer(url, 0, 0, true)
+                    Log.i(TAG, "Playback error?")
+                    resultPlayer(url, 0, 0, false)
                 }
 
-                pos > 0L -> Log.i(TAG, "Playback stopped with no duration! Playback Error?")
+                pos > 0L -> {
+                    Log.i(TAG, "Playback stopped with no duration! ENDED")
+                    resultPlayer(url, pos.toInt(), pos.toInt(), true)
+                }
             }
         } else {
             Log.e(TAG, "Invalid state [resultCode=$resultCode]")
@@ -932,7 +936,7 @@ class MainActivity : BaseActivity(),
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
         // Log intent data for debugging
-        Helpers.logIntentData(intent)
+        Helpers.debugLogIntentData(TAG, intent)
         // Parse intent extras
         val sid = intent?.getStringExtra("id") ?: intent?.getIntExtra("id", -1)
             .toString() // Change to String
@@ -2427,7 +2431,7 @@ class MainActivity : BaseActivity(),
             }
             // Add duration from current item's timeline if available
             state.currentItem?.timeline?.duration?.toLong()?.let {
-                putExtra("extra_duration", it)
+                if (it > 0) putExtra("extra_duration", it)
             }
             // Handle subtitles from state
             state.currentItem?.subtitles?.firstOrNull()?.let { firstSub ->
@@ -2709,7 +2713,7 @@ class MainActivity : BaseActivity(),
 
     private fun launchPlayer(intent: Intent) {
         try {
-            Helpers.logIntentData(intent)
+            Helpers.debugLogIntentData(TAG, intent)
             resultLauncher.launch(intent)
         } catch (e: Exception) {
             printLog(TAG, "Failed to launch player: ${e.message}")
@@ -2917,8 +2921,8 @@ class MainActivity : BaseActivity(),
         return item.copy(
             timeline = PlayerStateManager.PlaylistItem.Timeline(
                 hash = item.timeline?.hash ?: "0",
-                time = item.timeline?.duration ?: 0.0,
-                duration = item.timeline?.duration ?: 0.0,
+                time = 0.0, // item.timeline?.duration ?: 0.0,
+                duration = 0.0, // item.timeline?.duration ?: 0.0,
                 percent = 100
             )
         )
