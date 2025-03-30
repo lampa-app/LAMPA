@@ -263,7 +263,9 @@ class MainActivity : BaseActivity(),
         printLog(TAG, "onResume() isSafeForUse ${browser.isSafeForUse()}")
         if (browser.isSafeForUse()) {
             printLog(TAG, "onResume() run syncBookmarks()")
-            syncBookmarks()
+            lifecycleScope.launch {
+                syncBookmarks()
+            }
         }
     }
 
@@ -373,8 +375,10 @@ class MainActivity : BaseActivity(),
             processIntent(intent, 500) // 1000
             // Background update Android TV channels and Recommendations
             printLog(TAG, "onBrowserPageFinished run syncBookmarks()")
-            syncBookmarks()
-            CoroutineScope(Dispatchers.IO).launch {
+            lifecycleScope.launch {
+                syncBookmarks()
+            }
+            lifecycleScope.launch(Dispatchers.IO) {
                 Scheduler.scheduleUpdate(false)
             }
         }
@@ -823,54 +827,52 @@ class MainActivity : BaseActivity(),
     // Function to sync bookmarks (Required only for Android TV 8+)
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
-    private fun syncBookmarks() {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return
-        CoroutineScope(Dispatchers.IO).launch {
-            withContext(Dispatchers.Main) {
-                runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
-            }
-            // printLog(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
-            App.context.wathToAdd.forEach { item ->
-                val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
-                lampaCard?.let { card ->
-                    card.fixCard()
-                    val id = card.id?.toIntOrNull()
-                    id?.let {
-                        val params =
-                            if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
-                        withContext(Dispatchers.Main) {
-                            runVoidJsFunc(
-                                "Lampa.Favorite.add",
-                                "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
-                            )
-                        }
+    private suspend fun syncBookmarks() = withContext(Dispatchers.IO) {
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return@withContext
+        withContext(Dispatchers.Main) {
+            runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
+        }
+        // printLog(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
+        App.context.wathToAdd.forEach { item ->
+            val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
+            lampaCard?.let { card ->
+                card.fixCard()
+                val id = card.id?.toIntOrNull()
+                id?.let {
+                    val params =
+                        if (card.type == "tv") "name: '${card.name}'" else "title: '${card.title}'"
+                    withContext(Dispatchers.Main) {
+                        runVoidJsFunc(
+                            "Lampa.Favorite.add",
+                            "'${LampaProvider.LATE}', {id: $id, type: '${card.type}', source: '${card.source}', img: '${card.img}', $params}"
+                        )
                     }
+                }
+            }
+            delay(500) // don't do it too fast
+        }
+        // Remove items from various categories
+        listOf(
+            LampaProvider.LATE to App.context.wathToRemove,
+            LampaProvider.BOOK to App.context.bookToRemove,
+            LampaProvider.LIKE to App.context.likeToRemove,
+            LampaProvider.HIST to App.context.histToRemove,
+            LampaProvider.LOOK to App.context.lookToRemove,
+            LampaProvider.VIEW to App.context.viewToRemove,
+            LampaProvider.SCHD to App.context.schdToRemove,
+            LampaProvider.CONT to App.context.contToRemove,
+            LampaProvider.THRW to App.context.thrwToRemove
+        ).forEach { (category, items) ->
+            // printLog(TAG, "syncBookmarks() remove from $category: $items")
+            items.forEach { id ->
+                withContext(Dispatchers.Main) {
+                    runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
                 }
                 delay(500) // don't do it too fast
             }
-            // Remove items from various categories
-            listOf(
-                LampaProvider.LATE to App.context.wathToRemove,
-                LampaProvider.BOOK to App.context.bookToRemove,
-                LampaProvider.LIKE to App.context.likeToRemove,
-                LampaProvider.HIST to App.context.histToRemove,
-                LampaProvider.LOOK to App.context.lookToRemove,
-                LampaProvider.VIEW to App.context.viewToRemove,
-                LampaProvider.SCHD to App.context.schdToRemove,
-                LampaProvider.CONT to App.context.contToRemove,
-                LampaProvider.THRW to App.context.thrwToRemove
-            ).forEach { (category, items) ->
-                // printLog(TAG, "syncBookmarks() remove from $category: $items")
-                items.forEach { id ->
-                    withContext(Dispatchers.Main) {
-                        runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
-                    }
-                    delay(500) // don't do it too fast
-                }
-            }
-            // don't do it again
-            App.context.clearPending()
         }
+        // don't do it again
+        App.context.clearPending()
     }
 
     private fun dumpStorage(callback: (String) -> Unit) {
@@ -2779,52 +2781,57 @@ class MainActivity : BaseActivity(),
             printLog(TAG, "Skipping invalid update - zero position/duration for non-ended playback")
             return
         }
-        // Get current state and resolve which video URL we're processing
-        val currentState = playerStateManager.getState(lampaActivity)
-        val videoUrl = endedVideoUrl.takeUnless { it.isBlank() || it == "null" }
-            ?: currentState.currentUrl
-            ?: return  // Exit if no valid URL found
-        // Find and update the current playlist item
-        val (updatedPlaylist, foundIndex) = updateCurrentPlaylistItem(
-            currentState.playlist,
-            videoUrl,
-            positionMillis,
-            durationMillis,
-            ended
-        ) ?: return  // Exit if current item not found
-        // Persist the updated state
-        playerStateManager.saveState(
-            activityJson = lampaActivity,
-            playlist = updatedPlaylist,
-            currentIndex = foundIndex,
-            currentUrl = videoUrl,
-            currentPosition = positionMillis.toLong(),
-            startIndex = currentState.startIndex, // Maintain original starting point
-            extras = currentState.extras // Don't loose extras
-        )
-        // Handle automatic marking of previous items as complete
-        if (playerAutoNext) {
-            updatePreviousItemsCompletion(
-                updatedPlaylist,
-                currentState.startIndex,
-                foundIndex
+        lifecycleScope.launch {
+            // Get current state and resolve which video URL we're processing
+            val currentState = playerStateManager.getState(lampaActivity)
+            val videoUrl = endedVideoUrl.takeUnless { it.isBlank() || it == "null" }
+                ?: currentState.currentUrl
+                ?: return@launch  // Exit if no valid URL found
+            // Find and update the current playlist item
+            val (updatedPlaylist, foundIndex) = updateCurrentPlaylistItem(
+                currentState.playlist,
+                videoUrl,
+                positionMillis,
+                durationMillis,
+                ended
+            ) ?: return@launch  // Exit if current item not found
+            // Persist the updated state
+            playerStateManager.saveState(
+                activityJson = lampaActivity,
+                playlist = updatedPlaylist,
+                currentIndex = foundIndex,
+                currentUrl = videoUrl,
+                currentPosition = positionMillis.toLong(),
+                startIndex = currentState.startIndex, // Maintain original starting point
+                extras = currentState.extras // Don't loose extras
             )
-        }
-        // Notify UI of current item's timeline update
-        updatedPlaylist[foundIndex].timeline?.let { timeline ->
-            runVoidJsFunc(
-                "Lampa.Timeline.update",
-                playerStateManager.convertTimelineToJsonString(timeline)
-            )
-        }
-        // Update PlayNext (must finish before clearState)
-        lifecycleScope.launch(Dispatchers.IO) {
-            updatePlayNext(ended)
-        }.invokeOnCompletion {
-            // Clean up state when playback fully completes
+            // Handle automatic marking of previous items as complete
+            if (playerAutoNext) {
+                updatePreviousItemsCompletion(
+                    updatedPlaylist,
+                    currentState.startIndex,
+                    foundIndex
+                )
+            }
+            // Notify UI of current item's timeline update
+            updatedPlaylist[foundIndex].timeline?.let { timeline ->
+                runVoidJsFunc(
+                    "Lampa.Timeline.update",
+                    playerStateManager.convertTimelineToJsonString(timeline)
+                )
+            }
+            // Update PlayNext (must finish before clearState)
+            // Critical section - ensure ordering
             if (ended) {
-                printLog(TAG, "processPlaybackResult clearState [ended]")
+                val updateJob = launch(Dispatchers.IO) {
+                    updatePlayNext(true) // Runs in background
+                }
+                updateJob.join() // Wait for completion before clearing state
                 playerStateManager.clearState(lampaActivity)
+            } else {
+                launch(Dispatchers.IO) {
+                    updatePlayNext(false) // Fire-and-forget for non-ended case
+                }
             }
         }
     }
@@ -2956,14 +2963,14 @@ class MainActivity : BaseActivity(),
     /**
      * Updates Watch Next on Android TV.
      */
-    private fun updatePlayNext(ended: Boolean) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+    private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.IO) {
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return@withContext
         try {
-            val card = getCardFromActivity(lampaActivity) ?: return
+            val card = getCardFromActivity(lampaActivity) ?: return@withContext
             // Get current playback state
             // val state = playerStateManager.getState(lampaActivity)
             // Get state by matching card (must be added with saveState!)
-            val state = playerStateManager.findStateByCard(card) ?: return
+            val state = playerStateManager.findStateByCard(card) ?: return@withContext
             // playerStateManager.debugKeyMatching(lampaActivity)
             when {
                 ended -> { // Case 1: Playback ended - remove from Continue Watching
