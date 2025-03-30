@@ -295,12 +295,11 @@ object WatchNext {
 //            // we use category as a fake TV series.
 //            builder.setTitle(video.category)
 //        }
-        // val state = playerStateManager.findStateByCard(card) // Find the state for this card
         if (resume) {
             val playerStateManager = PlayerStateManager(App.context)
             // Get the most relevant playback state
-            val state = playerStateManager.findMatchingStates(activityJson.toString())
-                .firstOrNull()
+            val state = playerStateManager.findStateByCard(card) // Find the state for this card
+            // val state = playerStateManager.findMatchingStates(activityJson.toString()).firstOrNull()
             // Calculate watch position and duration if valid state exists
             state?.let {
                 val (positionMs, durationMs) = it.run {

@@ -232,7 +232,9 @@ class MainActivity : BaseActivity(),
             TAG,
             "onCreate SELECTED_BROWSER: $SELECTED_BROWSER LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER"
         )
-        playerStateManager = PlayerStateManager(this)
+        playerStateManager = PlayerStateManager(this).apply {
+            purgeOldStates()
+        }
 
         setupActivity()
         setupBrowser()
@@ -248,7 +250,6 @@ class MainActivity : BaseActivity(),
     }
 
     override fun onResume() {
-        printLog(TAG, "onResume()")
         super.onResume()
         hideSystemUI()
         if (!isTvBox) setupFab()
@@ -256,12 +257,10 @@ class MainActivity : BaseActivity(),
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
         mXWalkInitializer?.initAsync()
-        printLog(
-            TAG,
-            "onResume() browserInitComplete $browserInitComplete isSafeForUse ${browser.isSafeForUse()}"
-        )
+        printLog(TAG, "onResume() browserInitComplete $browserInitComplete")
         if (browserInitComplete)
             browser?.resumeTimers()
+        printLog(TAG, "onResume() isSafeForUse ${browser.isSafeForUse()}")
         if (browser.isSafeForUse()) {
             printLog(TAG, "onResume() run syncBookmarks()")
             syncBookmarks()
@@ -826,7 +825,7 @@ class MainActivity : BaseActivity(),
             withContext(Dispatchers.Main) {
                 runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
             }
-            printLog(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
+            // printLog(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
             App.context.wathToAdd.forEach { item ->
                 val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
                 lampaCard?.let { card ->
@@ -857,7 +856,7 @@ class MainActivity : BaseActivity(),
                 LampaProvider.CONT to App.context.contToRemove,
                 LampaProvider.THRW to App.context.thrwToRemove
             ).forEach { (category, items) ->
-                printLog(TAG, "syncBookmarks() remove from $category: $items")
+                // printLog(TAG, "syncBookmarks() remove from $category: $items")
                 items.forEach { id ->
                     withContext(Dispatchers.Main) {
                         runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
@@ -1051,15 +1050,19 @@ class MainActivity : BaseActivity(),
 
     private fun handleContinueWatch(intent: Intent, delay: Long = 0) {
         lifecycleScope.launch {
+            // fallback to lampaActivity?
             val activityJson = intent.getStringExtra("lampaActivity") ?: return@launch
             if (isValidJson(activityJson)) {
-                openLampaContent(activityJson, delay)
+                openLampaContent(activityJson, delay) // needed to match state
                 delay(delay)
                 if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
-                    val matchingStates = playerStateManager.findMatchingStates(activityJson)
+                    val card = getCardFromActivity(activityJson) ?: return@launch
+                    val state = playerStateManager.findStateByCard(card) ?: return@launch
+                    // val matchingStates = playerStateManager.findMatchingStates(activityJson)
+                    // playerStateManager.debugKeyMatching(activityJson)
                     when {
-                        matchingStates.isNotEmpty() -> {
-                            val state = matchingStates.maxByOrNull { it.lastUpdated }!!
+                        state.currentItem != null -> { // matchingStates.isNotEmpty()
+                            // val state = matchingStates.maxByOrNull { it.lastUpdated }!!
                             val currentItem = state.playlist.getOrNull(state.currentIndex)
                             val playJsonObj = playerStateManager.getStateJson(state).apply {
                                 // Set title
@@ -1086,7 +1089,7 @@ class MainActivity : BaseActivity(),
                         }
 
                         else -> {
-                            printLog(TAG, "No matching state found for activity")
+                            printLog(TAG, "No matching state found for card")
                         }
                     }
                 }
@@ -1969,7 +1972,7 @@ class MainActivity : BaseActivity(),
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", activity: String? = null) {
         try {
-
+            // Get activity from Intent of fallback to current
             val playActivity = activity?.takeIf { it.isNotEmpty() } ?: lampaActivity
 
             // Determine player type
@@ -2021,11 +2024,13 @@ class MainActivity : BaseActivity(),
                 val extras = mutableMapOf<String, Any>(
                     "isIPTV" to isIPTV,
                     "isLIVE" to isLIVE
-                ).apply { // NOTE: it used in PlayerStateManager as a KEY
+                )
+                    .apply { // NOTE: it used in PlayerStateManager for state match
                     activity?.let { put("lampaActivity", it) }
                 }
+                val card = getCardFromActivity(playActivity)
                 // DEBUG
-                // playerStateManager.debugKeyMatching(playActivity)
+                // playerStateManager.debugLogAllStates()
                 // val count = playerStateManager.findMatchingStates(playActivity)
                 // printLog(TAG, "found matching playActivity $count")
                 val state = playerStateManager.saveState(
@@ -2034,7 +2039,8 @@ class MainActivity : BaseActivity(),
                     currentIndex = currentIndex,
                     currentUrl = videoUrl,
                     startIndex = startIndex,
-                    extras = extras
+                    extras = extras,
+                    card = card // to match by card in WatchNext
                 )
                 // Prepare intent
                 val intent = createBaseIntent(state)
@@ -2800,7 +2806,8 @@ class MainActivity : BaseActivity(),
             currentIndex = foundIndex,
             currentUrl = videoUrl,
             currentPosition = positionMillis.toLong(),
-            startIndex = currentState.startIndex  // Maintain original starting point
+            startIndex = currentState.startIndex, // Maintain original starting point
+            extras = currentState.extras // Don't loose extras
         )
         // Handle automatic marking of previous items as complete
         if (playerAutoNext) {
@@ -2933,48 +2940,30 @@ class MainActivity : BaseActivity(),
         return item.url == videoUrl || item.quality?.values?.any { it == videoUrl } == true
     }
 
-    private fun updatePlayNextOld(ended: Boolean) {
-        lifecycleScope.launch(Dispatchers.Default) {
-            if (isValidJson(lampaActivity)) try {
-                val lampaActivityObj = JSONObject(lampaActivity)
-                if (lampaActivityObj.has("movie")) {
-                    val card = getJson(
-                        lampaActivityObj.getJSONObject("movie").toString(),
-                        LampaCard::class.java
-                    )?.apply { fixCard() }
-
-                    card?.let {
-                        if (!ended) {
-                            printLog(TAG, "resultPlayer PlayNext $it add / update")
-                            WatchNext.addLastPlayed(it, lampaActivity)
-                        } else {
-                            printLog(TAG, "resultPlayer PlayNext $it remove")
-                            WatchNext.removeContinueWatch(it)
-                        }
+    private fun getCardFromActivity(activityJson: String?): LampaCard? {
+        return try {
+            JSONObject(activityJson ?: return null)
+                .optJSONObject("movie")
+                ?.let { movieObj ->
+                    getJson(movieObj.toString(), LampaCard::class.java)?.apply {
+                        fixCard()
                     }
                 }
-            } catch (e: Exception) {
-                printLog(TAG, "resultPlayer Error processing PlayNext: $e")
-            }
+        } catch (e: JSONException) {
+            printLog(TAG, "Invalid activity JSON: ${e.message}")
+            null
         }
     }
 
     private fun updatePlayNext(ended: Boolean) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                if (!isValidJson(lampaActivity)) return@launch
-
-                val lampaActivityObj = JSONObject(lampaActivity)
-                if (!lampaActivityObj.has("movie")) return@launch
-
-                val card = getJson(
-                    lampaActivityObj.getJSONObject("movie").toString(),
-                    LampaCard::class.java
-                )?.apply { fixCard() } ?: return@launch
-
+                val card = getCardFromActivity(lampaActivity) ?: return@launch
                 // Get current playback state
-                // TODO: match state by card
-                val state = playerStateManager.getState(lampaActivity)
+                // val state = playerStateManager.getState(lampaActivity)
+                // Get state by matching card (must be added with saveState!)
+                val state = playerStateManager.findStateByCard(card) ?: return@launch
+                // playerStateManager.debugKeyMatching(lampaActivity)
                 when {
                     // Case 1: Playback ended - remove from Continue Watching
                     ended -> {

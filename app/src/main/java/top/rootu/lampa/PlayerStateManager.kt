@@ -13,6 +13,7 @@ import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import kotlin.text.isNotEmpty
 
 /**
@@ -23,17 +24,18 @@ class PlayerStateManager(context: Context) {
     private companion object {
         // const val PREFS_NAME = "player_state_prefs"
         const val MAX_CACHED_STATES = 5
+        const val MAX_DAYS_CACHE = 30  // Days to store states
         const val TAG = "PlayerStateManager"
     }
 
-    private val prefs = context.lastPlayedPrefs // getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs =
+        context.lastPlayedPrefs // getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val stateCache = ConcurrentHashMap<String, PlaybackState>()
 
     /**
      * Data class representing the playback state of a media item.
      *
      * @property activityKey Unique identifier for the activity
-     * @property rawActivityJson Original JSON string of the activity
      * @property playlist List of items in the current playlist
      * @property currentIndex Current position in the playlist
      * @property currentUrl Currently playing URL
@@ -44,7 +46,7 @@ class PlayerStateManager(context: Context) {
      */
     data class PlaybackState(
         val activityKey: String, // lampaActivity
-        val rawActivityJson: String? = null, // original JSON
+        // val rawActivityJson: String? = null, // original JSON
         val playlist: List<PlaylistItem>,
         val currentIndex: Int, // in playlist
         val currentUrl: String? = null,
@@ -156,7 +158,7 @@ class PlayerStateManager(context: Context) {
         }
         val state = PlaybackState(
             activityKey = key,
-            rawActivityJson = activityJson, // Store original JSON
+            // rawActivityJson = activityJson, // Store original JSON
             playlist = playlist,
             currentIndex = currentIndex,
             currentUrl = currentUrl ?: playlist.getOrNull(currentIndex)?.url,
@@ -381,11 +383,11 @@ class PlayerStateManager(context: Context) {
 
         return stateCache.values.filter { state ->
             // Match by either:
-            // 1. Exact key match
+            // Exact key match
             state.activityKey == targetKey ||
-                    // 2. Normalized JSON match
-                    (state.rawActivityJson?.let { normalizeJson(it) == normalizedInput } == true) ||
-                    // 3. Partial content match (fallback)
+                    // Normalized JSON match
+                    // (state.rawActivityJson?.let { normalizeJson(it) == normalizedInput } == true) ||
+                    // Partial content match (fallback)
                     (state.extras["lampaActivity"] as? String)?.let { normalizeJson(it) == normalizedInput } == true
         }.ifEmpty {
             // Check persisted states if cache has no matches
@@ -394,8 +396,8 @@ class PlayerStateManager(context: Context) {
                 .mapNotNull { key ->
                     try {
                         loadPersistedState(key.removePrefix("state_"))?.takeIf {
-                            it.activityKey == targetKey ||
-                                    it.rawActivityJson?.let { normalizeJson(it) == normalizedInput } ?: false
+                            it.activityKey == targetKey // ||
+                            // it.rawActivityJson?.let { normalizeJson(it) == normalizedInput } == true
                         }
                     } catch (_: Exception) {
                         null
@@ -423,13 +425,14 @@ class PlayerStateManager(context: Context) {
         stateCache.values.forEach { state ->
             val matchQuality = when {
                 state.activityKey == targetKey -> "EXACT_KEY"
-                normalizeJson(state.rawActivityJson ?: "") == normalizedJson -> "EXACT_JSON"
-                (state.extras["lampaActivity"] as? String)?.let { normalizeJson(it) == normalizedJson } ?: false -> "EXTRA_JSON"
+                // normalizeJson(state.rawActivityJson ?: "") == normalizedJson -> "EXACT_JSON"
+                (state.extras["lampaActivity"] as? String)?.let { normalizeJson(it) == normalizedJson } == true -> "EXTRA_JSON"
+
                 else -> "NO_MATCH"
             }
 
             Log.d(TAG, "• Key: ${state.activityKey} ($matchQuality)")
-            Log.d(TAG, "  Raw JSON: ${state.rawActivityJson?.take(50)}...")
+            // Log.d(TAG, "  Raw JSON: ${state.rawActivityJson?.take(50)}...")
             Log.d(TAG, "  Extras JSON: ${(state.extras["lampaActivity"] as? String)?.take(50)}...")
         }
         Log.d(TAG, "===== END DEBUG =====")
@@ -461,7 +464,10 @@ class PlayerStateManager(context: Context) {
                 Log.d(TAG, "    ${index + 1}. ${item.title ?: "Untitled"}")
                 Log.d(TAG, "      - URL: ${item.url}")
                 Log.d(TAG, "      - Timeline: ${item.timeline?.hash ?: "No timeline"}")
-                Log.d(TAG, "      - Quality Variants: ${item.quality?.keys?.joinToString() ?: "None"}")
+                Log.d(
+                    TAG,
+                    "      - Quality Variants: ${item.quality?.keys?.joinToString() ?: "None"}"
+                )
                 Log.d(TAG, "      - Subtitles: ${item.subtitles?.size ?: 0} available")
             }
         }
@@ -484,6 +490,37 @@ class PlayerStateManager(context: Context) {
         Log.d(TAG, "===== END DEBUG OUTPUT =====")
     }
 
+    /**
+     * Automatically purges persisted playback states older than [MAX_DAYS_CACHE] days.
+     */
+    fun purgeOldStates() {
+        val cutoffTime =
+            System.currentTimeMillis() - TimeUnit.DAYS.toMillis(MAX_DAYS_CACHE.toLong())
+        val editor = prefs.edit()
+        var purgedCount = 0
+
+        prefs.all.keys
+            .filter { it.startsWith("state_") }
+            .forEach { key ->
+                try {
+                    val jsonString = prefs.getString(key, null) ?: return@forEach
+                    val lastUpdated = JSONObject(jsonString).optLong("last_updated", 0)
+
+                    if (lastUpdated < cutoffTime) {
+                        editor.remove(key)
+                        purgedCount++
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse state for purging: $key", e)
+                }
+            }
+
+        editor.apply()
+        if (purgedCount > 0) {
+            Log.d(TAG, "Purged $purgedCount stale states (older than $MAX_DAYS_CACHE days)")
+        }
+    }
+
     // Private helper methods
 
     /**
@@ -498,16 +535,18 @@ class PlayerStateManager(context: Context) {
                 buildString {
                     // Always include these core fields if they exist
                     json.optString("id").takeIf { it.isNotEmpty() }?.let { append("id:$it") }
-                    json.optString("component").takeIf { it.isNotEmpty() }?.let { append("|comp:$it") }
+                    json.optString("component").takeIf { it.isNotEmpty() }
+                        ?.let { append("|comp:$it") }
                     json.optString("source").takeIf { it.isNotEmpty() }?.let { append("|src:$it") }
                     // Include additional important fields
-                    json.optString("search").takeIf { it.isNotEmpty() }?.let { append("|search:$it") }
+                    json.optString("search").takeIf { it.isNotEmpty() }
+                        ?.let { append("|search:$it") }
                     json.optString("url").takeIf { it.isNotEmpty() }?.let { append("|url:$it") }
                     json.optString("title").takeIf { it.isNotEmpty() }?.let { append("|title:$it") }
                     if (isEmpty()) append("default") // fallback
                 }.sha256Hash() // Use hash instead of hashCode()
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "invalid_${activityJson.sha256Hash()}"
         }
     }
@@ -763,7 +802,7 @@ class PlayerStateManager(context: Context) {
             put("time", time)
             put("duration", duration)
             put("percent", percent)
-            profile?.let { put ("profile", profile) }
+            profile?.let { put("profile", profile) }
         }
     }
 
@@ -800,7 +839,7 @@ class PlayerStateManager(context: Context) {
                 sorted.put(key, obj.get(key))
             }
             sorted.toString()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Fallback: simple whitespace removal
             json.replace("\\s".toRegex(), "")
         }
