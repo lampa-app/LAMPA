@@ -2014,6 +2014,9 @@ class MainActivity : BaseActivity(),
                 // Find current index safely
                 val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
                     .coerceAtLeast(0) // Ensure never negative
+                // Set startIndex for playback result
+                val startIndex = currentIndex
+                
                 // Prepare extras with null-safe card serialization
                 val extras = mutableMapOf<String, Any>(
                     "isIPTV" to isIPTV,
@@ -2030,6 +2033,7 @@ class MainActivity : BaseActivity(),
                     playlist = playlist,
                     currentIndex = currentIndex,
                     currentUrl = videoUrl,
+                    startIndex = startIndex,
                     extras = extras
                 )
                 // Prepare intent
@@ -2769,95 +2773,179 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    /**
+     * Processes playback results and updates the player state accordingly.
+     *
+     * This function handles:
+     * 1. Identifying the current playing item in the playlist
+     * 2. Updating its playback position and completion status
+     * 3. Marking previous items as completed (if auto-next is enabled)
+     * 4. Sending timeline updates to the UI
+     * 5. Clearing state when playback ends
+     *
+     * @param endedVideoUrl The URL of the video that ended playback (may be blank/null for current item)
+     * @param positionMillis The current playback position in milliseconds
+     * @param durationMillis The total duration of the media in milliseconds
+     * @param ended Boolean indicating whether playback has fully completed
+     *
+     */
     private fun processPlaybackResult(
         endedVideoUrl: String,
-        pos: Int,
-        dur: Int,
+        positionMillis: Int,
+        durationMillis: Int,
         ended: Boolean
     ) {
+        // Get current state and resolve which video URL we're processing
         val currentState = playerStateManager.getState(lampaActivity)
-        val videoUrl = if (endedVideoUrl.isBlank() || endedVideoUrl == "null") {
-            currentState.currentUrl
-        } else {
-            endedVideoUrl
-        } ?: return
-
-        val updatedPlaylist = currentState.playlist.toMutableList()
-        var foundIndex = -1
-
-        // Process playlist to find and update the current item
-        updatedPlaylist.forEachIndexed { i, item ->
-            if (isCurrentPlaybackItem(item, videoUrl)) {
-                foundIndex = i
-                updatedPlaylist[i] = updatePlaylistItem(item, pos, dur, ended)
-            }
-        }
-
-        if (foundIndex >= 0) {
-            // Save updated state
-            playerStateManager.saveState(
-                activityJson = lampaActivity,
-                playlist = updatedPlaylist,
-                currentIndex = foundIndex,
-                currentUrl = videoUrl,
-                currentPosition = pos.toLong()
+        val videoUrl = endedVideoUrl.takeUnless { it.isBlank() || it == "null" }
+            ?: currentState.currentUrl
+            ?: return  // Exit if no valid URL found
+        // Find and update the current playlist item
+        val (updatedPlaylist, foundIndex) = updateCurrentPlaylistItem(
+            currentState.playlist,
+            videoUrl,
+            positionMillis,
+            durationMillis,
+            ended
+        ) ?: return  // Exit if current item not found
+        // Persist the updated state
+        playerStateManager.saveState(
+            activityJson = lampaActivity,
+            playlist = updatedPlaylist,
+            currentIndex = foundIndex,
+            currentUrl = videoUrl,
+            currentPosition = positionMillis.toLong(),
+            startIndex = currentState.startIndex  // Maintain original starting point
+        )
+        // Handle automatic marking of previous items as complete
+        if (playerAutoNext) {
+            updatePreviousItemsCompletion(
+                updatedPlaylist,
+                currentState.startIndex,
+                foundIndex
             )
-            // TODO: implement mark only from playback start position
-            // Mark previous items as completed if needed
-            if (playerAutoNext) {
-                markPreviousItemsComplete(updatedPlaylist, foundIndex)
-            }
-            // Notify JS
-            updatedPlaylist[foundIndex].timeline?.let { timeline ->
-                val json = playerStateManager.convertTimelineToJsonString(timeline)
-                runVoidJsFunc("Lampa.Timeline.update", json)
-            }
         }
-
+        // Notify UI of current item's timeline update
+        updatedPlaylist[foundIndex].timeline?.let { timeline ->
+            runVoidJsFunc(
+                "Lampa.Timeline.update",
+                playerStateManager.convertTimelineToJsonString(timeline)
+            )
+        }
+        // Clean up state when playback fully completes
         if (ended) {
             printLog(TAG, "processPlaybackResult clearState [ended]")
             playerStateManager.clearState(lampaActivity)
         }
     }
 
-    // Helper functions
+    /**
+     * Updates the current playing item in the playlist and returns the modified playlist with found index
+     */
+    private fun updateCurrentPlaylistItem(
+        playlist: List<PlayerStateManager.PlaylistItem>,
+        videoUrl: String,
+        positionMillis: Int,
+        durationMillis: Int,
+        ended: Boolean
+    ): Pair<MutableList<PlayerStateManager.PlaylistItem>, Int>? {
+        val updatedPlaylist = playlist.toMutableList()
+        val foundIndex =
+            updatedPlaylist.indexOfFirst { isCurrentPlaybackItem(it, videoUrl) }.takeIf { it >= 0 }
+                ?: return null
+
+        updatedPlaylist[foundIndex] = createUpdatedPlaylistItem(
+            item = updatedPlaylist[foundIndex],
+            positionMillis = positionMillis,
+            durationMillis = durationMillis,
+            ended = ended
+        )
+
+        return updatedPlaylist to foundIndex
+    }
+
+    /**
+     * Marks items as completed from startIndex to currentIndex-1 (excludes current item)
+     * and sends timeline updates for each marked item
+     */
+    private fun updatePreviousItemsCompletion(
+        playlist: MutableList<PlayerStateManager.PlaylistItem>,
+        startIndex: Int,
+        currentIndex: Int
+    ) {
+        getCompletionRange(startIndex, currentIndex, playlist.lastIndex).forEach { index ->
+            playlist[index] = createCompletedPlaylistItem(playlist[index])
+
+            playlist[index].timeline?.let { timeline ->
+                runVoidJsFunc(
+                    "Lampa.Timeline.update",
+                    playerStateManager.convertTimelineToJsonString(timeline)
+                )
+                printLog(TAG, "Marked item $index as completed (100%)")
+            }
+        }
+    }
+
+    /**
+     * Creates a range of indices to mark as completed (startIndex to currentIndex-1)
+     */
+    private fun getCompletionRange(
+        startIndex: Int,
+        currentIndex: Int,
+        lastValidIndex: Int
+    ): IntRange {
+        val safeStart = startIndex.coerceIn(0, lastValidIndex)
+        val safeEnd = currentIndex.coerceIn(0, lastValidIndex)
+
+        return if (safeStart <= safeEnd) {
+            safeStart until safeEnd  // Excludes currentIndex
+        } else {
+            safeEnd + 1..safeStart   // Reverse range, excludes currentIndex
+        }
+    }
+
+    /**
+     * Creates a new playlist item with updated timeline
+     */
+    private fun createUpdatedPlaylistItem(
+        item: PlayerStateManager.PlaylistItem,
+        positionMillis: Int,
+        durationMillis: Int,
+        ended: Boolean
+    ): PlayerStateManager.PlaylistItem {
+        val percent = if (durationMillis > 0) (positionMillis * 100 / durationMillis) else 100
+        return item.copy(
+            timeline = PlayerStateManager.PlaylistItem.Timeline(
+                hash = item.timeline?.hash ?: "0",
+                time = if (ended) 0.0 else positionMillis / 1000.0,
+                duration = if (ended) 0.0 else durationMillis / 1000.0,
+                percent = if (ended) 100 else percent
+            )
+        )
+    }
+
+    /**
+     * Creates a playlist item marked as 100% completed
+     */
+    private fun createCompletedPlaylistItem(item: PlayerStateManager.PlaylistItem): PlayerStateManager.PlaylistItem {
+        return item.copy(
+            timeline = PlayerStateManager.PlaylistItem.Timeline(
+                hash = item.timeline?.hash ?: "0",
+                time = item.timeline?.duration ?: 0.0,
+                duration = item.timeline?.duration ?: 0.0,
+                percent = 100
+            )
+        )
+    }
+
+    /**
+     * Determines if a playlist item matches the currently playing video URL.
+     */
     private fun isCurrentPlaybackItem(
         item: PlayerStateManager.PlaylistItem,
         videoUrl: String
-    ): Boolean { // match quality urls too
+    ): Boolean {
         return item.url == videoUrl || item.quality?.values?.any { it == videoUrl } == true
-    }
-
-    private fun updatePlaylistItem(
-        item: PlayerStateManager.PlaylistItem,
-        pos: Int,
-        dur: Int,
-        ended: Boolean
-    ): PlayerStateManager.PlaylistItem {
-        val percent = if (dur > 0) (pos * 100 / dur) else 100
-        val timeline = PlayerStateManager.PlaylistItem.Timeline(
-            hash = item.timeline?.hash ?: "0",
-            time = if (ended) 0.0 else pos.toDouble() / 1000,
-            duration = if (ended) 0.0 else dur.toDouble() / 1000,
-            percent = if (ended) 100 else percent
-        )
-        return item.copy(timeline = timeline)
-    }
-
-    private fun markPreviousItemsComplete(
-        playlist: MutableList<PlayerStateManager.PlaylistItem>,
-        currentIndex: Int
-    ) {
-        for (i in 0 until currentIndex) {
-            playlist[i] = playlist[i].copy(
-                timeline = PlayerStateManager.PlaylistItem.Timeline(
-                    hash = playlist[i].timeline?.hash ?: "0",
-                    time = 0.0,
-                    duration = 0.0,
-                    percent = 100
-                )
-            )
-        }
     }
 
     private fun updatePlayNextOld(ended: Boolean) {
