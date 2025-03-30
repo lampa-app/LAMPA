@@ -24,7 +24,6 @@ import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
-import top.rootu.lampa.helpers.Prefs.lastPlayedPrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.models.LAMPA_CARD_KEY
@@ -296,35 +295,26 @@ object WatchNext {
 //            // we use category as a fake TV series.
 //            builder.setTitle(video.category)
 //        }
+        // val state = playerStateManager.findStateByCard(card) // Find the state for this card
         if (resume) {
-            // Get the player state manager instance
             val playerStateManager = PlayerStateManager(App.context)
-
-            // Find the state for this card
-            val state = playerStateManager.findStateByCard(card)
-
-            // Calculate watch position and duration
-            val (watchPosition, duration) = if (state != null) {
-                // Get position from current timeline if available
-                val positionMs = state.currentItem?.timeline?.let { timeline ->
-                    (timeline.time * 1000).toLong() // Convert seconds to ms
-                } ?: state.currentPosition
-
-                // Get duration from timeline or fallback
-                val durationMs = state.currentItem?.timeline?.let { timeline ->
-                    (timeline.duration * 1000).toLong() // Convert seconds to ms
-                } ?: 0L
-
-                positionMs to durationMs
-            } else {
-                // Fallback to shared prefs if no state found
-                val prefs = App.context.lastPlayedPrefs
-                prefs.getLong("last_position", 0L) to
-                        prefs.getLong("last_duration", 0L)
+            // Get the most relevant playback state
+            val state = playerStateManager.findMatchingStates(activityJson.toString())
+                .firstOrNull()
+            // Calculate watch position and duration if valid state exists
+            state?.let {
+                val (positionMs, durationMs) = it.run {
+                    val timeline = currentItem?.timeline
+                    val position = timeline?.time?.times(1000)?.toLong() ?: currentPosition // Convert seconds to ms
+                    val duration = timeline?.duration?.times(1000)?.toLong() ?: 0L // Convert seconds to ms
+                    position to duration
+                }
+                // Only set if we have valid position and duration
+                if (positionMs > 0 && durationMs > 0) {
+                    builder.setLastPlaybackPositionMillis(positionMs.toInt())
+                        .setDurationMillis(durationMs.toInt())
+                }
             }
-
-            builder.setLastPlaybackPositionMillis(watchPosition.toInt())
-                .setDurationMillis(duration.toInt())
         }
 
         val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()

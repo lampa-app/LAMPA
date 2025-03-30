@@ -69,7 +69,7 @@ class PlayerStateManager(context: Context) {
                 return when {
                     // Case 1: Explicitly marked as completed (100%)
                     timeline.percent >= 100 -> true
-                    // Case 2: Reached near end of content (96% threshold)
+                    // Case 2: Reached near end of content (95% threshold)
                     timeline.duration > 0 && timeline.time >= timeline.duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE -> true
                     // Case 3: Position reset to start but marked complete
                     currentPosition <= 0 && timeline.percent >= VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE * 100 -> true

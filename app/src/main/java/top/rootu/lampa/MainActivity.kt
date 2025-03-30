@@ -2747,30 +2747,10 @@ class MainActivity : BaseActivity(),
         dur: Int = 0,
         ended: Boolean = false
     ) {
-        // Store playback state for WatchNext
-        storePlaybackState(ended, pos, dur)
-
         // Process the current playback item
         processPlaybackResult(endedVideoUrl, pos, dur, ended)
-
         // Update PlayNext
         updatePlayNext(ended)
-    }
-
-    // FIXME: do it as fallback with new prefs names or remove
-    private fun storePlaybackState(ended: Boolean, pos: Int, dur: Int) {
-        lastPlayedPrefs.edit().apply {
-            putBoolean("ended", ended)
-            putLong(
-                "last_position",
-                pos.toLong()
-            ) // putInt("position", pos) // last_position (Long)
-            putLong(
-                "last_duration",
-                dur.toLong()
-            ) // putInt("duration", dur) // last_duration (Long)
-            apply()
-        }
     }
 
     /**
@@ -2795,6 +2775,11 @@ class MainActivity : BaseActivity(),
         durationMillis: Int,
         ended: Boolean
     ) {
+        // Skip invalid updates where position and duration are 0 but playback hasn't ended
+        if (!ended && positionMillis == 0 && durationMillis == 0) {
+            printLog(TAG, "Skipping invalid update - zero position/duration for non-ended playback")
+            return
+        }
         // Get current state and resolve which video URL we're processing
         val currentState = playerStateManager.getState(lampaActivity)
         val videoUrl = endedVideoUrl.takeUnless { it.isBlank() || it == "null" }
@@ -3008,11 +2993,6 @@ class MainActivity : BaseActivity(),
                         WatchNext.addLastPlayed(card, lampaActivity)
                         // Update last played position in preferences (using Long values)
                         state.currentItem?.timeline?.let { timeline ->
-                            lastPlayedPrefs.edit().apply {
-                                putLong("last_position", (timeline.time * 1000).toLong())
-                                putLong("last_duration", (timeline.duration * 1000).toLong())
-                                apply()
-                            }
                         }
                     }
                     // Case 3: No valid state - just log
