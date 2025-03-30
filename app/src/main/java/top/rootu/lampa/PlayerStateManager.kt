@@ -329,7 +329,6 @@ class PlayerStateManager(context: Context) {
     fun getStateJson(state: PlaybackState): JSONObject {
         return JSONObject().apply {
             put("activity_key", state.activityKey)
-            put("activity_json", state.rawActivityJson)
             put("playlist", JSONArray().apply {
                 state.playlist.forEach { item ->
                     put(JSONObject().apply {
@@ -589,7 +588,6 @@ class PlayerStateManager(context: Context) {
     private fun PlaybackState.toJson(): JSONObject {
         return JSONObject().apply {
             put("activity_key", activityKey)
-            put("activity_json", rawActivityJson)
             put("playlist", JSONArray().apply {
                 playlist.forEach { put(it.toJson()) }
             })
@@ -620,7 +618,6 @@ class PlayerStateManager(context: Context) {
     private fun JSONObject.toPlaybackState(): PlaybackState {
         return PlaybackState(
             activityKey = getString("activity_key"),
-            rawActivityJson = getString("activity_json"),
             playlist = getJSONArray("playlist").toPlaylist(),
             currentIndex = getInt("current_index"),
             currentUrl = optString("url").takeIf { it.isNotEmpty() }, // was "current_url"

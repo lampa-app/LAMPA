@@ -2016,7 +2016,7 @@ class MainActivity : BaseActivity(),
                     .coerceAtLeast(0) // Ensure never negative
                 // Set startIndex for playback result
                 val startIndex = currentIndex
-                
+
                 // Prepare extras with null-safe card serialization
                 val extras = mutableMapOf<String, Any>(
                     "isIPTV" to isIPTV,
@@ -2998,7 +2998,8 @@ class MainActivity : BaseActivity(),
                             "PlayNext: Removing ${card.id} from Continue Watching [state:ended]"
                         )
                         WatchNext.removeContinueWatch(card)
-                        // FIXME: check states and match against card
+                        // FIXME: don't remove if added to PlayNext by user
+                        // at least for serials
                         playerStateManager.clearState(lampaActivity)
                     }
                     // Case 2: Valid ongoing playback - update Continue Watching
