@@ -62,7 +62,6 @@ import net.gotev.speech.SpeechDelegate
 import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.SpeechUtil
 import net.gotev.speech.ui.SpeechProgressView
-import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.xwalk.core.MyXWalkEnvironment
@@ -1982,93 +1981,70 @@ class MainActivity : BaseActivity(),
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", activity: String? = null) {
         try {
-            // printLog(TAG, "runPlayer jsonObject ${jsonObject.toString(2)}")
-            // Get activity from Intent of fallback to current
             val playActivity = activity?.takeIf { it.isNotEmpty() } ?: lampaActivity
-
-            // Determine player type
-            val isIPTV = jsonObject.optBoolean("iptv", false)
-            val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
-
-            // Required URL
             val videoUrl = jsonObject.optString("url").takeIf { it.isNotBlank() } ?: run {
                 App.toast(R.string.invalid_url, true)
-                printLog(TAG, "No video URL.")
                 return
             }
 
+            // Pre-compute frequently used values
+            val isIPTV = jsonObject.optBoolean("iptv", false)
+            val isLIVE = jsonObject.optBoolean("need_check_live_stream", false)
+            val isContinueWatch = jsonObject.optBoolean("from_state", false)
             val selectedPlayer = launchPlayer.takeIf { it.isNotBlank() }
                 ?: if (isIPTV || isLIVE) tvPlayer else appPlayer
-
             val videoTitle =
                 jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
-
-            // Determine object from continueWatch
-            val isContinueWatch = jsonObject.optBoolean("from_state", false)
             val card = getCardFromActivity(playActivity)
-            var state: PlayerStateManager.PlaybackState? = null
+
+            // Header handling
             var headers = prepareHeaders(jsonObject)
-            // DEBUG
-            playerStateManager.debugLogAllStates()
 
-            if (isContinueWatch && card != null) {
-                state = playerStateManager.findStateByCard(card)
-                state?.let { headers = getHeadersFromState(it) }
-            } else {
-                // val subs = prepareSubtitles(jsonObject) // initialize
-                // val playlist = preparePlaylist(jsonObject) // initialise
-                try {
-                    // get playlist safely
-                    val playlist = try {
-                        when {
-                            jsonObject.has("playlist") && playerAutoNext ->
-                                playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
-
-                            else ->
-                                listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
-                        }
-                    } catch (e: Exception) {
-                        printLog(TAG, "Error converting playlist: ${e.message}")
-                        listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
-                    }
-                    // Find current index safely
-                    val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
-                        .coerceAtLeast(0) // Ensure never negative
-
-                    // Prepare extras
-                    val extras = mutableMapOf<String, Any>(
-                        "isIPTV" to isIPTV,
-                        "isLIVE" to isLIVE
-                    ).apply {
-                        // NOTE: it used in PlayerStateManager for state match
-                        activity?.let { put("lampaActivity", it) }
-                        // Store headers as raw string array to extras
-                        headers?.let { put("headers_array", it.toList()) }
-                    }
-                    // DEBUG
-                    // playerStateManager.debugLogAllStates()
-                    // val count = playerStateManager.findMatchingStates(playActivity)
-                    // printLog(TAG, "found matching playActivity $count")
-                    state = playerStateManager.saveState(
-                        activityJson = playActivity,
-                        playlist = playlist,
-                        currentIndex = currentIndex,
-                        currentUrl = videoUrl,
-                        startIndex = currentIndex, // Set startIndex for playback result
-                        extras = extras,
-                        card = card // to match by card in WatchNext
-                    )
-                } catch (e: Exception) {
-                    printLog(TAG, "Failed to save state: ${e.message}")
+            // get most recent state for card
+            val state = if (isContinueWatch && card != null) {
+                playerStateManager.findStateByCard(card)?.also {
+                    headers = getHeadersFromState(it) ?: headers
                 }
+            } else {
+                // create new state
+                val playlist = try {
+                    when {
+                        jsonObject.has("playlist") && playerAutoNext ->
+                            playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
+
+                        else -> listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
+                    }
+                } catch (e: Exception) {
+                    printLog(TAG, "Error converting playlist: ${e.message}")
+                    listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
+                }
+                // safe start index
+                val currentIndex = playlist.indexOfFirst { it.url == videoUrl }.coerceAtLeast(0)
+                // fill required extras
+                val extras = mutableMapOf<String, Any>().apply {
+                    put("isIPTV", isIPTV)
+                    put("isLIVE", isLIVE)
+                    // NOTE: it used in PlayerStateManager for state match
+                    activity?.let { put("lampaActivity", it) }
+                    // Store headers as raw string array to extras
+                    headers?.let { put("headers_array", it.asList()) }
+                }
+                // save new state
+                playerStateManager.saveState(
+                    activityJson = playActivity,
+                    playlist = playlist,
+                    currentIndex = currentIndex,
+                    currentUrl = videoUrl,
+                    startIndex = currentIndex,
+                    extras = extras,
+                    card = card
+                )
             }
             state?.let {
-                // Prepare intent
-                val intent = createBaseIntent(it)
-                intent?.let {
+                createBaseIntent(it)?.let {
                     // Get available players
                     val availablePlayers =
-                        getAvailablePlayers(intent).takeIf { it.isNotEmpty() } ?: run {
+                        getAvailablePlayers(it).takeIf { it.isNotEmpty() } ?: run {
                             App.toast(R.string.no_player_activity_found, true)
                             return
                         }
@@ -2078,7 +2054,7 @@ class MainActivity : BaseActivity(),
                         }) {
                         // Configure and launch the selected player
                         configurePlayerIntent(
-                            intent,
+                            it,
                             selectedPlayer,
                             videoTitle,
                             isIPTV,
@@ -2086,7 +2062,7 @@ class MainActivity : BaseActivity(),
                             headers
                         )
                         // Launch Player
-                        launchPlayer(intent)
+                        launchPlayer(it)
                     } else {
                         // Show player selection dialog
                         showPlayerSelectionDialog(availablePlayers, jsonObject, isIPTV)
@@ -2099,9 +2075,8 @@ class MainActivity : BaseActivity(),
     }
 
     private fun getHeadersFromState(state: PlayerStateManager.PlaybackState): Array<String>? {
-        return (state.extras["headers_array"] as? List<*>)?.let { list ->
-            list.filterIsInstance<String>().toTypedArray()
-        }
+        return (state.extras["headers_array"] as? List<*>)?.filterIsInstance<String>()
+            ?.toTypedArray()
     }
 
     private fun createBaseIntent(
@@ -2222,85 +2197,85 @@ class MainActivity : BaseActivity(),
         }
     }
 
-    private fun preparePlaylist(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
-        if (!jsonObject.has("playlist") || !playerAutoNext) return null
+//    private fun preparePlaylist(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
+//        if (!jsonObject.has("playlist") || !playerAutoNext) return null
+//
+//        return try {
+//            val playlistArray = jsonObject.getJSONArray("playlist")
+//            val listUrls = ArrayList<String>(playlistArray.length())
+//            val listTitles = ArrayList<String>(playlistArray.length())
+//            val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload$".toRegex()
+//
+//            for (i in 0 until playlistArray.length()) {
+//                try {
+//                    val item = playlistArray.getJSONObject(i)
+//                    if (item.has("url")) {
+//                        val url = if (torrserverPreload && internalTorrserve)
+//                            item.optString("url").replace(badLinkPattern, "$1&play")
+//                        else
+//                            item.optString("url")
+//                        if (url != item.optString("url")) {
+//                            item.put("url", url)
+//                            playlistArray.put(i, item)
+//                        }
+//                        listUrls.add(item.optString("url"))
+//                        listTitles.add(
+//                            if (item.has("title")) item.optString("title") else (i + 1).toString()
+//                        )
+//                    }
+//                } catch (e: Exception) {
+//                    Log.w(TAG, "Skipping invalid playlist item at index $i", e)
+//                    continue
+//                }
+//            }
+//
+//            if (listUrls.isEmpty()) return null
+//            Pair(listUrls, listTitles)
+//        } catch (e: JSONException) {
+//            Log.e(TAG, "Error processing playlist array", e)
+//            null
+//        }
+//    }
 
-        return try {
-            val playlistArray = jsonObject.getJSONArray("playlist")
-            val listUrls = ArrayList<String>(playlistArray.length())
-            val listTitles = ArrayList<String>(playlistArray.length())
-            val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload$".toRegex()
+//    private fun prepareSubtitles(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
+//        val subsUrls = ArrayList<String>()
+//        val subsTitles = ArrayList<String>()
+//
+//        return try {
+//            if (jsonObject.has("subtitles")) {
+//                val subtitlesValue = jsonObject.get("subtitles")
+//                // Handle case where subtitles might be a JSONArray or other type
+//                when (subtitlesValue) {
+//                    is JSONArray -> {
+//                        for (i in 0 until subtitlesValue.length()) {
+//                            val sub = subtitlesValue.getJSONObject(i)
+//                            if (sub.has("url")) {
+//                                subsUrls.add(sub.optString("url"))
+//                                subsTitles.add(sub.optString("label", "Sub ${i + 1}"))
+//                            }
+//                        }
+//                        if (subsUrls.isNotEmpty()) Pair(subsUrls, subsTitles) else null
+//                    }
+//
+//                    else -> {
+//                        Log.w(TAG, "Subtitles field exists but is not a JSONArray: $subtitlesValue")
+//                        null
+//                    }
+//                }
+//            } else {
+//                null
+//            }
+//        } catch (e: Exception) {
+//            Log.e(TAG, "Error parsing subtitles", e)
+//            null
+//        }
+//    }
 
-            for (i in 0 until playlistArray.length()) {
-                try {
-                    val item = playlistArray.getJSONObject(i)
-                    if (item.has("url")) {
-                        val url = if (torrserverPreload && internalTorrserve)
-                            item.optString("url").replace(badLinkPattern, "$1&play")
-                        else
-                            item.optString("url")
-                        if (url != item.optString("url")) {
-                            item.put("url", url)
-                            playlistArray.put(i, item)
-                        }
-                        listUrls.add(item.optString("url"))
-                        listTitles.add(
-                            if (item.has("title")) item.optString("title") else (i + 1).toString()
-                        )
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Skipping invalid playlist item at index $i", e)
-                    continue
-                }
-            }
-
-            if (listUrls.isEmpty()) return null
-            Pair(listUrls, listTitles)
-        } catch (e: JSONException) {
-            Log.e(TAG, "Error processing playlist array", e)
-            null
-        }
-    }
-
-    private fun prepareSubtitles(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
-        val subsUrls = ArrayList<String>()
-        val subsTitles = ArrayList<String>()
-
-        return try {
-            if (jsonObject.has("subtitles")) {
-                val subtitlesValue = jsonObject.get("subtitles")
-                // Handle case where subtitles might be a JSONArray or other type
-                when (subtitlesValue) {
-                    is JSONArray -> {
-                        for (i in 0 until subtitlesValue.length()) {
-                            val sub = subtitlesValue.getJSONObject(i)
-                            if (sub.has("url")) {
-                                subsUrls.add(sub.optString("url"))
-                                subsTitles.add(sub.optString("label", "Sub ${i + 1}"))
-                            }
-                        }
-                        if (subsUrls.isNotEmpty()) Pair(subsUrls, subsTitles) else null
-                    }
-
-                    else -> {
-                        Log.w(TAG, "Subtitles field exists but is not a JSONArray: $subtitlesValue")
-                        null
-                    }
-                }
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing subtitles", e)
-            null
-        }
-    }
-
-    private fun hasMultiQualityStreams(jsonObject: JSONObject): Boolean {
-        return jsonObject.optJSONObject("quality")?.let { qualityObj ->
-            qualityObj.keys().asSequence().count() > 1
-        } == true
-    }
+//    private fun hasMultiQualityStreams(jsonObject: JSONObject): Boolean {
+//        return jsonObject.optJSONObject("quality")?.let { qualityObj ->
+//            qualityObj.keys().asSequence().count() > 1
+//        } == true
+//    }
 
     private fun prepareHeaders(jsonObject: JSONObject): Array<String>? {
         val headers = mutableListOf<String>()
