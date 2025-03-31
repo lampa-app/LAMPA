@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
-class CrashActivity : AppCompatActivity() {
+class CrashActivity : BaseActivity() {
 
     private var bottomSheetDialog: BottomSheetDialog? = null
     private lateinit var binding: ActivityCrashBinding
