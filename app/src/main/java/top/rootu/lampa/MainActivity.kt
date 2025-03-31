@@ -373,7 +373,7 @@ class MainActivity : BaseActivity(),
         // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
             // Lazy Load Intent
-            processIntent(intent, 500) // 1000
+            processIntent(intent, 1000) // 1000
 
             lifecycleScope.launch {
                 delay(1000)
@@ -1061,7 +1061,7 @@ class MainActivity : BaseActivity(),
             val activityJson = intent.getStringExtra("lampaActivity") ?: return@launch
             if (isValidJson(activityJson)) {
                 openLampaContent(activityJson, delay) // needed to match state
-                delay(1000) // need to sure content loaded and activity stored
+                delay(delay) // need to sure content loaded and activity stored
                 if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                     val card = getCardFromActivity(activityJson) ?: return@launch
                     val state = playerStateManager.findStateByCard(card) ?: return@launch
