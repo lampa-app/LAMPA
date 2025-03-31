@@ -79,6 +79,7 @@ import top.rootu.lampa.helpers.Backup
 import top.rootu.lampa.helpers.Backup.loadFromBackup
 import top.rootu.lampa.helpers.Backup.saveSettings
 import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
@@ -272,7 +273,7 @@ class MainActivity : BaseActivity(),
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         printLog(TAG, "onNewIntent() processIntent")
-        // setIntent(intent) // getIntent() should always return the most recent
+        setIntent(intent) // getIntent() should always return the most recent
         processIntent(intent)
     }
 
@@ -369,30 +370,28 @@ class MainActivity : BaseActivity(),
         loaderView.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
-        // Dirty hack to skip reload from Back history
+
+        // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
             // Lazy Load Intent
             processIntent(intent, 500) // 1000
-            // Background update Android TV channels and Recommendations
-            printLog(TAG, "onBrowserPageFinished run syncBookmarks()")
+
             lifecycleScope.launch {
-                syncBookmarks()
-            }
-            lifecycleScope.launch(Dispatchers.IO) {
-                Scheduler.scheduleUpdate(false)
-            }
-        }
-        // Sync with Lampa localStorage
-        lifecycleScope.launch {
-            delay(3000)
-            setupListener()
-            syncStorage()
-            changeTmdbUrls()
-            // Create a copy for safe iteration
-            val itemsToProcess = delayedVoidJsFunc.toList()
-            delayedVoidJsFunc.clear() // Clear before processing
-            for (item in itemsToProcess) {
-                runVoidJsFunc(item[0], item[1])
+                delay(1000)
+                setupListener()
+                syncStorage() // Sync with Lampa settings
+                changeTmdbUrls() // Update TMDB proxy URLs
+                syncBookmarks() // Sync Android TV Home user changes
+                // Process delayed functions with safe iteration
+                val itemsToProcess = delayedVoidJsFunc.toList()
+                delayedVoidJsFunc.clear() // Clear before processing
+                for (item in itemsToProcess) {
+                    runVoidJsFunc(item[0], item[1])
+                }
+                // Background update Android TV channels and recommendations
+                withContext(Dispatchers.IO) {
+                    Scheduler.scheduleUpdate(false) // false for one shot, true is onBoot
+                }
             }
         }
     }
@@ -419,6 +418,8 @@ class MainActivity : BaseActivity(),
                 // no Back with no focused webView workaround
                 runVoidJsFunc("window.history.back", "")
             }
+            // Clear any pending intents that might cause reloads
+            intent = Intent() // Reset the intent
         }
     }
 
@@ -519,7 +520,7 @@ class MainActivity : BaseActivity(),
 
         if (BuildConfig.DEBUG) {
             logDebugInfo(data, resultCode, videoUrl)
-            Helpers.debugLogIntentData(TAG, data)
+            debugLogIntentData(TAG, data)
         }
 
         data?.let { intent ->
@@ -938,25 +939,26 @@ class MainActivity : BaseActivity(),
 
     private fun processIntent(intent: Intent?, delay: Long = 0) {
         // Log intent data for debugging
-        Helpers.debugLogIntentData(TAG, intent)
+        debugLogIntentData(TAG, intent)
+        intent ?: return
         // Parse intent extras
-        val sid = intent?.getStringExtra("id") ?: intent?.getIntExtra("id", -1)
+        val sid = intent.getStringExtra("id") ?: intent.getIntExtra("id", -1)
             .toString() // Change to String
-        val mediaType = intent?.getStringExtra("media") ?: ""
-        val source = intent?.getStringExtra("source") ?: lampaSource.ifEmpty { "tmdb" }
+        val mediaType = intent.getStringExtra("media") ?: ""
+        val source = intent.getStringExtra("source") ?: lampaSource.ifEmpty { "tmdb" }
         // Parse intent data
-        intent?.data?.let { uri ->
+        intent.data?.let { uri ->
             parseUriData(intent, uri, delay)
         }
         // Handle PlayNext
-        if (intent?.getBooleanExtra("continueWatch", false) == true) {
+        if (intent.getBooleanExtra("continueWatch", false) == true) {
             handleContinueWatch(intent, delay)
             // Handle opening a card
         } else if (sid != "-1" && mediaType.isNotEmpty()) {
             handleOpenCard(intent, sid, mediaType, source, delay)
         }
         // Handle search command
-        intent?.getStringExtra("cmd")?.let { cmd ->
+        intent.getStringExtra("cmd")?.let { cmd ->
             when (cmd) {
                 "open_settings" -> showMenuDialog()
             }
@@ -1139,6 +1141,8 @@ class MainActivity : BaseActivity(),
         delay(delay)
         runVoidJsFunc("Lampa.Controller.toContent", "")
         runVoidJsFunc("Lampa.Activity.push", json)
+        // TODO: Clear back stack after deep link
+        // browser?.clearHistory()
     }
 
     private fun showMenuDialog() {
@@ -2031,8 +2035,10 @@ class MainActivity : BaseActivity(),
                     "isIPTV" to isIPTV,
                     "isLIVE" to isLIVE
                 )
-                    .apply { // NOTE: it used in PlayerStateManager for state match
+                    .apply {
+                        // NOTE: it used in PlayerStateManager for state match
                         activity?.let { put("lampaActivity", it) }
+                        headers?.let { put("headers", headers.toList()) }
                     }
                 val card = getCardFromActivity(playActivity)
                 // DEBUG
@@ -2117,7 +2123,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         headers: Array<String>? = null,
     ) {
-        val (videoPosition, videoDuration) = getPlaybackPosition(state)
+        val position = getPlaybackPosition(state)
 
         when (playerPackage.lowercase()) {
             in UPLAYER -> {
@@ -2126,7 +2132,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition
+                    position
                 )
             }
 
@@ -2136,7 +2142,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition,
+                    position,
                     headers = headers,
                 )
             }
@@ -2146,7 +2152,7 @@ class MainActivity : BaseActivity(),
                     intent,
                     playerPackage,
                     state = state,
-                    videoPosition,
+                    position,
                     headers = headers,
                 )
             }
@@ -2157,7 +2163,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition,
+                    position,
                 )
             }
 
@@ -2167,7 +2173,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition,
+                    position,
                     headers = headers
                 )
             }
@@ -2178,7 +2184,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition,
+                    position,
                     isIPTV,
                     headers = headers
                 )
@@ -2190,7 +2196,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     videoTitle,
-                    videoPosition,
+                    position,
                     headers,
                 )
             }
@@ -2311,13 +2317,14 @@ class MainActivity : BaseActivity(),
         return if (hasHeaders) headersList.toTypedArray() else null
     }
 
-    private fun getPlaybackPosition(state: PlayerStateManager.PlaybackState): Pair<Long, Long> {
+
+    private fun getPlaybackPosition(state: PlayerStateManager.PlaybackState): Long {
         return if (playerTimeCode == "continue") {
             state.currentItem?.timeline?.let { timeline ->
-                (timeline.time * 1000).toLong() to (timeline.duration * 1000).toLong()
-            } ?: (0L to 0L)
+                (timeline.time * 1000).toLong()
+            } ?: state.currentPosition
         } else {
-            0L to 0L
+            0L
         }
     }
 
@@ -2715,7 +2722,7 @@ class MainActivity : BaseActivity(),
 
     private fun launchPlayer(intent: Intent) {
         try {
-            Helpers.debugLogIntentData(TAG, intent)
+            debugLogIntentData(TAG, intent)
             resultLauncher.launch(intent)
         } catch (e: Exception) {
             printLog(TAG, "Failed to launch player: ${e.message}")
