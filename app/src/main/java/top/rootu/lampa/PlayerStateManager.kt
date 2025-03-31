@@ -71,10 +71,10 @@ class PlayerStateManager(context: Context) {
                 return when {
                     // Case 1: Explicitly marked as completed (100%)
                     timeline.percent >= 100 -> true
-                    // Case 2: Reached near end of content (95% threshold)
-                    timeline.duration > 0 && timeline.time >= timeline.duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE -> true
+                    // Case 2: Reached near end of content (96% threshold)
+                    timeline.duration > 0 && timeline.time >= timeline.duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE / 100 -> true
                     // Case 3: Position reset to start but marked complete
-                    currentPosition <= 0 && timeline.percent >= VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE * 100 -> true
+                    currentPosition <= 0 && timeline.percent >= VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE -> true
                     // Default case: Not ended
                     else -> false
                 }
@@ -196,35 +196,24 @@ class PlayerStateManager(context: Context) {
      * Finds a playback state by matching LampaCard.
      *
      * @param card The LampaCard to search for
-     * @return Matching PlaybackState or null if not found
+     * @return Most recent matching PlaybackState or null if not found
      */
     fun findStateByCard(card: LampaCard): PlaybackState? {
-        return stateCache.values.firstOrNull { state ->
-            (state.extras[LAMPA_CARD_KEY] as? String)?.let { json ->
+        fun matchesCard(state: PlaybackState): Boolean {
+            return (state.extras[LAMPA_CARD_KEY] as? String)?.let { json ->
                 getJson(json, LampaCard::class.java)?.let { storedCard ->
-                    // Match by ID first
                     storedCard.id == card.id ||
-                            // Fallback match by title/year for legacy cases
                             (storedCard.title == card.title && storedCard.release_year == card.release_year)
                 }
             } == true
-        } ?: run {
-            // Check persisted states if not found in cache
-            prefs.all.keys
-                .filter { it.startsWith("state_") }
-                .mapNotNull { key ->
-                    try {
-                        loadPersistedState(key.removePrefix("state_"))
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-                .firstOrNull { state ->
-                    (state.extras[LAMPA_CARD_KEY] as? String)?.let { json ->
-                        getJson(json, LampaCard::class.java)?.id == card.id
-                    } == true
-                }
         }
+
+        return (stateCache.values.filter(::matchesCard) +
+                prefs.all.keys
+                    .filter { it.startsWith("state_") }
+                    .mapNotNull { loadPersistedState(it.removePrefix("state_")) }
+                    .filter(::matchesCard))
+            .maxByOrNull { it.lastUpdated }
     }
 
     /**

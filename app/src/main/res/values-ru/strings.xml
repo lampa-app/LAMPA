@@ -98,7 +98,7 @@
     <string name="app_crash_restart">Перезапустить</string>
     <string name="app_crash_showlog">Показать журнал</string>
     <string name="app_crash_errlogs">Журнал ошибок</string>
-    <string name="error_unknown">Неизвестная ошибка</string>
+    <string name="generic_error">Произошла ошибка</string>
     <!-- Net Errors -->
     <string name="net_error_failed">Ошибка сетевого запроса</string>
     <string name="net_error_timed_out">Таймаут соединения</string>

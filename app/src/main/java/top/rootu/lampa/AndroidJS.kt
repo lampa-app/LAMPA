@@ -1,5 +1,6 @@
 package top.rootu.lampa
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
@@ -216,6 +217,23 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             } catch (e: Exception) {
                 Log.e(TAG, e.message, e)
                 App.toast(R.string.no_youtube_activity_found, true)
+            }
+        }
+    }
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun openBrowser(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        mainActivity.runOnUiThread {
+            try {
+                mainActivity.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Log.e(TAG, "No browser found: ${e.message}")
+                App.toast(R.string.no_activity_found, true)
+            } catch (e: Exception) {
+                Log.e(TAG, "Browser launch failed: ${e.message}", e)
+                App.toast(R.string.generic_error, true)
             }
         }
     }

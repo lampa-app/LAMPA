@@ -101,7 +101,7 @@
     <string name="app_crash_restart">Restart App</string>
     <string name="app_crash_showlog">Show Logs</string>
     <string name="app_crash_errlogs">Error Logs</string>
-    <string name="error_unknown">Unknown Error</string>
+    <string name="generic_error">An error occurred</string>
     <!-- Net Errors -->
     <string name="net_error_failed">Network request failed</string>
     <string name="net_error_timed_out">Connection timed out</string>

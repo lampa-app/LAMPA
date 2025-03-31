@@ -97,7 +97,7 @@
     <string name="app_crash_restart">重新启动应用程序</string>
     <string name="app_crash_showlog">显示日志</string>
     <string name="app_crash_errlogs">错误日志</string>
-    <string name="error_unknown">Unknown Error</string>
+    <string name="generic_error">发生错误</string>
     <!-- Net Errors -->
     <string name="net_error_failed">网络请求失败</string>
     <string name="net_error_timed_out">连接超时</string>

@@ -164,7 +164,7 @@ class MainActivity : BaseActivity(),
         private const val RESULT_VIMU_ENDED = 2
         private const val RESULT_VIMU_START = 3
         private const val RESULT_VIMU_ERROR = 4
-        const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 0.95
+        const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 96
         const val JS_SUCCESS = "SUCCESS"
         const val JS_FAILURE = "FAILED"
         val MX_PLAYER = setOf(
@@ -397,7 +397,7 @@ class MainActivity : BaseActivity(),
     }
 
     private fun isAfterEndCreditsPosition(positionMillis: Long, duration: Long): Boolean {
-        return duration > 0 && positionMillis >= duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
+        return duration > 0 && positionMillis >= duration * VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE / 100
     }
 
     private fun setupActivity() {
@@ -1062,7 +1062,7 @@ class MainActivity : BaseActivity(),
             val activityJson = intent.getStringExtra("lampaActivity") ?: return@launch
             if (isValidJson(activityJson)) {
                 openLampaContent(activityJson, delay) // needed to match state
-                delay(delay)
+                delay(1000) // need to sure content loaded and activity stored
                 if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                     val card = getCardFromActivity(activityJson) ?: return@launch
                     val state = playerStateManager.findStateByCard(card) ?: return@launch
@@ -1982,6 +1982,7 @@ class MainActivity : BaseActivity(),
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject, launchPlayer: String = "", activity: String? = null) {
         try {
+            // printLog(TAG, "runPlayer jsonObject ${jsonObject.toString(2)}")
             // Get activity from Intent of fallback to current
             val playActivity = activity?.takeIf { it.isNotEmpty() } ?: lampaActivity
 
@@ -1999,63 +2000,71 @@ class MainActivity : BaseActivity(),
             val selectedPlayer = launchPlayer.takeIf { it.isNotBlank() }
                 ?: if (isIPTV || isLIVE) tvPlayer else appPlayer
 
-            // Prepare play object
             val videoTitle =
                 jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
 
-            val headers = prepareHeaders(jsonObject)
-
-            // val subs = prepareSubtitles(jsonObject) // initialize
-            // val playlist = preparePlaylist(jsonObject) // initialise
-
+            // Determine object from continueWatch
+            val isContinueWatch = jsonObject.optBoolean("from_state", false)
+            val card = getCardFromActivity(playActivity)
+            var state: PlayerStateManager.PlaybackState? = null
+            var headers = prepareHeaders(jsonObject)
             // DEBUG
-            // playerStateManager.debugLogAllStates()
-            try {
-                // get playlist safely
-                val playlist = try {
-                    when {
-                        jsonObject.has("playlist") && playerAutoNext ->
-                            playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
+            playerStateManager.debugLogAllStates()
 
-                        else ->
-                            listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
+            if (isContinueWatch && card != null) {
+                state = playerStateManager.findStateByCard(card)
+                state?.let { headers = getHeadersFromState(it) }
+            } else {
+                // val subs = prepareSubtitles(jsonObject) // initialize
+                // val playlist = preparePlaylist(jsonObject) // initialise
+                try {
+                    // get playlist safely
+                    val playlist = try {
+                        when {
+                            jsonObject.has("playlist") && playerAutoNext ->
+                                playerStateManager.convertJsonToPlaylist(jsonObject.getJSONArray("playlist"))
+
+                            else ->
+                                listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
+                        }
+                    } catch (e: Exception) {
+                        printLog(TAG, "Error converting playlist: ${e.message}")
+                        listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
                     }
-                } catch (e: Exception) {
-                    printLog(TAG, "Error converting playlist: ${e.message}")
-                    listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
-                }
-                // Find current index safely
-                val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
-                    .coerceAtLeast(0) // Ensure never negative
-                // Set startIndex for playback result
-                val startIndex = currentIndex
+                    // Find current index safely
+                    val currentIndex = playlist.indexOfFirst { it.url == videoUrl }
+                        .coerceAtLeast(0) // Ensure never negative
 
-                // Prepare extras with null-safe card serialization
-                val extras = mutableMapOf<String, Any>(
-                    "isIPTV" to isIPTV,
-                    "isLIVE" to isLIVE
-                )
-                    .apply {
+                    // Prepare extras
+                    val extras = mutableMapOf<String, Any>(
+                        "isIPTV" to isIPTV,
+                        "isLIVE" to isLIVE
+                    ).apply {
                         // NOTE: it used in PlayerStateManager for state match
                         activity?.let { put("lampaActivity", it) }
-                        headers?.let { put("headers", headers.toList()) }
+                        // Store headers as raw string array to extras
+                        headers?.let { put("headers_array", it.toList()) }
                     }
-                val card = getCardFromActivity(playActivity)
-                // DEBUG
-                // playerStateManager.debugLogAllStates()
-                // val count = playerStateManager.findMatchingStates(playActivity)
-                // printLog(TAG, "found matching playActivity $count")
-                val state = playerStateManager.saveState(
-                    activityJson = playActivity,
-                    playlist = playlist,
-                    currentIndex = currentIndex,
-                    currentUrl = videoUrl,
-                    startIndex = startIndex,
-                    extras = extras,
-                    card = card // to match by card in WatchNext
-                )
+                    // DEBUG
+                    // playerStateManager.debugLogAllStates()
+                    // val count = playerStateManager.findMatchingStates(playActivity)
+                    // printLog(TAG, "found matching playActivity $count")
+                    state = playerStateManager.saveState(
+                        activityJson = playActivity,
+                        playlist = playlist,
+                        currentIndex = currentIndex,
+                        currentUrl = videoUrl,
+                        startIndex = currentIndex, // Set startIndex for playback result
+                        extras = extras,
+                        card = card // to match by card in WatchNext
+                    )
+                } catch (e: Exception) {
+                    printLog(TAG, "Failed to save state: ${e.message}")
+                }
+            }
+            state?.let {
                 // Prepare intent
-                val intent = createBaseIntent(state)
+                val intent = createBaseIntent(it)
                 intent?.let {
                     // Get available players
                     val availablePlayers =
@@ -2083,11 +2092,15 @@ class MainActivity : BaseActivity(),
                         showPlayerSelectionDialog(availablePlayers, jsonObject, isIPTV)
                     }
                 }
-            } catch (e: Exception) {
-                printLog(TAG, "Failed to save state: ${e.message}")
             }
         } catch (e: Exception) {
             printLog(TAG, "Unexpected error: ${e.message}")
+        }
+    }
+
+    private fun getHeadersFromState(state: PlayerStateManager.PlaybackState): Array<String>? {
+        return (state.extras["headers_array"] as? List<*>)?.let { list ->
+            list.filterIsInstance<String>().toTypedArray()
         }
     }
 
@@ -2290,31 +2303,47 @@ class MainActivity : BaseActivity(),
     }
 
     private fun prepareHeaders(jsonObject: JSONObject): Array<String>? {
-        val headersList = ArrayList<String>()
+        val headers = mutableListOf<String>()
         var hasHeaders = false
 
+        // Process headers from JSON
         jsonObject.optJSONObject("headers")?.let { headersObj ->
-            headersObj.keys().forEach { key ->
+            val keys = headersObj.keys()
+            var hasCustomUserAgent = false
+
+            while (keys.hasNext()) {
+                val key = keys.next()
                 when (key.lowercase(Locale.getDefault())) {
-                    "user-agent" -> {}  // Handled separately
-                    "content-length" -> {}  // Not needed
+                    "user-agent" -> {
+                        headers.add(key)
+                        headers.add(headersObj.optString(key))
+                        hasCustomUserAgent = true
+                        hasHeaders = true
+                    }
+
+                    "content-length" -> continue  // Skip
                     else -> {
-                        headersList.add(key)
-                        headersList.add(headersObj.optString(key))
+                        headers.add(key)
+                        headers.add(headersObj.optString(key))
                         hasHeaders = true
                     }
                 }
             }
-        }
-
-        // Always add User-Agent if available
-        HttpHelper.userAgent?.let {
-            headersList.add("User-Agent")
-            headersList.add(it)
+            // Add default User-Agent only if not already specified
+            if (!hasCustomUserAgent) {
+                HttpHelper.userAgent?.let {
+                    headers.add("User-Agent")
+                    headers.add(it)
+                    hasHeaders = true
+                }
+            }
+        } ?: HttpHelper.userAgent?.let {  // No headers object case
+            headers.add("User-Agent")
+            headers.add(it)
             hasHeaders = true
         }
 
-        return if (hasHeaders) headersList.toTypedArray() else null
+        return if (hasHeaders) headers.toTypedArray() else null
     }
 
 
@@ -2739,6 +2768,7 @@ class MainActivity : BaseActivity(),
         val listAdapter = AppListAdapter(mainActivity, players)
         val playerChooser = AlertDialog.Builder(mainActivity)
 
+        @SuppressLint("InflateParams")
         val appTitleView = LayoutInflater.from(mainActivity).inflate(R.layout.app_list_title, null)
         val switch = appTitleView.findViewById<SwitchCompat>(R.id.useDefault)
         playerChooser.setCustomTitle(appTitleView)
