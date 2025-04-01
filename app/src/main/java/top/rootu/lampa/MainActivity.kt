@@ -372,11 +372,11 @@ class MainActivity : BaseActivity(),
 
         // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
+            val delay = 1000L // 1s delay after deep link to load content
             // Lazy Load Intent
-            processIntent(intent, 1000) // 1000
-
+            processIntent(intent, delay)
             lifecycleScope.launch {
-                delay(1000)
+                delay(delay)
                 setupListener()
                 syncStorage() // Sync with Lampa settings
                 changeTmdbUrls() // Update TMDB proxy URLs
@@ -1997,16 +1997,16 @@ class MainActivity : BaseActivity(),
                 jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
             val card = getCardFromActivity(playActivity)
 
-            // Header handling
+            // Headers handling
             var headers = prepareHeaders(jsonObject)
 
-            // get most recent state for card
             val state = if (isContinueWatch && card != null) {
+                // Get most recent state for card
                 playerStateManager.findStateByCard(card)?.also {
                     headers = getHeadersFromState(it) ?: headers
                 }
             } else {
-                // create new state
+                // Create new state
                 val playlist = try {
                     when {
                         jsonObject.has("playlist") && playerAutoNext ->
