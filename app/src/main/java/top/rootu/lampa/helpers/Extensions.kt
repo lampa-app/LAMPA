@@ -321,6 +321,7 @@ private fun parseLocaleNoKT(langCode: String): Locale? = try {
         } else {
             Locale(parts[0], parts[2])
         }
+
         else -> null
     }
 } catch (e: Exception) {
@@ -328,11 +329,12 @@ private fun parseLocaleNoKT(langCode: String): Locale? = try {
     null
 }
 
+@Suppress("DEPRECATION")
 private fun Configuration.setLocaleConfiguration(locale: Locale) {
     when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> setLocales(LocaleList(locale))
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 -> setLocale(locale)
-        else -> @Suppress("DEPRECATION") this.locale = locale
+        else -> this.locale = locale
     }
 }
 

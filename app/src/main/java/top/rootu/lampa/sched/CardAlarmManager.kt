@@ -6,8 +6,13 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import top.rootu.lampa.recs.RecsService
 
-class CardAlarmManager : IntentService("CardAlarmManager") {
+@Suppress("DEPRECATION")
+@Deprecated("IntentService is deprecated.")
+class CardAlarmManager private constructor(name: String) : IntentService(name) {
+
     @RequiresApi(Build.VERSION_CODES.KITKAT)
+    @Suppress("DEPRECATION")
+    @Deprecated("Migrate to WorkManager's doWork()")
     override fun onHandleIntent(intent: Intent?) {
         RecsService.updateRecs()
     }

@@ -119,6 +119,7 @@ object RecsService {
         card.background_image?.let { builder.setBackgroundImageUri(it) }
 
         val notification = builder.build().getNotificationObject(context)
+        @Suppress("DEPRECATION")
         notification.priority = index - 5000
 
         if (context.isAmazonDev) {

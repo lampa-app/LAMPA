@@ -90,6 +90,7 @@ object Scheduler {
         val context = App.context
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+        @Suppress("DEPRECATION")
         // Create a PendingIntent for the alarm
         val pendingIntent = Intent(context, CardAlarmManager::class.java).let { intent ->
             PendingIntent.getService(context, CARDS_JOB_ID, intent, 0)
