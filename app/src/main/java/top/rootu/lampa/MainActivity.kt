@@ -2618,15 +2618,13 @@ class MainActivity : BaseActivity(),
         videoTitle: String,
         state: PlayerStateManager.PlaybackState
     ) {
-        // Get first item's hash from state
-        val firstHash = state.playlist.firstOrNull()?.timeline?.hash ?: "0"
-        if (firstHash != "0") {
-            intent.putExtra("playlistTitle", firstHash)
-        }
         // Handle quality variants from current item
         state.currentItem?.quality?.let { qualityMap ->
             if (qualityMap.isNotEmpty()) {
                 intent.apply {
+                    // Set Title
+                    putStringArrayListExtra("titleList", arrayListOf(videoTitle))
+                    // Add Quality
                     putStringArrayListExtra("videoGroupList", ArrayList(qualityMap.keys))
                     qualityMap.forEach { (key, url) ->
                         putStringArrayListExtra(key, arrayListOf(url))
@@ -2636,13 +2634,19 @@ class MainActivity : BaseActivity(),
             }
         }
         // Fallback to normal playlist handling
-        if (state.playlist.isNotEmpty()) {
+        if (state.playlist.size > 1) {
+            printLog(TAG, "playlist is not empty!")
+            // Get first item's hash from state
+            val firstHash = state.playlist.firstOrNull()?.timeline?.hash ?: "0"
+            if (firstHash != "0") {
+                intent.putExtra("playlistTitle", firstHash)
+            }
             val urls = ArrayList<String>()
             val titles = ArrayList<String>()
 
             state.playlist.forEach { item ->
                 urls.add(item.url)
-                titles.add(item.title ?: videoTitle)
+                titles.add(item.title ?: "${state.playlist.indexOf(item) + 1}")
             }
 
             intent.apply {
@@ -2650,9 +2654,6 @@ class MainActivity : BaseActivity(),
                 putStringArrayListExtra("titleList", titles)
                 putExtra("playlistPosition", state.currentIndex)
             }
-        } else {
-            // Single item fallback
-            intent.putStringArrayListExtra("titleList", arrayListOf(videoTitle))
         }
     }
 
