@@ -418,7 +418,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
     }
 
-
     /**
      * Saves valid bookmarks after filtering out invalid ones.
      *

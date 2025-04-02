@@ -175,6 +175,8 @@ dependencies {
     // coroutines
     def coroutinesVersion = '1.7.3' // 1.7.3 - latest version for API 16
     //noinspection GradleDependency
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kp_version" // or jdk7
+    //noinspection GradleDependency
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17

@@ -228,10 +228,9 @@ class MainActivity : BaseActivity(),
         super.onCreate(savedInstanceState)
         LAMPA_URL = appUrl
         SELECTED_PLAYER = appPlayer
-        printLog(
-            TAG,
-            "onCreate SELECTED_BROWSER: $SELECTED_BROWSER LAMPA_URL: $LAMPA_URL SELECTED_PLAYER: $SELECTED_PLAYER"
-        )
+        printLog(TAG, "onCreate SELECTED_BROWSER: $SELECTED_BROWSER")
+        printLog(TAG, "onCreate LAMPA_URL: $LAMPA_URL")
+        printLog(TAG, "onCreate SELECTED_PLAYER: $SELECTED_PLAYER")
         playerStateManager = PlayerStateManager(this).apply {
             purgeOldStates()
         }
@@ -262,8 +261,8 @@ class MainActivity : BaseActivity(),
             browser?.resumeTimers()
         printLog(TAG, "onResume() isSafeForUse ${browser.isSafeForUse()}")
         if (browser.isSafeForUse()) {
-            printLog(TAG, "onResume() run syncBookmarks()")
             lifecycleScope.launch {
+                printLog(TAG, "onResume() run syncBookmarks()")
                 syncBookmarks()
             }
         }
@@ -271,8 +270,8 @@ class MainActivity : BaseActivity(),
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        printLog(TAG, "onNewIntent() processIntent")
         setIntent(intent) // getIntent() should always return the most recent
+        printLog(TAG, "onNewIntent() processIntent")
         processIntent(intent)
     }
 
@@ -2639,7 +2638,6 @@ class MainActivity : BaseActivity(),
         }
         // Fallback to normal playlist handling
         if (state.playlist.size > 1) {
-            printLog(TAG, "playlist is not empty!")
             // Get first item's hash from state
             val firstHash = state.playlist.firstOrNull()?.timeline?.hash ?: "0"
             if (firstHash != "0") {

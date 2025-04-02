@@ -250,7 +250,7 @@ fun Context.copyToClipBoard(errorData: String) {
  * without triggering resource warnings.
  */
 fun Context.setLanguage(): Context {
-    if (appLang.isBlank()) return this
+    if (appLang.isNullOrEmpty()) return this
 
     val locale = parseLocale(appLang) ?: return this
     val config = Configuration(resources.configuration).apply {
@@ -298,6 +298,30 @@ private fun parseLocale(langCode: String): Locale? = try {
 
             else -> null
         }
+    }
+} catch (e: Exception) {
+    Log.e("Language", "Error parsing locale", e)
+    null
+}
+
+private fun parseLocaleNoKT(langCode: String): Locale? = try {
+    val parts = langCode.split("-".toRegex()).toTypedArray()
+        .flatMap { it.split("_".toRegex()) }
+        .toTypedArray()
+
+    when (parts.size) {
+        1 -> Locale(parts[0])
+        2 -> Locale(parts[0], parts[1])
+        3 -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Locale.Builder()
+                .setLanguage(parts[0])
+                .setScript(parts[1])
+                .setRegion(parts[2])
+                .build()
+        } else {
+            Locale(parts[0], parts[2])
+        }
+        else -> null
     }
 } catch (e: Exception) {
     Log.e("Language", "Error parsing locale", e)
