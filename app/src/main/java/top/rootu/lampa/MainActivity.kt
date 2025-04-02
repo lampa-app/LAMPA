@@ -2087,7 +2087,8 @@ class MainActivity : BaseActivity(),
                 data = Uri.parse(currentItem.url)
                 setDataAndType(
                     Uri.parse(currentItem.url),
-                    if (currentItem.url.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else "video/*"
+                    /* if (currentItem.url.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else */
+                    "video/*"
                 )
                 flags = 0 // Clear any default flags
             }
@@ -2131,7 +2132,7 @@ class MainActivity : BaseActivity(),
                     state = state,
                     videoTitle,
                     position,
-                    headers = headers,
+                    headers = headers
                 )
             }
 
@@ -2141,7 +2142,7 @@ class MainActivity : BaseActivity(),
                     playerPackage,
                     state = state,
                     position,
-                    headers = headers,
+                    headers = headers
                 )
             }
 
@@ -2152,6 +2153,7 @@ class MainActivity : BaseActivity(),
                     state = state,
                     videoTitle,
                     position,
+                    // headers = headers
                 )
             }
 
@@ -2162,7 +2164,7 @@ class MainActivity : BaseActivity(),
                     state = state,
                     videoTitle,
                     position,
-                    headers = headers
+                    // headers = headers
                 )
             }
 
@@ -2185,97 +2187,48 @@ class MainActivity : BaseActivity(),
                     state = state,
                     videoTitle,
                     position,
-                    headers,
+                    headers = headers
                 )
             }
 
-            else -> {
+            else -> { // Generic
                 intent.setPackage(playerPackage)
                 // Try to add headers to unknown players as a fallback
                 headers?.let { intent.putExtra("headers", it) }
+                // App playback position
+                when {
+                    playerTimeCode == "continue" || playerTimeCode == "again" && position > 0 -> {
+                        intent.putExtra("position", position.toInt())
+                        // Add precise position if available from state
+                        state.currentItem?.timeline?.time?.toLong()?.let {
+                            intent.putExtra("precise_position", it)
+                        }
+                    }
+                }
+                // Handle quality variants if available
+                state.currentItem?.quality?.takeIf { it.isNotEmpty() }?.let { qualities ->
+                    intent.putExtra("quality_levels", qualities.keys.toTypedArray())
+                    intent.putExtra(
+                        "quality_urls",
+                        qualities.values.map { Uri.parse(it) }.toTypedArray()
+                    )
+                }
+                // Handle playlist if available
+                if (state.playlist.size > 1) {
+                    intent.putExtra(
+                        "playlist",
+                        state.playlist.map { Uri.parse(it.url) }.toTypedArray()
+                    )
+                    intent.putExtra(
+                        "playlist_titles",
+                        state.playlist.map { it.title ?: videoTitle }.toTypedArray()
+                    )
+                }
+                // intent.putExtra("secure_playback", true)
+                intent.putExtra("hw_accel", true)  // Enable hardware acceleration by default
             }
         }
     }
-
-//    private fun preparePlaylist(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
-//        if (!jsonObject.has("playlist") || !playerAutoNext) return null
-//
-//        return try {
-//            val playlistArray = jsonObject.getJSONArray("playlist")
-//            val listUrls = ArrayList<String>(playlistArray.length())
-//            val listTitles = ArrayList<String>(playlistArray.length())
-//            val badLinkPattern = "(/stream/.*?\\?link=.*?&index=\\d+)&preload$".toRegex()
-//
-//            for (i in 0 until playlistArray.length()) {
-//                try {
-//                    val item = playlistArray.getJSONObject(i)
-//                    if (item.has("url")) {
-//                        val url = if (torrserverPreload && internalTorrserve)
-//                            item.optString("url").replace(badLinkPattern, "$1&play")
-//                        else
-//                            item.optString("url")
-//                        if (url != item.optString("url")) {
-//                            item.put("url", url)
-//                            playlistArray.put(i, item)
-//                        }
-//                        listUrls.add(item.optString("url"))
-//                        listTitles.add(
-//                            if (item.has("title")) item.optString("title") else (i + 1).toString()
-//                        )
-//                    }
-//                } catch (e: Exception) {
-//                    Log.w(TAG, "Skipping invalid playlist item at index $i", e)
-//                    continue
-//                }
-//            }
-//
-//            if (listUrls.isEmpty()) return null
-//            Pair(listUrls, listTitles)
-//        } catch (e: JSONException) {
-//            Log.e(TAG, "Error processing playlist array", e)
-//            null
-//        }
-//    }
-
-//    private fun prepareSubtitles(jsonObject: JSONObject): Pair<ArrayList<String>, ArrayList<String>>? {
-//        val subsUrls = ArrayList<String>()
-//        val subsTitles = ArrayList<String>()
-//
-//        return try {
-//            if (jsonObject.has("subtitles")) {
-//                val subtitlesValue = jsonObject.get("subtitles")
-//                // Handle case where subtitles might be a JSONArray or other type
-//                when (subtitlesValue) {
-//                    is JSONArray -> {
-//                        for (i in 0 until subtitlesValue.length()) {
-//                            val sub = subtitlesValue.getJSONObject(i)
-//                            if (sub.has("url")) {
-//                                subsUrls.add(sub.optString("url"))
-//                                subsTitles.add(sub.optString("label", "Sub ${i + 1}"))
-//                            }
-//                        }
-//                        if (subsUrls.isNotEmpty()) Pair(subsUrls, subsTitles) else null
-//                    }
-//
-//                    else -> {
-//                        Log.w(TAG, "Subtitles field exists but is not a JSONArray: $subtitlesValue")
-//                        null
-//                    }
-//                }
-//            } else {
-//                null
-//            }
-//        } catch (e: Exception) {
-//            Log.e(TAG, "Error parsing subtitles", e)
-//            null
-//        }
-//    }
-
-//    private fun hasMultiQualityStreams(jsonObject: JSONObject): Boolean {
-//        return jsonObject.optJSONObject("quality")?.let { qualityObj ->
-//            qualityObj.keys().asSequence().count() > 1
-//        } == true
-//    }
 
     private fun prepareHeaders(jsonObject: JSONObject): Array<String>? {
         val headers = mutableListOf<String>()
@@ -2416,7 +2369,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         videoTitle: String,
         position: Long,
-        headers: Array<String>? = null
+        // headers: Array<String>? = null
     ) {
         intent.apply {
             if (VERSION.SDK_INT > 32) {
@@ -2429,7 +2382,8 @@ class MainActivity : BaseActivity(),
             }
             // Basic video info
             putExtra("title", videoTitle)
-            headers?.let { putExtra("http-headers", it) }
+            // Headers
+            // headers?.let { putExtra("http-headers", it) }
             // Handle playback position
             when {
                 playerTimeCode == "continue" && position > 0 -> {
@@ -2598,21 +2552,17 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         videoTitle: String,
         position: Long,
-        headers: Array<String>? = null,
+        // headers: Array<String>? = null,
         additionalExtras: Bundle? = null
     ) {
         intent.apply {
             setPackage(playerPackage)
             putExtra("title", videoTitle)
-            headers?.let { putExtra("headers", it) }
+            // headers?.let { putExtra("headers", it) }
             // Handle playback position
             when {
                 playerTimeCode == "continue" || playerTimeCode == "again" -> {
                     putExtra("position", position.toInt())
-                    // Add precise position if available from state
-                    state.currentItem?.timeline?.time?.toLong()?.let {
-                        putExtra("precise_position", it)
-                    }
                 }
             }
             // Handle current media item
@@ -2626,29 +2576,11 @@ class MainActivity : BaseActivity(),
                         putExtra("subs.lang", langs.toTypedArray())
                     }
                 }
-                // Handle quality variants if available
-                currentItem.quality?.takeIf { it.isNotEmpty() }?.let { qualities ->
-                    putExtra("quality_levels", qualities.keys.toTypedArray())
-                    putExtra("quality_urls", qualities.values.map { Uri.parse(it) }.toTypedArray())
-                }
-            }
-            // Handle playlist if available
-            if (state.playlist.size > 1) {
-                putExtra(
-                    "playlist",
-                    state.playlist.map { Uri.parse(it.url) }.toTypedArray()
-                )
-                putExtra(
-                    "playlist_titles",
-                    state.playlist.map { it.title ?: videoTitle }.toTypedArray()
-                )
             }
             // Additional custom extras
             additionalExtras?.let { putExtras(it) }
             // Common Brouken player flags
             putExtra("return_result", true)
-            putExtra("secure_playback", true)
-            putExtra("hw_accel", true)  // Enable hardware acceleration by default
         }
     }
 

@@ -35,6 +35,7 @@ import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.Http
+import top.rootu.lampa.recs.RecsService
 import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
@@ -252,24 +253,30 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String, returnI: Int) {
         printLog(TAG, "httpReq JSON $str")
-        val jSONObject: JSONObject?
         try {
-            jSONObject = JSONObject(str)
-            Http.disableH2(jSONObject.optBoolean("disableH2", false))
-            val url = jSONObject.optString("url")
-            val data = jSONObject.opt("post_data")
-            var headers = jSONObject.optJSONObject("headers")
-            val returnHeaders = jSONObject.optBoolean("returnHeaders", false)
-            var contentType = jSONObject.optString("contentType")
-            val timeout = jSONObject.optInt("timeout", 15000)
+            val jsonObject = JSONObject(str)
+            Http.disableH2(jsonObject.optBoolean("disableH2", false))
+
+            // Extract all parameters upfront
+            val url = jsonObject.optString("url").takeIf { it.isNotEmpty() }
+                ?: throw IllegalArgumentException("URL cannot be empty")
+            val data = jsonObject.opt("post_data")
+            val returnHeaders = jsonObject.optBoolean("returnHeaders", false)
+            val timeout = jsonObject.optInt("timeout", 15000).coerceAtLeast(1000)
+            val headers = jsonObject.optJSONObject("headers")?.let {
+                JSONObject(it.toString()) // Create a copy to avoid modifying the original
+            } ?: JSONObject()
+
+            var contentType = jsonObject.optString("contentType")
             var requestContent = ""
+
             if (data != null) {
                 if (data is String) {
                     requestContent = data.toString()
                     contentType = try {
                         JSONObject(requestContent)
                         "application/json"
-                    } catch (e: JSONException) {
+                    } catch (_: JSONException) {
                         "application/x-www-form-urlencoded"
                     }
                 } else if (data is JSONObject) {
@@ -277,11 +284,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     requestContent = data.toString()
                 }
             }
+            // Ensure Content-Type header is properly set
             if (requestContent.isNotEmpty()) {
-                if (headers == null) {
-                    headers = JSONObject()
-                    headers.put("Content-Type", contentType)
-                } else if (!headers.has("Content-Type")) {
+                if (!headers.has("Content-Type")) {
                     if (headers.has("Content-type")) {
                         contentType = headers.optString("Content-type", contentType)
                         headers.remove("Content-type")
@@ -290,51 +295,41 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         contentType = headers.optString("content-type", contentType)
                         headers.remove("content-type")
                     }
-                    headers.put("Content-Type", contentType)
+                    headers.putSafe("Content-Type", contentType)
                 }
             }
             if (url.contains("jacred.", ignoreCase = true)) {
-                if (headers == null) {
-                    headers = JSONObject()
-                }
-                headers.put("Referer", MainActivity.LAMPA_URL)
+                headers.putSafe("Referer", MainActivity.LAMPA_URL)
             }
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
             class LampaAsyncTask : AsyncTask<Void?, String?, String>("LampaAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
-                    var s: String
-                    var action = "complite"
-                    val json: JSONObject?
                     val http = Http()
-                    try {
-                        val responseJSON = if (TextUtils.isEmpty(finalRequestContent)) {
+                    return try {
+                        val responseJSON = if (finalRequestContent.isEmpty()) {
                             // GET
                             http.Get(url, finalHeaders, timeout)
                         } else {
                             // POST
                             http.Post(url, finalRequestContent, finalHeaders, timeout)
                         }
-                        s = if (returnHeaders) {
+                        reqResponse[returnI.toString()] = if (returnHeaders) {
                             responseJSON.toString()
                         } else {
                             responseJSON.optString("body", "")
                         }
+                        "complite"
                     } catch (e: Exception) {
-                        json = JSONObject()
-                        try {
-                            json.put("status", http.lastErrorCode)
-                            json.put("message", "request error: " + e.message)
-                        } catch (jsonException: JSONException) {
-                            jsonException.printStackTrace()
+                        val errorJson = JSONObject().apply {
+                            putSafe("status", http.lastErrorCode)
+                            putSafe("message", "request error: ${e.message ?: "unknown error"}")
                         }
-                        s = json.toString()
-                        action = "error"
-                        e.printStackTrace()
+                        reqResponse[returnI.toString()] = errorJson.toString()
+                        printLog(TAG, "error: ${e.message ?: "unknown error"}")
+                        "error"
                     }
-                    reqResponse[returnI.toString()] = s
-                    return action
                 }
 
                 override fun onPostExecute(result: String?) {
@@ -346,11 +341,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                             .replace("'", "\\'")
                             .replace("\n", "\\\n")
                                 + "')")
-                        browser.evaluateJavascript(js) { value -> Log.i("JSRV", value) }
+                        browser.evaluateJavascript(js) { if (BuildConfig.DEBUG) Log.d(TAG, "$js") }
                     }
                 }
             }
-
             LampaAsyncTask().execute()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -372,23 +366,27 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun openPlayer(link: String, jsonStr: String) {
         printLog(TAG, "openPlayer: $link json:$jsonStr")
-        val jsonObject: JSONObject = try {
-            JSONObject(jsonStr.ifEmpty { "{}" })
-        } catch (e: Exception) {
-            JSONObject()
-        }
-        if (!jsonObject.has("url")) {
-            try {
-                jsonObject.put("url", link)
-            } catch (_: JSONException) {
+        val jsonObject = try {
+            JSONObject(jsonStr.ifEmpty { "{}" }).apply {
+                if (!has("url")) {
+                    putSafe("url", link)
+                }
             }
+        } catch (_: Exception) {
+            JSONObject().apply { putSafe("url", link) }
         }
+
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
+
         // update Recs to filter viewed
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CoroutineScope(Dispatchers.IO).launch {
-                delay(5000)
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(5000)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    RecsService.updateRecs()
+                }
             }
         }
     }
@@ -464,6 +462,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         updateChanByName(where)
                     }
                 }
+
                 LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
                     CoroutineScope(Dispatchers.IO).launch {
@@ -550,6 +549,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @Synchronized
     override fun toString(): String {
         return store.all.toString()
+    }
+
+    private fun JSONObject.putSafe(key: String, value: Any) = try {
+        put(key, value)
+    } catch (_: JSONException) { /* Ignore */
     }
 
     companion object {

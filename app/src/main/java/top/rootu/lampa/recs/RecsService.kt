@@ -34,10 +34,9 @@ object RecsService {
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateRecs() {
-        val context = App.context
-
         if (!isAndroidTV) return
 
+        val context = App.context
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
