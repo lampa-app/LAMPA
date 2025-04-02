@@ -166,23 +166,26 @@ class MainActivity : BaseActivity(),
         const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 96
         const val JS_SUCCESS = "SUCCESS"
         const val JS_FAILURE = "FAILED"
-        val MX_PLAYER = setOf(
-            "com.mxtech.videoplayer.ad",
-            "com.mxtech.videoplayer.pro",
-            "com.mxtech.videoplayer.beta"
+
+        // Player Packages
+        val MX_PACKAGES = setOf(
+            "com.mxtech.videoplayer.ad", // Standard
+            "com.mxtech.videoplayer.pro", // Pro
+            "com.mxtech.videoplayer.beta", // Beta
         )
-        val VIMU = setOf(
-            "net.gtvbox.videoplayer",
-            "net.gtvbox.vimuhd"
+        val UPLAYER_PACKAGES = setOf(
+            "com.uapplication.uplayer",  // Standard
+            "com.uapplication.uplayer.beta", // Beta
         )
-        val UPLAYER = setOf(
-            "com.uapplication.uplayer",
-            "com.uapplication.uplayer.beta"
+        val VIMU_PACKAGES = setOf(
+            "net.gtvbox.videoplayer",  // Standard
+            "net.gtvbox.vimuhd",       // ViMu HD
+            "net.gtvbox.vimu",         // Legacy
         )
-        val BROUKEN_PLAYER = setOf("com.brouken.player")
-        val EXO_PLAYER = setOf("com.exoplayer.gold")
-        val VLC = setOf("org.videolan.vlc")
-        val MPV = setOf("is.xyz.mpv")
+        val EXO_PLAYER_PACKAGES = setOf(
+            "com.google.android.exoplayer2.demo",
+            "com.exoplayer.gold",
+        )
         val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
             "com.android.tv.frameworkpackagestubs",
@@ -2114,7 +2117,8 @@ class MainActivity : BaseActivity(),
         val position = getPlaybackPosition(state)
 
         when (playerPackage.lowercase()) {
-            in UPLAYER -> {
+            // UPlayer
+            in UPLAYER_PACKAGES -> {
                 configureUPlayerIntent(
                     intent,
                     playerPackage,
@@ -2123,8 +2127,8 @@ class MainActivity : BaseActivity(),
                     position
                 )
             }
-
-            in MX_PLAYER -> {
+            // MX Player
+            in MX_PACKAGES -> {
                 configureMxPlayerIntent(
                     intent,
                     playerPackage,
@@ -2134,18 +2138,19 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
-
-            in MPV -> {
+            // MPV
+            "is.xyz.mpv" -> {
                 configureMpvIntent(
                     intent,
                     playerPackage,
                     state = state,
                     position,
                     headers = headers
+
                 )
             }
-
-            in VLC -> {
+            // VLC
+            "org.videolan.vlc" -> {
                 configureVlcIntent(
                     intent,
                     playerPackage,
@@ -2155,8 +2160,8 @@ class MainActivity : BaseActivity(),
                     // headers = headers
                 )
             }
-
-            in BROUKEN_PLAYER -> {
+            // Just Player
+            "com.brouken.player" -> {
                 configureBroukenPlayerIntent(
                     intent,
                     playerPackage,
@@ -2166,8 +2171,8 @@ class MainActivity : BaseActivity(),
                     // headers = headers
                 )
             }
-
-            in VIMU -> {
+            // ViMu
+            in VIMU_PACKAGES -> {
                 configureViMuIntent(
                     intent,
                     playerPackage,
@@ -2178,8 +2183,8 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
-
-            in EXO_PLAYER -> {
+            // Exo Variants
+            in EXO_PLAYER_PACKAGES -> {
                 configureExoPlayerIntent(
                     intent,
                     playerPackage,
@@ -2189,9 +2194,12 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
-
+            // All others
             else -> { // Generic
                 intent.setPackage(playerPackage)
+                // Common title
+                intent.putExtra(Intent.EXTRA_TITLE, videoTitle)
+                intent.putExtra("title", videoTitle) // fallback
                 // Try to add headers to unknown players as a fallback
                 headers?.let { intent.putExtra("headers", it) }
                 // App playback position
@@ -2223,8 +2231,6 @@ class MainActivity : BaseActivity(),
 //                        state.playlist.map { it.title ?: videoTitle }.toTypedArray()
 //                    )
 //                }
-                // intent.putExtra("secure_playback", true)
-                intent.putExtra("hw_accel", true)  // Enable hardware acceleration by default
             }
         }
     }
@@ -2310,7 +2316,9 @@ class MainActivity : BaseActivity(),
                 // Handle subtitles from state
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                     putExtra("subs", subtitles.map { it.url }.toTypedArray())
-                    putExtra("subs.name", subtitles.map { it.label }.toTypedArray())
+                    putExtra("subs.name", subtitles.mapIndexed { index, item ->
+                        item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
+                    }.toTypedArray())
                 }
             }
         }
@@ -2354,7 +2362,9 @@ class MainActivity : BaseActivity(),
             // Handle subtitles from current item
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                 val subUrls = subtitles.map { it.url }
-                val subTitles = subtitles.map { it.label }
+                val subTitles = subtitles.mapIndexed { index, item ->
+                    item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
+                }
 
                 putExtra("subs", subUrls.map(Uri::parse).toTypedArray())
                 putExtra("subs.name", subTitles.toTypedArray())
@@ -2412,10 +2422,16 @@ class MainActivity : BaseActivity(),
                     )
                 }
             }
+            // Debug options
+            if (BuildConfig.DEBUG) {
+                putExtra("verbose", true)
+                putExtra("logcat", true)
+            }
         }
     }
 
     // MPV Player configuration with state integration
+    // https://github.com/pepeloni-away/mpv-android/blob/2b28598fd9f5ba8fd54652e3aee54b1b05ef936c/app/src/main/java/is/xyz/mpv/MPVActivity.kt#L966-L990
     private fun configureMpvIntent(
         intent: Intent,
         playerPackage: String,
@@ -2573,7 +2589,9 @@ class MainActivity : BaseActivity(),
                 // Handle subtitles from state
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                     putExtra("subs", subtitles.map { Uri.parse(it.url) }.toTypedArray())
-                    putExtra("subs.name", subtitles.map { it.label }.toTypedArray())
+                    putExtra("subs.name", subtitles.mapIndexed { index, item ->
+                        item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
+                    }.toTypedArray())
                     // Add language codes if available
                     subtitles.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
                         putExtra("subs.lang", langs.toTypedArray())
@@ -2632,6 +2650,11 @@ class MainActivity : BaseActivity(),
                     qualityMap.forEach { (key, url) ->
                         putStringArrayListExtra(key, arrayListOf(url))
                     }
+                    // Find and set current index
+                    val qualityIndex = qualityMap.values.indexOfFirst { url ->
+                        url == state.currentItem?.url
+                    }.takeIf { it != -1 } ?: 0
+                    putExtra("groupPosition", qualityIndex)
                 }
                 return
             }
