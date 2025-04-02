@@ -2214,16 +2214,16 @@ class MainActivity : BaseActivity(),
                     )
                 }
                 // Handle playlist if available
-                if (state.playlist.size > 1) {
-                    intent.putExtra(
-                        "playlist",
-                        state.playlist.map { Uri.parse(it.url) }.toTypedArray()
-                    )
-                    intent.putExtra(
-                        "playlist_titles",
-                        state.playlist.map { it.title ?: videoTitle }.toTypedArray()
-                    )
-                }
+//                if (state.playlist.size > 1) {
+//                    intent.putExtra(
+//                        "playlist",
+//                        state.playlist.map { Uri.parse(it.url) }.toTypedArray()
+//                    )
+//                    intent.putExtra(
+//                        "playlist_titles",
+//                        state.playlist.map { it.title ?: videoTitle }.toTypedArray()
+//                    )
+//                }
                 // intent.putExtra("secure_playback", true)
                 intent.putExtra("hw_accel", true)  // Enable hardware acceleration by default
             }
@@ -2344,7 +2344,9 @@ class MainActivity : BaseActivity(),
             // Handle playlist from state
             if (state.playlist.isNotEmpty()) {
                 val urls = state.playlist.map { it.url }
-                val titles = state.playlist.map { it.title ?: videoTitle }
+                val titles = state.playlist.mapIndexed { index, item ->
+                    item.title ?: "Item ${index + 1}" // Fallback to "Item 1", "Item 2", etc.
+                }
 
                 putExtra("video_list", urls.map(Uri::parse).toTypedArray())
                 putExtra("video_list.name", titles.toTypedArray())
@@ -2499,7 +2501,9 @@ class MainActivity : BaseActivity(),
         vimuVersion: Long
     ) {
         val urls = state.playlist.map { it.url }
-        val titles = state.playlist.map { it.title ?: "" }
+        val titles = state.playlist.mapIndexed { index, item ->
+            item.title ?: "Item ${index + 1}" // Fallback to "Item 1", "Item 2", etc.
+        }
         val safeIndex = state.currentIndex.coerceIn(0, urls.size - 1)
 
         if (vimuVersion >= 799L) { // 7.99+ version
@@ -2641,12 +2645,13 @@ class MainActivity : BaseActivity(),
             if (firstHash != "0") {
                 intent.putExtra("playlistTitle", firstHash)
             }
+
             val urls = ArrayList<String>()
             val titles = ArrayList<String>()
 
             state.playlist.forEach { item ->
                 urls.add(item.url)
-                titles.add(item.title ?: "${state.playlist.indexOf(item) + 1}")
+                titles.add(item.title ?: "Item ${state.playlist.indexOf(item) + 1}")
             }
 
             intent.apply {
