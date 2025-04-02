@@ -252,7 +252,7 @@ fun Context.copyToClipBoard(errorData: String) {
 fun Context.setLanguage(): Context {
     if (appLang.isNullOrEmpty()) return this
 
-    val locale = parseLocale(appLang) ?: return this
+    val locale = parseLocaleNoKT(appLang) ?: return this
     val config = Configuration(resources.configuration).apply {
         setLocaleConfiguration(locale)
     }
