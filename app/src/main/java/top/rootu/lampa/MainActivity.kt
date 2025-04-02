@@ -1419,7 +1419,6 @@ class MainActivity : BaseActivity(),
         val mainActivity = this
         urlAdapter = UrlAdapter(mainActivity)
         val inputManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        var dialog: AlertDialog? = null
 
         @SuppressLint("InflateParams")
         // Inflate the dialog view
@@ -1437,7 +1436,7 @@ class MainActivity : BaseActivity(),
         }
 
         // Show the dialog
-        dialog = builder.create()
+        val dialog = builder.create()
 
         // Set up the input field
         setupInputField(input, tilt, msg, dialog, inputManager)
