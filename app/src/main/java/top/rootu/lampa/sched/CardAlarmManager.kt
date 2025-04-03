@@ -8,7 +8,7 @@ import top.rootu.lampa.recs.RecsService
 
 @Suppress("DEPRECATION")
 @Deprecated("IntentService is deprecated.")
-class CardAlarmManager private constructor(name: String) : IntentService(name) {
+class CardAlarmManager : IntentService("CardAlarmManager") {
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     @Suppress("DEPRECATION")

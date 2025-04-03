@@ -23,6 +23,7 @@
    public *;
 }
 -keep class kotlin.** { *; }
+-keep class kotlin.collections.** { *; }
 -keep class kotlin.ranges.** { *; }
 -keep class kotlin.sequences.** { *; }
 -keep class kotlin.text.** { *; }
