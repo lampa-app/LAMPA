@@ -250,9 +250,10 @@ fun Context.copyToClipBoard(errorData: String) {
  * without triggering resource warnings.
  */
 fun Context.setLanguage(): Context {
-    if (appLang.isNullOrEmpty()) return this
+    if (appLang.isEmpty()) return this
 
     val locale = parseLocaleNoKT(appLang) ?: return this
+
     val config = Configuration(resources.configuration).apply {
         setLocaleConfiguration(locale)
     }
@@ -275,7 +276,7 @@ fun Context.setLanguage(): Context {
                     }
                 }
             } else {
-                TODO("VERSION.SDK_INT < JELLY_BEAN_MR1")
+                this // TODO("VERSION.SDK_INT < JELLY_BEAN_MR1")
             }
         }
     }
