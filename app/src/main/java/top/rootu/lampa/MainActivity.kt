@@ -83,7 +83,6 @@ import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isValidJson
-import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
 import top.rootu.lampa.helpers.PermHelpers.isInstallPermissionDeclared
@@ -227,13 +226,25 @@ class MainActivity : BaseActivity(),
         lateinit var urlAdapter: ArrayAdapter<String>
     }
 
+    inline fun <reified T> T.logDebug(message: String) {
+        if (BuildConfig.DEBUG) Log.d(T::class.simpleName, message)
+    }
+
+    // adb shell setprop log.tag.MainActivity DEBUG
+    // usage: debugLog<MainActivity> { "..." }
+    inline fun <reified T> debugLog(block: () -> String) {
+        if (BuildConfig.DEBUG || Log.isLoggable(T::class.simpleName, Log.DEBUG)) {
+            Log.d(T::class.simpleName, block())
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LAMPA_URL = appUrl
         SELECTED_PLAYER = appPlayer
-        printLog(TAG, "onCreate SELECTED_BROWSER: $SELECTED_BROWSER")
-        printLog(TAG, "onCreate LAMPA_URL: $LAMPA_URL")
-        printLog(TAG, "onCreate SELECTED_PLAYER: $SELECTED_PLAYER")
+        logDebug("onCreate SELECTED_BROWSER: $SELECTED_BROWSER")
+        logDebug("onCreate LAMPA_URL: $LAMPA_URL")
+        logDebug("onCreate SELECTED_PLAYER: $SELECTED_PLAYER")
         playerStateManager = PlayerStateManager(this).apply {
             purgeOldStates()
         }
@@ -245,10 +256,17 @@ class MainActivity : BaseActivity(),
 
         if (firstRun) {
             CoroutineScope(Dispatchers.IO).launch {
-                printLog(TAG, "First run scheduleUpdate(sync: true)")
+                logDebug("First run scheduleUpdate(sync: true)")
                 Scheduler.scheduleUpdate(true)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent) // getIntent() should always return the most recent
+        logDebug("onNewIntent() processIntent")
+        processIntent(intent)
     }
 
     override fun onResume() {
@@ -259,23 +277,16 @@ class MainActivity : BaseActivity(),
         // returned to current activity. The browser.onResume() will do nothing if
         // the initialization is proceeding or has already been completed.
         mXWalkInitializer?.initAsync()
-        printLog(TAG, "onResume() browserInitComplete $browserInitComplete")
+        logDebug("onResume() browserInitComplete $browserInitComplete")
         if (browserInitComplete)
             browser?.resumeTimers()
-        printLog(TAG, "onResume() isSafeForUse ${browser.isSafeForUse()}")
+        logDebug("onResume() isSafeForUse ${browser.isSafeForUse()}")
         if (browser.isSafeForUse()) {
             lifecycleScope.launch {
-                printLog(TAG, "onResume() run syncBookmarks()")
+                logDebug("onResume() run syncBookmarks()")
                 syncBookmarks()
             }
         }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent) // getIntent() should always return the most recent
-        printLog(TAG, "onNewIntent() processIntent")
-        processIntent(intent)
     }
 
     override fun onPause() {
@@ -302,7 +313,7 @@ class MainActivity : BaseActivity(),
 
     // handle user pressed Home
     override fun onUserLeaveHint() {
-        printLog(TAG, "onUserLeaveHint()")
+        logDebug("onUserLeaveHint()")
         if (browserInitComplete)
             browser?.apply {
                 pauseTimers()
@@ -313,10 +324,13 @@ class MainActivity : BaseActivity(),
 
     // handle configuration changes (language / screen orientation)
     override fun onConfigurationChanged(newConfig: Configuration) {
-        printLog(TAG, "onConfigurationChanged()")
+        logDebug("onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
-        hideSystemUI()
-        showFab(true)
+        lifecycleScope.launch {
+            delay(300) // Small delay for configuration to settle
+            hideSystemUI()
+            showFab(true)
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -324,7 +338,7 @@ class MainActivity : BaseActivity(),
             || keyCode == KeyEvent.KEYCODE_TV_CONTENTS_MENU
             || keyCode == KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU
         ) {
-            printLog(TAG, "Menu key pressed")
+            logDebug("Menu key pressed")
             showMenuDialog()
             return true
         }
@@ -333,7 +347,7 @@ class MainActivity : BaseActivity(),
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            printLog(TAG, "Back button long pressed")
+            logDebug("Back button long pressed")
             showMenuDialog()
             return true
         }
@@ -348,18 +362,18 @@ class MainActivity : BaseActivity(),
             setBackgroundColor(ContextCompat.getColor(baseContext, R.color.lampa_background))
             addJavascriptInterface(AndroidJS(this@MainActivity, this), "AndroidJS")
         }
-        printLog(TAG, "onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
+        logDebug("onBrowserInitCompleted LAMPA_URL: $LAMPA_URL")
         if (LAMPA_URL.isEmpty()) {
-            printLog(TAG, "onBrowserInitCompleted showUrlInputDialog")
+            logDebug("onBrowserInitCompleted showUrlInputDialog")
             showUrlInputDialog()
         } else {
-            printLog(TAG, "onBrowserInitCompleted load $LAMPA_URL")
+            logDebug("onBrowserInitCompleted load $LAMPA_URL")
             browser?.loadUrl(LAMPA_URL)
         }
     }
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
-        printLog(TAG, "onBrowserPageFinished url: $url")
+        logDebug("onBrowserPageFinished url: $url")
         // Restore Lampa settings and reload if migrate flag set
         if (migrate) {
             migrateSettings()
@@ -562,7 +576,7 @@ class MainActivity : BaseActivity(),
     }
 
     private fun logDebugInfo(data: Intent?, resultCode: Int, videoUrl: String) {
-        printLog(TAG, "Returned videoUrl: $videoUrl")
+        logDebug("Returned videoUrl: $videoUrl")
         when (resultCode) {
             RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}")
             RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}")
@@ -740,17 +754,17 @@ class MainActivity : BaseActivity(),
     }
 
     override fun onXWalkInitStarted() {
-        printLog(TAG, "onXWalkInitStarted()")
+        logDebug("onXWalkInitStarted()")
     }
 
     override fun onXWalkInitCancelled() {
-        printLog(TAG, "onXWalkInitCancelled()")
+        logDebug("onXWalkInitCancelled()")
         // Perform error handling here
         finish()
     }
 
     override fun onXWalkInitFailed() {
-        printLog(TAG, "onXWalkInitFailed()")
+        logDebug("onXWalkInitFailed()")
         if (mXWalkUpdater == null) {
             mXWalkUpdater = MyXWalkUpdater(this, this)
         }
@@ -759,14 +773,14 @@ class MainActivity : BaseActivity(),
     }
 
     override fun onXWalkInitCompleted() {
-        printLog(TAG, "onXWalkInitCompleted() isXWalkReady: ${mXWalkInitializer?.isXWalkReady}")
+        logDebug("onXWalkInitCompleted() isXWalkReady: ${mXWalkInitializer?.isXWalkReady}")
         if (mXWalkInitializer?.isXWalkReady == true) {
             useCrossWalk()
         }
     }
 
     override fun onXWalkUpdateCancelled() {
-        printLog(TAG, "onXWalkUpdateCancelled()")
+        logDebug("onXWalkUpdateCancelled()")
         // Perform error handling here
         finish()
     }
@@ -834,7 +848,7 @@ class MainActivity : BaseActivity(),
         withContext(Dispatchers.Main) {
             runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
         }
-        // printLog(TAG, "syncBookmarks() add to wath: ${App.context.wathToAdd}")
+        // logDebug("syncBookmarks() add to wath: ${App.context.wathToAdd}")
         App.context.wathToAdd.forEach { item ->
             val lampaCard = App.context.FAV?.card?.find { it.id == item.id } ?: item.card
             lampaCard?.let { card ->
@@ -865,7 +879,7 @@ class MainActivity : BaseActivity(),
             LampaProvider.CONT to App.context.contToRemove,
             LampaProvider.THRW to App.context.thrwToRemove
         ).forEach { (category, items) ->
-            // printLog(TAG, "syncBookmarks() remove from $category: $items")
+            // logDebug("syncBookmarks() remove from $category: $items")
             items.forEach { id ->
                 withContext(Dispatchers.Main) {
                     runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
@@ -896,7 +910,7 @@ class MainActivity : BaseActivity(),
             """.trimIndent()
         browser?.evaluateJavascript(backupJavascript) { result ->
             if (result.contains(JS_SUCCESS, true)) {
-                printLog(TAG, "localStorage backed up. Result $result")
+                logDebug("localStorage backed up. Result $result")
                 callback(result) // Success
             } else {
                 Log.e(TAG, "Failed to dump localStorage.")
@@ -925,7 +939,7 @@ class MainActivity : BaseActivity(),
             """.trimIndent()
         browser?.evaluateJavascript(restoreJavascript) { result ->
             if (result.contains(JS_SUCCESS, true)) {
-                printLog(TAG, "localStorage restored. Result $result")
+                logDebug("localStorage restored. Result $result")
                 callback(result) // Success
             } else {
                 Log.e(TAG, "Failed to restore localStorage.")
@@ -1093,12 +1107,12 @@ class MainActivity : BaseActivity(),
                                 // Player-specific flag
                                 put("from_state", true)
                             }
-                            // printLog(TAG, "playJsonObj ${playJsonObj.toString(2)}")
+                            // logDebug("playJsonObj ${playJsonObj.toString(2)}")
                             runPlayer(playJsonObj, "", activityJson)
                         }
 
                         else -> {
-                            printLog(TAG, "No matching state found for card")
+                            logDebug("No matching state found for card")
                         }
                     }
                 }
@@ -1632,16 +1646,16 @@ class MainActivity : BaseActivity(),
 
     @SuppressLint("InflateParams")
     fun runPlayer(jsonObject: JSONObject) {
-        printLog(TAG, "runPlayer(jsonObject) - add lampaActivity to params")
+        logDebug("runPlayer(jsonObject) - add lampaActivity to params")
         runPlayer(jsonObject, "", lampaActivity)
     }
 
     fun displaySpeechRecognizer() {
         if (VERSION.SDK_INT < 18) {
             if (!SpeechRecognizer.isRecognitionAvailable(baseContext)) {
-                printLog(TAG, "SpeechRecognizer not available!")
+                logDebug("SpeechRecognizer not available!")
             } else {
-                printLog(TAG, "SpeechRecognizer available!")
+                logDebug("SpeechRecognizer available!")
             }
             // Create an intent that can start the Speech Recognizer activity
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1841,9 +1855,9 @@ class MainActivity : BaseActivity(),
                         langTag.split("-")[0],
                         langTag.split("-")[1]
                     ) else if (langTag.isNotEmpty()) Locale(langTag) else Locale.getDefault()
-                    printLog(TAG, "appLang = $appLang")
-                    printLog(TAG, "langTag = $langTag")
-                    printLog(TAG, "locale = $locale")
+                    logDebug("appLang = $appLang")
+                    logDebug("langTag = $langTag")
+                    logDebug("locale = $locale")
                     setLocale(locale)
                     startListening(progress, object : SpeechDelegate {
                         private var success = true
@@ -1952,7 +1966,7 @@ class MainActivity : BaseActivity(),
 
     fun runVoidJsFunc(funcName: String, params: String) {
         if (browserInitComplete && loaderView.visibility == View.GONE) {
-            printLog(TAG, "runVoidJsFunc $funcName")
+            logDebug("runVoidJsFunc $funcName")
             val js = ("(function(){"
                     + "try {"
                     + funcName + "(" + params + ");"
@@ -1970,7 +1984,7 @@ class MainActivity : BaseActivity(),
                 )
             }
         } else {
-            printLog(TAG, "runVoidJsFunc add to delayedVoidJsFunc $funcName")
+            logDebug("runVoidJsFunc add to delayedVoidJsFunc $funcName")
             delayedVoidJsFunc.add(listOf(funcName, params))
         }
     }
@@ -2016,7 +2030,7 @@ class MainActivity : BaseActivity(),
                         else -> listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
                     }
                 } catch (e: Exception) {
-                    printLog(TAG, "Error converting playlist: ${e.message}")
+                    logDebug("Error converting playlist: ${e.message}")
                     listOf(playerStateManager.convertJsonToPlaylistItem(jsonObject))
                 }
                 // safe start index
@@ -2071,7 +2085,7 @@ class MainActivity : BaseActivity(),
                 }
             }
         } catch (e: Exception) {
-            printLog(TAG, "Unexpected error: ${e.message}")
+            logDebug("Unexpected error: ${e.message}")
         }
     }
 
@@ -2477,7 +2491,7 @@ class MainActivity : BaseActivity(),
         headers: Array<String>? = null
     ) {
         val vimuVersion = getAppVersion(this, playerPackage)?.versionNumber ?: 0L
-        printLog(TAG, "ViMu ($playerPackage) version $vimuVersion")
+        logDebug("ViMu ($playerPackage) version $vimuVersion")
         intent.apply {
             setPackage(playerPackage)
             headers?.let { putExtra("headers", it) }
@@ -2687,7 +2701,7 @@ class MainActivity : BaseActivity(),
             debugLogIntentData(TAG, intent)
             resultLauncher.launch(intent)
         } catch (e: Exception) {
-            printLog(TAG, "Failed to launch player: ${e.message}")
+            logDebug("Failed to launch player: ${e.message}")
             App.toast(R.string.no_launch_player, true)
         }
     }
@@ -2748,7 +2762,7 @@ class MainActivity : BaseActivity(),
     ) {
         // Skip invalid updates where position and duration are 0 but playback hasn't ended
         if (!ended && positionMillis == 0 && durationMillis == 0) {
-            printLog(TAG, "Skipping invalid update - zero position/duration for non-ended playback")
+            logDebug("Skipping invalid update - zero position/duration for non-ended playback")
             return
         }
         lifecycleScope.launch {
@@ -2848,7 +2862,7 @@ class MainActivity : BaseActivity(),
                     "Lampa.Timeline.update",
                     playerStateManager.convertTimelineToJsonString(timeline)
                 )
-                printLog(TAG, "Marked item $index as completed (100%)")
+                logDebug("Marked item $index as completed (100%)")
             }
         }
     }
@@ -2925,7 +2939,7 @@ class MainActivity : BaseActivity(),
                     }
                 }
         } catch (e: JSONException) {
-            printLog(TAG, "Invalid activity JSON: ${e.message}")
+            logDebug("Invalid activity JSON: ${e.message}")
             null
         }
     }
@@ -2944,22 +2958,22 @@ class MainActivity : BaseActivity(),
             // playerStateManager.debugKeyMatching(lampaActivity)
             when {
                 ended -> { // Case 1: Playback ended - remove from Continue Watching
-                    printLog(TAG, "PlayNext: remove ${card.id} and clearState [ended]")
+                    logDebug("PlayNext: remove ${card.id} and clearState [ended]")
                     WatchNext.removeContinueWatch(card) // FIXME: don't remove if added to PlayNext by user
                     playerStateManager.clearState(lampaActivity)
                 }
                 // Case 2: Valid ongoing playback - update Continue Watching
                 state.currentItem != null && !state.isEnded -> {
-                    printLog(TAG, "PlayNext: Updating ${card.id}")
+                    logDebug("PlayNext: Updating ${card.id}")
                     WatchNext.addLastPlayed(card, lampaActivity)
                 }
 
                 else -> { // Case 3: No valid state - just log
-                    printLog(TAG, "PlayNext: No valid playback state for ${card.id}")
+                    logDebug("PlayNext: No valid playback state for ${card.id}")
                 }
             }
         } catch (e: Exception) {
-            printLog(TAG, "Error in updatePlayNext: ${e.javaClass.simpleName} - ${e.message}")
+            logDebug("Error in updatePlayNext: ${e.javaClass.simpleName} - ${e.message}")
         }
     }
 }
