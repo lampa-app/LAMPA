@@ -206,10 +206,17 @@ class MainActivity : BaseActivity(),
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
         private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
         private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
-        private const val IP6_REGEX =
-            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        private const val IP6_REGEX = "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        private const val DOMAIN_REGEX = "([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,}"
         private const val URL_REGEX =
-            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
+            "^https?://" + // Mandatory protocol
+            // "^(https?://)?" + // Protocol (http or https, optional)
+                    "(\\[${IP6_REGEX}]|${IP4_REGEX}|${DOMAIN_REGEX})" +  // IPv6, IPv4, or domain
+                    "(:\\d+)?" +                       // Optional port
+                    "(/[-\\w@:%._+~#=&]*)?" +         // Optional path (allows symbols)
+                    "(\\?[\\w@:%._+~#=&-]*)?" +       // Optional query string
+                    "(#[\\w-]*)?" +                   // Optional fragment
+                    "$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
         // Properties
@@ -1633,9 +1640,7 @@ class MainActivity : BaseActivity(),
 
     // Helper function to validate URLs
     private fun isValidUrl(url: String): Boolean {
-        return if (VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-            Patterns.WEB_URL.matcher(url).matches()
-        else (URL_PATTERN.matcher(url).matches())
+        return URL_PATTERN.matcher(url).matches()
     }
 
     fun appExit() {
