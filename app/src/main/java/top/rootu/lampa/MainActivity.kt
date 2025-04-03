@@ -122,6 +122,7 @@ import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
+import java.util.regex.Pattern
 
 
 class MainActivity : BaseActivity(),
@@ -133,7 +134,6 @@ class MainActivity : BaseActivity(),
     private var browser: Browser? = null
     private var browserInitComplete = false
     private var isMenuVisible = false
-    private var isStorageListenerAdded = false
     private lateinit var loaderView: LottieAnimationView
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
     private lateinit var speechLauncher: ActivityResultLauncher<Intent>
@@ -203,14 +203,14 @@ class MainActivity : BaseActivity(),
             "nextapp.fx",
             // more to add...
         )
-        // private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
-        // private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
-        // private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
-        // private const val IP6_REGEX =
-        //    "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
-        // private const val URL_REGEX =
-        //    "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
-        // private val URL_PATTERN = Pattern.compile(URL_REGEX)
+        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
+        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
+        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
+        private const val IP6_REGEX =
+            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        private const val URL_REGEX =
+            "^https?://(\\[${IP6_REGEX}]|${IP4_REGEX}|([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,})(:\\d+)?(/.*)?$"
+        private val URL_PATTERN = Pattern.compile(URL_REGEX)
 
         // Properties
         var LAMPA_URL: String = ""
@@ -227,7 +227,8 @@ class MainActivity : BaseActivity(),
     }
 
     inline fun <reified T> T.logDebug(message: String) {
-        if (BuildConfig.DEBUG) Log.d(T::class.simpleName, message)
+        if (BuildConfig.DEBUG)
+            Log.d(T::class.simpleName, message)
     }
 
     // adb shell setprop log.tag.MainActivity DEBUG
@@ -386,6 +387,9 @@ class MainActivity : BaseActivity(),
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
 
+        setupListener()
+        syncLanguage()
+
         // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
             val delay = 1000L // 1s delay after deep link to load content
@@ -393,7 +397,6 @@ class MainActivity : BaseActivity(),
             processIntent(intent, delay)
             lifecycleScope.launch {
                 delay(delay)
-                setupListener()
                 syncStorage() // Sync with Lampa settings
                 changeTmdbUrls() // Update TMDB proxy URLs
                 syncBookmarks() // Sync Android TV Home user changes
@@ -806,13 +809,19 @@ class MainActivity : BaseActivity(),
     }
 
     private fun setupListener() {
-        if (!isStorageListenerAdded)
-            runVoidJsFunc(
-                "Lampa.Storage.listener.add",
-                "'change'," +
-                        "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
-            )
-        isStorageListenerAdded = true
+        runVoidJsFunc(
+            "Lampa.Storage.listener.remove",
+            "'change'"
+        )
+        runVoidJsFunc(
+            "Lampa.Storage.listener.add",
+            "'change'," +
+                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
+        )
+    }
+
+    private fun syncLanguage() {
+        runJsStorageChangeField("language") // apply language
     }
 
     private fun syncStorage() {
@@ -821,7 +830,6 @@ class MainActivity : BaseActivity(),
         runJsStorageChangeField("playlist_next")
         runJsStorageChangeField("torrserver_preload")
         runJsStorageChangeField("internal_torrclient")
-        runJsStorageChangeField("language") // apply language
         runJsStorageChangeField("source") // get current catalog
         runJsStorageChangeField("account_use") // get sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
@@ -1625,7 +1633,9 @@ class MainActivity : BaseActivity(),
 
     // Helper function to validate URLs
     private fun isValidUrl(url: String): Boolean {
-        return Patterns.WEB_URL.matcher(url).matches()
+        return if (VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+            Patterns.WEB_URL.matcher(url).matches()
+        else (URL_PATTERN.matcher(url).matches())
     }
 
     fun appExit() {

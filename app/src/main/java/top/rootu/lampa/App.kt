@@ -90,14 +90,11 @@ class App : MultiDexApplication() {
         }
     }
 
-    override fun attachBaseContext(base: Context) {
-        super.attachBaseContext(base.setLanguage())
-    }
-
     override fun onCreate() {
         super.onCreate()
+        // setup applicationContext
         appContext = applicationContext.setLanguage()
-        // Ensure resources are properly initialized
+        // ensure resources are properly initialized
         resources
 
         // register lifecycle observer

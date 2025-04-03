@@ -249,36 +249,45 @@ fun Context.copyToClipBoard(errorData: String) {
  * SAFE language configuration that works for both Application and Activity
  * without triggering resource warnings.
  */
-fun Context.setLanguage(): Context {
-    if (appLang.isEmpty()) return this
+fun Context.setLanguage(langCode: String = appLang): Context {
+    if (langCode.isEmpty()) return this
+    val locale = parseLocaleNoKT(langCode) ?: return this
 
-    val locale = parseLocaleNoKT(appLang) ?: return this
-
-    val config = Configuration(resources.configuration).apply {
-        setLocaleConfiguration(locale)
-    }
-
-    return when (this) {
-        is Application -> {
-            // Application needs direct config update
-            applyAppConfig(config)
-            this
-        }
-
-        else -> {
-            // Activities need new context
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                createConfigurationContext(config).apply {
-                    // Required for API 25+ to fully apply changes
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-                        @Suppress("DEPRECATION")
-                        resources.updateConfiguration(config, resources.displayMetrics)
-                    }
-                }
-            } else {
-                this // TODO("VERSION.SDK_INT < JELLY_BEAN_MR1")
+    return try {
+        val config = Configuration(resources.configuration).apply {
+            @Suppress("DEPRECATION")
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> setLocales(LocaleList(locale))
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 -> setLocale(locale)
+                else -> this.locale = locale
             }
         }
+        when (this) {
+            // Application needs direct config update
+            is Application -> {
+                val res = resources
+                @Suppress("DEPRECATION")
+                res.updateConfiguration(config, res.displayMetrics)
+                this
+            }
+            // Activities need new context
+            else -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    createConfigurationContext(config).apply {
+                        // Required for API 25+ to fully apply changes
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+                            @Suppress("DEPRECATION")
+                            resources.updateConfiguration(config, resources.displayMetrics)
+                        }
+                    }
+                } else {
+                    this // TODO("VERSION.SDK_INT < JELLY_BEAN_MR1")
+                }
+            }
+        }
+    } catch (e: Exception) {
+        Log.d("setLanguage($langCode)", "Failed to set language. $e")
+        this
     }
 }
 
@@ -328,21 +337,6 @@ private fun parseLocaleNoKT(langCode: String): Locale? = try {
 } catch (e: Exception) {
     Log.e("Language", "Error parsing locale", e)
     null
-}
-
-@Suppress("DEPRECATION")
-private fun Configuration.setLocaleConfiguration(locale: Locale) {
-    when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> setLocales(LocaleList(locale))
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 -> setLocale(locale)
-        else -> this.locale = locale
-    }
-}
-
-private fun Context.applyAppConfig(config: Configuration) {
-    val res = resources
-    @Suppress("DEPRECATION")
-    res.updateConfiguration(config, res.displayMetrics)
 }
 
 /**
