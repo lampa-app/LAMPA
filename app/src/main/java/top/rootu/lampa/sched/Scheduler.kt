@@ -76,7 +76,7 @@ object Scheduler {
             schedulerScope.launch {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "jobScheduler call updateCards(sync: $sched)"
+                    "jobScheduler call updateContent(sched: $sched)"
                 )
                 updateContent(sched)
             }
@@ -121,9 +121,8 @@ object Scheduler {
      */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateContent(sync: Boolean) {
-
-        if (isUpdate.compareAndSet(false, true)) return
-
+        if (!isUpdate.compareAndSet(false, true))
+            return // Early return if update is already running
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 if (BuildConfig.DEBUG) Log.d(
