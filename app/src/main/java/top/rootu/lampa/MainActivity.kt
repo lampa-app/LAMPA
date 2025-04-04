@@ -211,7 +211,7 @@ class MainActivity : BaseActivity(),
         private const val URL_REGEX = "^https?://" + // Mandatory protocol
                 // "^(https?://)?" + // Protocol (http or https, optional)
                 "(\\[${IP6_REGEX}]|${IP4_REGEX}|${DOMAIN_REGEX})" +  // IPv6, IPv4, or domain
-                "(:\\d+)?" +                       // Optional port
+                "(:\\d+)?" +                      // Optional port
                 "(/[-\\w@:%._+~#=&]*)?" +         // Optional path (allows symbols)
                 "(\\?[\\w@:%._+~#=&-]*)?" +       // Optional query string
                 "(#[\\w-]*)?" +                   // Optional fragment

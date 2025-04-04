@@ -251,7 +251,8 @@ fun Context.copyToClipBoard(errorData: String) {
  */
 fun Context.setLanguage(langCode: String = appLang): Context {
     if (langCode.isEmpty()) return this
-    val locale = parseLocaleNoKT(langCode) ?: return this
+
+    val locale = parseLocale(langCode) ?: return this
 
     return try {
         val config = Configuration(resources.configuration).apply {
@@ -291,52 +292,48 @@ fun Context.setLanguage(langCode: String = appLang): Context {
     }
 }
 
-private fun parseLocale(langCode: String): Locale? = try {
-    langCode.split("-", "_").let { parts ->
-        when (parts.size) {
-            1 -> Locale(parts[0])
-            2 -> Locale(parts[0], parts[1])
-            3 -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Locale.Builder()
-                    .setLanguage(parts[0])
-                    .setScript(parts[1])
-                    .setRegion(parts[2])
-                    .build()
-            } else {
-                Locale(parts[0], parts[2])
-            }
+private fun parseLocale(langCode: String): Locale? {
+    return try {
+        if (!isValidLanguageCode(langCode))
+            null
+        else
+            langCode.trim().split("-", "_").let { parts ->
+                when (parts.size) {
+                    1 -> Locale(parts[0])
+                    2 -> Locale(parts[0], parts[1])
+                    3 -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        Locale.Builder()
+                            .setLanguage(parts[0])
+                            .setScript(parts[1])
+                            .setRegion(parts[2])
+                            .build()
+                    } else {
+                        Locale(parts[0], parts[2])
+                    }
 
-            else -> null
-        }
+                    else -> null
+                }
+            }
+    } catch (_: Exception) {
+        null
     }
-} catch (e: Exception) {
-    Log.e("Language", "Error parsing locale", e)
-    null
 }
 
-private fun parseLocaleNoKT(langCode: String): Locale? = try {
-    val parts = langCode.split("-".toRegex()).toTypedArray()
-        .flatMap { it.split("_".toRegex()) }
-        .toTypedArray()
-
-    when (parts.size) {
-        1 -> Locale(parts[0])
-        2 -> Locale(parts[0], parts[1])
-        3 -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Locale.Builder()
-                .setLanguage(parts[0])
-                .setScript(parts[1])
-                .setRegion(parts[2])
-                .build()
-        } else {
-            Locale(parts[0], parts[2])
+// val VALID_LANGUAGE_CODES = setOf("en", "ru", "uk", "be", "zh", "pt", "bg", "he", "cs")
+fun isValidLanguageCode(code: String): Boolean {
+    // return code.lowercase() in VALID_LANGUAGE_CODES // Strict validation
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        try {
+            val locale = Locale.forLanguageTag(code)
+            locale.language.isNotEmpty() && !locale.language.equals("und", ignoreCase = true)
+        } catch (_: Exception) {
+            false
         }
-
-        else -> null
+    } else {
+        // Fallback to manual ISO 639 check for older Android versions
+        code.length in 2..3 && Locale.getISOLanguages()
+            .any { it.equals(code, ignoreCase = true) }
     }
-} catch (e: Exception) {
-    Log.e("Language", "Error parsing locale", e)
-    null
 }
 
 /**

@@ -78,13 +78,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
             "language" -> {
                 val newLang = eo.optString("value", "ru")
-                if (mainActivity.appLang != newLang) {
+                if (newLang != "undefined" && mainActivity.appLang != newLang) {
                     App.setAppLanguage(mainActivity, newLang)
                     // mainActivity.appLang = newLang
                     // mainActivity.runOnUiThread { mainActivity.recreate() }
                     printLog(TAG, "language changed to $newLang")
                 } else {
-                    printLog(TAG, "language not changed")
+                    printLog(TAG, "language not changed [${mainActivity.appLang}]")
                 }
             }
 
