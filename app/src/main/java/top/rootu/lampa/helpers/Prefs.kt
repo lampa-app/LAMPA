@@ -30,8 +30,8 @@ object Prefs {
     private const val LAMPA_SOURCE = "source"
     private const val APP_BROWSER = "browser"
     private const val APP_LANG = "lang"
-    private const val TMDB_API = "tmdb_api_url"
-    private const val TMDB_IMG = "tmdb_image_url"
+    private const val TMDB_API_KEY = "tmdb_api_url"
+    private const val TMDB_IMG_KEY = "tmdb_image_url"
     private const val FAV_KEY = "fav"
     private const val REC_KEY = "rec"
     private const val CUB_KEY = "cub"
@@ -88,12 +88,12 @@ object Prefs {
         set(lang) = appPrefs.edit().putString(APP_LANG, lang).apply()
 
     var Context.tmdbApiUrl: String
-        get() = appPrefs.getString(TMDB_API, TMDB.APIURL) ?: TMDB.APIURL
-        set(url) = appPrefs.edit().putString(TMDB_API, url).apply()
+        get() = appPrefs.getString(TMDB_API_KEY, TMDB.APIURL) ?: TMDB.APIURL
+        set(url) = appPrefs.edit().putString(TMDB_API_KEY, url).apply()
 
     var Context.tmdbImgUrl: String
-        get() = appPrefs.getString(TMDB_IMG, TMDB.IMGURL) ?: TMDB.IMGURL
-        set(url) = appPrefs.edit().putString(TMDB_IMG, url).apply()
+        get() = appPrefs.getString(TMDB_IMG_KEY, TMDB.IMGURL) ?: TMDB.IMGURL
+        set(url) = appPrefs.edit().putString(TMDB_IMG_KEY, url).apply()
 
     val Context.firstRun: Boolean
         get() {

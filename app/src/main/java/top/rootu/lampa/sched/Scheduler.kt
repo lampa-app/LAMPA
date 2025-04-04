@@ -76,9 +76,9 @@ object Scheduler {
             schedulerScope.launch {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "jobScheduler call updateContent(sched: $sched)"
+                    "jobScheduler call updateContent(sync = $sched)"
                 )
-                updateContent(sched)
+                updateContent(sync = sched)
             }
         }
     }

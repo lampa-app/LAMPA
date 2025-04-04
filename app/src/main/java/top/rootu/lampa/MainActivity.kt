@@ -228,6 +228,7 @@ class MainActivity : BaseActivity(),
         var playerAutoNext: Boolean = true
         var internalTorrserve: Boolean = false
         var torrserverPreload: Boolean = false
+        var proxyTmdbEnabled: Boolean = false
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
     }
@@ -404,7 +405,7 @@ class MainActivity : BaseActivity(),
             lifecycleScope.launch {
                 delay(delay)
                 syncStorage() // Sync with Lampa settings
-                changeTmdbUrls() // Update TMDB proxy URLs
+                // getLampaTmdbUrls() // Update TMDB proxy URLs
                 syncBookmarks() // Sync Android TV Home user changes
                 // Process delayed functions with safe iteration
                 val itemsToProcess = delayedVoidJsFunc.toList()
@@ -839,9 +840,10 @@ class MainActivity : BaseActivity(),
         runJsStorageChangeField("source") // get current catalog
         runJsStorageChangeField("account_use") // get sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
+        runJsStorageChangeField("proxy_tmdb") // to get current baseUrlApiTMDB and baseUrlImageTMDB
     }
 
-    fun changeTmdbUrls() {
+    fun getLampaTmdbUrls() {
         lifecycleScope.launch {
             runVoidJsFunc(
                 "AndroidJS.storageChange",

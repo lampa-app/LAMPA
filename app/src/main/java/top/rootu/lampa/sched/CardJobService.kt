@@ -24,9 +24,9 @@ class CardJobService : JobService() {
             try {
                 if (BuildConfig.DEBUG) Log.i(
                     "CardJobService",
-                    "CardJobService call updateCards(sync: true)"
+                    "CardJobService call updateContent(sync = true)"
                 )
-                Scheduler.updateContent(true) // Update cards with sync enabled
+                Scheduler.updateContent(sync = true) // Update content with sync enabled
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) Log.e("CardJobService", "Error updating cards", e)
             } finally {

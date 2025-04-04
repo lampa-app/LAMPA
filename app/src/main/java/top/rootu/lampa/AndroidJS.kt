@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
@@ -36,6 +37,7 @@ import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
 import top.rootu.lampa.net.Http
 import top.rootu.lampa.recs.RecsService
+import top.rootu.lampa.tmdb.TMDB
 import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
@@ -93,18 +95,52 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 printLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
             }
 
-            "proxy_tmdb", "protocol" -> {
-                mainActivity.changeTmdbUrls()
+            "proxy_tmdb" -> {
+                val newState = eo.optString("value", "true") == "true"
+                MainActivity.proxyTmdbEnabled = newState
+                printLog(TAG, "proxyTmdbEnabled set to $newState")
+                if (MainActivity.proxyTmdbEnabled) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(15000) // Long enough to wait of setup Lampa mirrors
+                        withContext(Dispatchers.Main) {
+                            mainActivity.getLampaTmdbUrls()
+                        }
+                    }
+                } else {
+                    // store defaults to prefs
+                    printLog(TAG, "Apply default TMDB URLs")
+                    mainActivity.tmdbApiUrl = TMDB.APIURL
+                    mainActivity.tmdbImgUrl = TMDB.IMGURL
+                }
+            }
+
+            "protocol" -> {
+                printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
+                mainActivity.getLampaTmdbUrls()
             }
 
             "baseUrlApiTMDB" -> {
-                mainActivity.tmdbApiUrl = eo.optString("value", mainActivity.tmdbApiUrl)
-                printLog(TAG, "baseUrlApiTMDB set to ${mainActivity.tmdbApiUrl}")
+                val newUrl = eo.optString("value", TMDB.APIURL)
+                if (newUrl.startsWith("http", true) &&
+                    !newUrl.contains(mainActivity.tmdbApiUrl, true)
+                ) {
+                    mainActivity.tmdbApiUrl = newUrl
+                    printLog(TAG, "baseUrlApiTMDB changed, tmdbApiUrl ${mainActivity.tmdbApiUrl}")
+                } else {
+                    printLog(TAG, "baseUrlApiTMDB changed, tmdbApiUrl not changed: ${mainActivity.tmdbApiUrl}")
+                }
             }
 
             "baseUrlImageTMDB" -> {
-                mainActivity.tmdbImgUrl = eo.optString("value", mainActivity.tmdbImgUrl)
-                printLog(TAG, "baseUrlImageTMDB set to ${mainActivity.tmdbImgUrl}")
+                val newUrl = eo.optString("value", TMDB.IMGURL)
+                if (newUrl.startsWith("http", true) &&
+                    !newUrl.contains(mainActivity.tmdbImgUrl, true)
+                ) {
+                    mainActivity.tmdbImgUrl = newUrl
+                    printLog(TAG, "baseUrlImageTMDB changed, tmdbImgUrl ${mainActivity.tmdbImgUrl}")
+                } else {
+                    printLog(TAG, "baseUrlImageTMDB changed, tmdbImgUrl not changed: ${mainActivity.tmdbImgUrl}")
+                }
             }
 
             "favorite" -> {
