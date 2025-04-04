@@ -1175,9 +1175,6 @@ class MainActivity : BaseActivity(),
     }
 
     private fun showMenuDialog() {
-        val mainActivity = this
-        val dialogBuilder = AlertDialog.Builder(mainActivity)
-
         // Define menu items
         val menuItems = mutableListOf(
             MenuItem(
@@ -1219,45 +1216,45 @@ class MainActivity : BaseActivity(),
 
         // Set up the adapter
         val adapter = ImgArrayAdapter(
-            mainActivity,
+            this,
             menuItems.map { it.title }.toList(),
             menuItems.map { it.icon }.toList()
         )
 
         // Configure the dialog
-        dialogBuilder.setTitle(getString(R.string.menu_title))
-        dialogBuilder.setAdapter(adapter) { dialog, which ->
-            dialog.dismiss()
-            when (menuItems[which].action) {
-                "updateOrClose" -> {
-                    if (isAndroidTV) {
-                        Scheduler.scheduleUpdate(false)
+        val dialog = AlertDialog.Builder(this).apply {
+            setTitle(getString(R.string.menu_title))
+            setAdapter(adapter) { dialog, which ->
+                dialog.dismiss()
+                when (menuItems[which].action) {
+                    "updateOrClose" -> {
+                        if (isAndroidTV) {
+                            Scheduler.scheduleUpdate(false)
+                        }
                     }
-                }
 
-                "showUrlInputDialog" -> {
-                    App.toast(R.string.change_note)
-                    showUrlInputDialog()
-                }
+                    "showUrlInputDialog" -> {
+                        App.toast(R.string.change_note)
+                        showUrlInputDialog()
+                    }
 
-                "showBrowserInputDialog" -> {
-                    App.toast(R.string.change_note)
-                    showBrowserInputDialog()
-                }
+                    "showBrowserInputDialog" -> {
+                        App.toast(R.string.change_note)
+                        showBrowserInputDialog()
+                    }
 
-                "showBackupDialog" -> showBackupDialog()
-                "appExit" -> appExit()
+                    "showBackupDialog" -> showBackupDialog()
+                    "appExit" -> appExit()
+                }
             }
-        }
-
-        // Set dismiss listener
-        dialogBuilder.setOnDismissListener {
-            isMenuVisible = false
-            showFab(true)
-        }
-
-        // Show the dialog
-        showFullScreenDialog(dialogBuilder.create())
+            // Set dismiss listener
+            setOnDismissListener {
+                isMenuVisible = false
+                showFab(true)
+            }
+        }.create()
+        // Show full screen dialog
+        showFullScreenDialog(dialog)
         isMenuVisible = true
     }
 
@@ -1318,8 +1315,6 @@ class MainActivity : BaseActivity(),
     }
 
     private fun showBackupDialog() {
-        val mainActivity = this
-        val dialogBuilder = AlertDialog.Builder(mainActivity)
 
         // Define menu items
         val menuItems = listOf(
@@ -1347,25 +1342,26 @@ class MainActivity : BaseActivity(),
 
         // Set up the adapter
         val adapter = ImgArrayAdapter(
-            mainActivity,
+            this,
             menuItems.map { it.title }.toList(),
             menuItems.map { it.icon }.toList()
         )
 
         // Configure the dialog
-        dialogBuilder.setTitle(getString(R.string.backup_restore_title))
-        dialogBuilder.setAdapter(adapter) { dialog, which ->
-            dialog.dismiss()
-            when (menuItems[which].action) {
-                "backupAllSettings" -> backupAllSettings()
-                "restoreAppSettings" -> restoreAppSettings()
-                "restoreLampaSettings" -> restoreLampaSettings()
-                "restoreDefaultSettings" -> restoreDefaultSettings()
+        val dialog = AlertDialog.Builder(this).apply {
+            setTitle(getString(R.string.backup_restore_title))
+            setAdapter(adapter) { dialog, which ->
+                dialog.dismiss()
+                when (menuItems[which].action) {
+                    "backupAllSettings" -> backupAllSettings()
+                    "restoreAppSettings" -> restoreAppSettings()
+                    "restoreLampaSettings" -> restoreLampaSettings()
+                    "restoreDefaultSettings" -> restoreDefaultSettings()
+                }
             }
-        }
-
+        }.create()
         // Show the dialog
-        showFullScreenDialog(dialogBuilder.create())
+        showFullScreenDialog(dialog)
         // Set active row
         adapter.setSelectedItem(0)
 
@@ -1376,71 +1372,73 @@ class MainActivity : BaseActivity(),
     }
 
     private fun showBrowserInputDialog() {
-        val mainActivity = this
-        val dialogBuilder = AlertDialog.Builder(mainActivity)
+
         val xWalkVersion = "53.589.4"
         var selectedIndex = 0
 
         // Determine available browser options
-        val (menuItemsTitle, menuItemsAction, icons) = if (Helpers.isWebViewAvailable(this)) {
-            val webViewVersion = Helpers.getWebViewVersion(mainActivity)
-            val webViewMajorVersion = try {
-                webViewVersion.substringBefore(".").toDouble()
-            } catch (_: NumberFormatException) {
-                0.0
+        val (menuItemsTitles, menuItemsActions, menuIcons) =
+            if (Helpers.isWebViewAvailable(this)) {
+                val webViewVersion = Helpers.getWebViewVersion(this)
+                val webViewMajorVersion = try {
+                    webViewVersion.substringBefore(".").toDouble()
+                } catch (_: NumberFormatException) {
+                    0.0
+                }
+
+                val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
+
+                val crosswalkTitle = if (isCrosswalkActive) {
+                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
+                } else {
+                    if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} $xWalkVersion"
+                    else "${getString(R.string.engine_crosswalk)} $xWalkVersion"
+                }
+
+                val webkitTitle = if (isCrosswalkActive) {
+                    "${getString(R.string.engine_webkit)} $webViewVersion"
+                } else {
+                    "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $webViewVersion"
+                }
+
+                val titles = listOf(crosswalkTitle, webkitTitle)
+                val actions = listOf("XWalk", "SysView")
+                val icons = listOf(R.drawable.round_explorer_24, R.drawable.round_explorer_24)
+                selectedIndex = if (isCrosswalkActive) 0 else 1
+
+                Triple(titles, actions, icons)
+            } else { // No WebView
+                val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
+                    "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
+                } else {
+                    "${getString(R.string.engine_crosswalk)} $xWalkVersion"
+                }
+
+                val titles = listOf(crosswalkTitle)
+                val actions = listOf("XWalk")
+                val icons = listOf(R.drawable.round_explorer_24)
+
+                Triple(titles, actions, icons)
             }
-
-            val isCrosswalkActive = SELECTED_BROWSER == "XWalk"
-
-            val crosswalkTitle = if (isCrosswalkActive) {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
-            } else {
-                if (webViewMajorVersion > 53.589) "${getString(R.string.engine_crosswalk_obsolete)} $xWalkVersion"
-                else "${getString(R.string.engine_crosswalk)} $xWalkVersion"
-            }
-
-            val webkitTitle = if (isCrosswalkActive) {
-                "${getString(R.string.engine_webkit)} $webViewVersion"
-            } else {
-                "${getString(R.string.engine_webkit)} - ${getString(R.string.engine_active)} $webViewVersion"
-            }
-
-            val titles = listOf(crosswalkTitle, webkitTitle)
-            val actions = listOf("XWalk", "SysView")
-            val icons = listOf(R.drawable.round_explorer_24, R.drawable.round_explorer_24)
-            selectedIndex = if (isCrosswalkActive) 0 else 1
-
-            Triple(titles, actions, icons)
-        } else { // No WebView
-            val crosswalkTitle = if (SELECTED_BROWSER == "XWalk") {
-                "${getString(R.string.engine_crosswalk)} - ${getString(R.string.engine_active)} $xWalkVersion"
-            } else {
-                "${getString(R.string.engine_crosswalk)} $xWalkVersion"
-            }
-
-            val titles = listOf(crosswalkTitle)
-            val actions = listOf("XWalk")
-            val icons = listOf(R.drawable.round_explorer_24)
-
-            Triple(titles, actions, icons)
-        }
 
         // Set up the adapter
-        val adapter = ImgArrayAdapter(mainActivity, menuItemsTitle, icons)
-        adapter.setSelectedItem(selectedIndex)
-
-        // Configure the dialog
-        dialogBuilder.setTitle(getString(R.string.change_engine_title))
-        dialogBuilder.setAdapter(adapter) { dialog, which ->
-            dialog.dismiss()
-            if (menuItemsAction[which] != SELECTED_BROWSER) {
-                appBrowser = menuItemsAction[which]
-                mainActivity.recreate()
-            }
+        val adapter = ImgArrayAdapter(this, menuItemsTitles, menuIcons).apply {
+            setSelectedItem(selectedIndex)
         }
 
+        // Configure the dialog
+        val dialog = AlertDialog.Builder(this).apply {
+            setTitle(getString(R.string.change_engine_title))
+            setAdapter(adapter) { dialog, which ->
+                dialog.dismiss()
+                if (menuItemsActions[which] != SELECTED_BROWSER) {
+                    appBrowser = menuItemsActions[which]
+                    this@MainActivity.recreate()
+                }
+            }
+        }.create()
         // Show the dialog
-        showFullScreenDialog(dialogBuilder.create())
+        showFullScreenDialog(dialog)
     }
 
     fun showUrlInputDialog(msg: String = "") {

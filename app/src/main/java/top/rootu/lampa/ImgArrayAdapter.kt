@@ -2,17 +2,17 @@ package top.rootu.lampa
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.os.Build
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.ListView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 
 @SuppressLint("ResourceType")
-class ImgArrayAdapter constructor(
+class ImgArrayAdapter(
     context: Context,
     items: List<String?>,
     val images: List<Int>,
@@ -55,6 +55,10 @@ class ImgArrayAdapter constructor(
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = super.getView(position, convertView, parent).apply {
             findViewById<TextView>(android.R.id.text1)?.configureTextView(position)
+            if (position == selectedItem) {
+                // Set focus on selected position
+                (parent as ListView).setSelectionFromTop(position, top)
+            }
         }
         return view
     }
@@ -68,13 +72,14 @@ class ImgArrayAdapter constructor(
         } else {
             setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
         }
-
         compoundDrawablePadding = drawablePaddingPx
         textSize = 18f
         maxLines = 2
-
-        background = if (position == selectedItem) activeBg else null
-        setBackgroundColor(if (position == selectedItem) Color.TRANSPARENT else transparentColor)
+        if (position == selectedItem) {
+            background = activeBg
+        } else {
+            setBackgroundColor(transparentColor)
+        }
     }
 
     fun setSelectedItem(position: Int) {
