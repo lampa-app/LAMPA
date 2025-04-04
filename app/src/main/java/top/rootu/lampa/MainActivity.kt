@@ -181,8 +181,8 @@ class MainActivity : BaseActivity(),
             "net.gtvbox.vimu",         // Legacy
         )
         val EXO_PLAYER_PACKAGES = setOf(
-            "com.google.android.exoplayer2.demo",
-            "com.exoplayer.gold",
+            "com.google.android.exoplayer2.demo", // v2, Legacy
+            "androidx.media3.demo.main", // v3, current
         )
         val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
@@ -2247,17 +2247,6 @@ class MainActivity : BaseActivity(),
                         qualities.values.map { Uri.parse(it) }.toTypedArray()
                     )
                 }
-                // Handle playlist if available
-//                if (state.playlist.size > 1) {
-//                    intent.putExtra(
-//                        "playlist",
-//                        state.playlist.map { Uri.parse(it.url) }.toTypedArray()
-//                    )
-//                    intent.putExtra(
-//                        "playlist_titles",
-//                        state.playlist.map { it.title ?: videoTitle }.toTypedArray()
-//                    )
-//                }
             }
         }
     }
@@ -2317,6 +2306,8 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    // https://github.com/androidx/media/blob/release/demos/main/src/main/java/androidx/media3/demo/main/IntentUtil.java
+    // https://github.com/androidx/media/blob/release/demos/main/src/main/java/androidx/media3/demo/main/PlayerActivity.java
     private fun configureExoPlayerIntent(
         intent: Intent,
         playerPackage: String,
@@ -2328,8 +2319,8 @@ class MainActivity : BaseActivity(),
         intent.apply {
             setPackage(playerPackage)
             putExtra("title", videoTitle)
-            putExtra("secure_uri", true)
-            headers?.let { putExtra("headers", it) }
+            // putExtra("secure_uri", true)
+            // headers?.let { putExtra("headers", it) }
             // Handle playback position
             when {
                 playerTimeCode == "continue" && position > 0 ->
@@ -2342,10 +2333,56 @@ class MainActivity : BaseActivity(),
             state.currentItem?.let { currentItem ->
                 // Handle subtitles from state
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
-                    putExtra("subs", subtitles.map { it.url }.toTypedArray())
-                    putExtra("subs.name", subtitles.mapIndexed { index, item ->
-                        item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
-                    }.toTypedArray())
+                    if (playerPackage == "com.google.android.exoplayer2.demo") {
+                        putExtra(
+                            "subtitle_uris", // arrayOf("http://example.com/sub.srt"))
+                            subtitles.map { Uri.parse(it.url).toString() }.toTypedArray()
+                        )
+                        putExtra(
+                            "subtitle_labels", // arrayOf("English"))
+                            subtitles.mapIndexed { index, item ->
+                                item.label.takeIf { it.isNotEmpty() }
+                                    ?: "Sub ${
+                                        item.language?.uppercase().takeIf { !it.isNullOrEmpty() }
+                                            ?: "${index + 1}"
+                                    }"
+                            }.toTypedArray()
+                        )
+                    } else { // v3 Subtitles (single track)
+                        subtitles.firstOrNull()?.let { sub ->
+                            putExtra("subtitle_uri", sub.url)
+                            putExtra("subtitle_mime_type", "text/vtt") // Set actual MIME type
+                            putExtra("subtitle_language", sub.language ?: "") // N/A
+                        }
+                    }
+                }
+            }
+            // Handle playlist if available (Old format)
+            if (state.playlist.size > 1) {
+                if (playerPackage == "com.google.android.exoplayer2.demo") {
+                    intent.putExtra(
+                        "media_uris", // String[]
+                        state.playlist.map { Uri.parse(it.url).toString() }.toTypedArray()
+                    )
+                    intent.putExtra(
+                        "media_titles", // String[]
+                        state.playlist.mapIndexed { index, item ->
+                            item.title ?: "Video ${index + 1}"
+                        }
+                            .toTypedArray()
+                    )
+                    intent.putExtra( // Int
+                        "start_index",
+                        state.currentIndex.coerceIn(0, state.playlist.size - 1)
+                    )
+                } else { // v3
+                    // Playlist (indexed format)
+                    state.playlist.forEachIndexed { index, item ->
+                        intent.putExtra("uri_$index", Uri.parse(item.url).toString())
+                        intent.putExtra(
+                            "title_$index",
+                            item.title.takeIf { !it.isNullOrEmpty() } ?: "Video ${index + 1}")
+                    }
                 }
             }
         }
@@ -2401,6 +2438,8 @@ class MainActivity : BaseActivity(),
     }
 
     // VLC Player configuration with state integration
+    // https://code.videolan.org/videolan/vlc-android/-/blob/master/application/resources/src/main/java/org/videolan/resources/Constants.kt
+    // https://code.videolan.org/videolan/vlc-android/-/blob/master/application/vlc-android/src/org/videolan/vlc/gui/video/VideoPlayerActivity.kt
     private fun configureVlcIntent(
         intent: Intent,
         playerPackage: String,
@@ -2435,25 +2474,20 @@ class MainActivity : BaseActivity(),
                 }
             }
             // Add duration from current item's timeline if available
-            state.currentItem?.timeline?.duration?.toLong()?.let {
-                if (it > 0) putExtra("extra_duration", it)
-            }
+            // state.currentItem?.timeline?.duration?.toLong()?.let {
+            //    if (it > 0) putExtra("extra_duration", it)
+            // }
             // Handle subtitles from state
-            state.currentItem?.subtitles?.firstOrNull()?.let { firstSub ->
-                putExtra("subtitles_location", firstSub.url)
-                // For VLC 3.5+ that supports multiple subtitles
-                if (VERSION.SDK_INT >= 30 && state.currentItem?.subtitles?.size!! > 1) {
-                    putExtra(
-                        "subtitles_extra",
-                        state.currentItem?.subtitles?.drop(1)?.map { it.url }?.toTypedArray()
-                    )
-                }
-            }
-            // Debug options
-            if (BuildConfig.DEBUG) {
-                putExtra("verbose", true)
-                putExtra("logcat", true)
-            }
+            // state.currentItem?.subtitles?.firstOrNull()?.let { firstSub ->
+            // putExtra("subtitles_location", firstSub.url)
+            // For VLC 3.5+ that supports multiple subtitles (this is for local URIs)
+            // if (VERSION.SDK_INT >= 30 && state.currentItem?.subtitles?.size!! > 1) {
+            //    putExtra(
+            //        "subtitles_extra",
+            //        state.currentItem?.subtitles?.drop(1)?.map { Uri.parse(it.url).toString() }?.toTypedArray()
+            //    )
+            // }
+            // }
         }
     }
 
@@ -2486,7 +2520,7 @@ class MainActivity : BaseActivity(),
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                 // MPV can handle multiple subtitle tracks
-                putExtra("subs", subs.map { Uri.parse(it.url) }.toTypedArray())
+                putExtra("subs", subs.map { Uri.parse(it.url) }.toTypedArray()) // Parcelable[]
                 // Add language information if available
                 subs.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
                     putExtra("subs_langs", langs.toTypedArray())
@@ -2542,7 +2576,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         vimuVersion: Long
     ) {
-        val urls = state.playlist.map { it.url }
+        val urls = state.playlist.map { Uri.parse(it.url).toString() }
         val titles = state.playlist.mapIndexed { index, item ->
             item.title ?: "Item ${index + 1}" // Fallback to "Item 1", "Item 2", etc.
         }
@@ -2580,7 +2614,7 @@ class MainActivity : BaseActivity(),
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                     putStringArrayListExtra(
                         "asussrtlist",
-                        subtitles.map { it.url }.toCollection(ArrayList())
+                        subtitles.map { Uri.parse(it.url).toString() }.toCollection(ArrayList())
                     )
                 }
                 if (isIPTV) {
@@ -2615,14 +2649,17 @@ class MainActivity : BaseActivity(),
             state.currentItem?.let { currentItem ->
                 // Handle subtitles from state
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
-                    putExtra("subs", subtitles.map { Uri.parse(it.url) }.toTypedArray())
-                    putExtra("subs.name", subtitles.mapIndexed { index, item ->
+                    putExtra(
+                        "subs",
+                        subtitles.map { Uri.parse(it.url) }.toTypedArray()
+                    ) // Parcelable[]
+                    putExtra("subs.name", subtitles.mapIndexed { index, item -> // String[]
                         item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
                     }.toTypedArray())
                     // Add language codes if available
-                    subtitles.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
-                        putExtra("subs.lang", langs.toTypedArray())
-                    }
+                    // subtitles.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
+                    //    putExtra("subs.lang", langs.toTypedArray())
+                    // }
                 }
             }
             // Additional custom extras
@@ -2698,7 +2735,7 @@ class MainActivity : BaseActivity(),
             val titles = ArrayList<String>()
 
             state.playlist.forEach { item ->
-                urls.add(item.url)
+                urls.add(Uri.parse(item.url).toString())
                 titles.add(item.title ?: "Item ${state.playlist.indexOf(item) + 1}")
             }
 
@@ -2940,7 +2977,12 @@ class MainActivity : BaseActivity(),
         item: PlayerStateManager.PlaylistItem,
         videoUrl: String
     ): Boolean {
-        return item.url == videoUrl || item.quality?.values?.any { it == videoUrl } == true
+        val normalizedInputUrl = Uri.parse(videoUrl).toString()
+
+        return Uri.parse(item.url).toString() == normalizedInputUrl ||
+                item.quality?.values?.any { qualityUrl ->
+                    qualityUrl.isNotEmpty() && Uri.parse(qualityUrl).toString() == normalizedInputUrl
+                } == true
     }
 
     private fun getCardFromActivity(activityJson: String?): LampaCard? {
