@@ -41,6 +41,41 @@ val Context.isGoogleTV: Boolean // wide posters
         return packageManager.hasSystemFeature("com.google.android.tv") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     }
 
+val Context.isTvBox: Boolean
+    get() {
+        val pm = packageManager
+        // TV for sure
+        val uiModeManager =
+            getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+        if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
+            return true
+        }
+        if (isAmazonDev) {
+            return true
+        }
+        // Missing Files app (DocumentsUI) means box (some boxes still have non functional app or stub)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            if (!hasSAFChooser(pm)) {
+                return true
+            }
+        }
+        // Legacy storage no longer works on Android 11 (level 30)
+        if (Build.VERSION.SDK_INT < 30) {
+            // (Some boxes still report touchscreen feature)
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+                return true
+            }
+            if (pm.hasSystemFeature("android.hardware.hdmi.cec")) {
+                return true
+            }
+            if (Build.MANUFACTURER.equals("zidoo", ignoreCase = true)) {
+                return true
+            }
+        }
+        // Default: No TV - use SAF
+        return false
+    }
+
 /**
  * Sets up a global exception handler to catch uncaught exceptions and display them in a crash activity.
  *
@@ -497,38 +532,3 @@ fun Browser?.isSafeForUse(): Boolean {
     }
     return !this.isDestroyed
 }
-
-val Context.isTvBox: Boolean
-    get() {
-        val pm = packageManager
-        // TV for sure
-        val uiModeManager =
-            getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-        if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
-            return true
-        }
-        if (isAmazonDev) {
-            return true
-        }
-        // Missing Files app (DocumentsUI) means box (some boxes still have non functional app or stub)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            if (!hasSAFChooser(pm)) {
-                return true
-            }
-        }
-        // Legacy storage no longer works on Android 11 (level 30)
-        if (Build.VERSION.SDK_INT < 30) {
-            // (Some boxes still report touchscreen feature)
-            if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
-                return true
-            }
-            if (pm.hasSystemFeature("android.hardware.hdmi.cec")) {
-                return true
-            }
-            if (Build.MANUFACTURER.equals("zidoo", ignoreCase = true)) {
-                return true
-            }
-        }
-        // Default: No TV - use SAF
-        return false
-    }

@@ -90,6 +90,14 @@ object Helpers {
         return true
     }
 
+    fun isConnected(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            isConnectedNewApi(context)
+        } else {
+            isConnectedOld(context)
+        }
+    }
+
     @Suppress("DEPRECATION")
     private fun isConnectedOld(context: Context): Boolean {
         val connManager =
@@ -104,14 +112,6 @@ object Helpers {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
         return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-    }
-
-    fun isConnected(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            isConnectedNewApi(context)
-        } else {
-            isConnectedOld(context)
-        }
     }
 
     fun dp2px(context: Context, dip: Float): Int {
