@@ -1422,9 +1422,7 @@ class MainActivity : BaseActivity(),
             }
 
         // Set up the adapter
-        val adapter = ImgArrayAdapter(this, menuItemsTitles, menuIcons).apply {
-            setSelectedItem(selectedIndex)
-        }
+        val adapter = ImgArrayAdapter(this, menuItemsTitles, menuIcons)
 
         // Configure the dialog
         val dialog = AlertDialog.Builder(this).apply {
@@ -1439,6 +1437,8 @@ class MainActivity : BaseActivity(),
         }.create()
         // Show the dialog
         showFullScreenDialog(dialog)
+        // Set active row
+        adapter.setSelectedItem(selectedIndex)
     }
 
     fun showUrlInputDialog(msg: String = "") {
