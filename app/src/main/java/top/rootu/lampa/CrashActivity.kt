@@ -77,7 +77,7 @@ class CrashActivity : BaseActivity() {
             dialogBinding.saveErrorLogs.setOnClickListener {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm")
                 val dtm = LocalDateTime.now().format(formatter)
-                if (Backup.writeFile("${dtm}.crashlog.txt", errorData.toString()))
+                if (Backup.writeFileSafely("${dtm}.crashlog.txt", errorData.toString()))
                     App.toast("${getString(R.string.app_crash_save_to)} ${Backup.DIR}")
                 showBottomSheetDialog(false)
             }
