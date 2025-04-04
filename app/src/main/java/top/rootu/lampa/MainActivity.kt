@@ -263,7 +263,7 @@ class MainActivity : BaseActivity(),
         setupIntents()
 
         if (firstRun) {
-            CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(Dispatchers.Default).launch {
                 logDebug("First run scheduleUpdate(sync: true)")
                 Scheduler.scheduleUpdate(true)
             }
@@ -414,7 +414,7 @@ class MainActivity : BaseActivity(),
                     runVoidJsFunc(item[0], item[1])
                 }
                 // Background update Android TV channels and recommendations
-                withContext(Dispatchers.IO) {
+                withContext(Dispatchers.Default) {
                     Scheduler.scheduleUpdate(false) // false for one shot, true is onBoot
                 }
             }
@@ -858,8 +858,8 @@ class MainActivity : BaseActivity(),
 
     // Function to sync bookmarks (Required only for Android TV 8+)
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
-    // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}") - FIXME: wrong string ID
-    private suspend fun syncBookmarks() = withContext(Dispatchers.IO) {
+    // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}")
+    private suspend fun syncBookmarks() = withContext(Dispatchers.Default) {
         if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return@withContext
         withContext(Dispatchers.Main) {
             runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
@@ -2821,13 +2821,13 @@ class MainActivity : BaseActivity(),
             // Update PlayNext (must finish before clearState)
             // Critical section - ensure ordering
             if (ended) {
-                val updateJob = launch(Dispatchers.IO) {
+                val updateJob = launch(Dispatchers.Default) {
                     updatePlayNext(true) // Runs in background
                 }
                 updateJob.join() // Wait for completion before clearing state
                 playerStateManager.clearState(lampaActivity)
             } else {
-                launch(Dispatchers.IO) {
+                launch(Dispatchers.Default) {
                     updatePlayNext(false) // Fire-and-forget for non-ended case
                 }
             }
@@ -2961,7 +2961,7 @@ class MainActivity : BaseActivity(),
     /**
      * Updates Watch Next on Android TV.
      */
-    private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.IO) {
+    private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.Default) {
         if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return@withContext
         try {
             val card = getCardFromActivity(lampaActivity) ?: return@withContext

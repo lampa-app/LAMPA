@@ -100,7 +100,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 MainActivity.proxyTmdbEnabled = newState
                 printLog(TAG, "proxyTmdbEnabled set to $newState")
                 if (MainActivity.proxyTmdbEnabled) {
-                    CoroutineScope(Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.Default).launch {
                         delay(15000) // Long enough to wait of setup Lampa mirrors
                         withContext(Dispatchers.Main) {
                             mainActivity.getLampaTmdbUrls()
@@ -233,7 +233,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         }
         // update Recs to filter viewed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(Dispatchers.Default).launch {
                 delay(5000)
                 LampaChannels.updateRecsChannel()
             }
@@ -415,7 +415,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
 
         // update Recs to filter viewed
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Default).launch {
             delay(5000)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
@@ -463,7 +463,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun saveBookmarks(json: String?) {
         printLog(TAG, "saveBookmarks fired!")
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Default).launch {
             // Filter out invalid CubBookmark objects
             val validBookmarks = filterValidCubBookmarks(json)
             if (validBookmarks.isNotEmpty()) {
@@ -492,7 +492,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 LampaProvider.SCHD,
                 LampaProvider.CONT,
                 LampaProvider.THRW -> {
-                    CoroutineScope(Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.Default).launch {
                         delay(5000)
                         updateChanByName(where)
                     }
@@ -500,7 +500,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
                 LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
-                    CoroutineScope(Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.Default).launch {
                         delay(5000)
                         updateWatchNext()
                     }
