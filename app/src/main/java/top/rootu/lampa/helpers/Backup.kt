@@ -20,6 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 object Backup {
     private val isOperationInProgress = AtomicBoolean(false)
     private const val MAX_BACKUPS = 3 // Except current
+    private const val TAG = "Backup"
 
     val DIR: File by lazy { // Compatible directory selection for all APIs
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -115,7 +116,7 @@ object Backup {
                 it.deleteSafely()
             }
         } catch (e: Exception) {
-            Log.e("Backup", "Rotation failed", e)
+            Log.e(TAG, "Rotation failed", e)
         }
     }
 
@@ -230,7 +231,7 @@ object Backup {
             }
             count
         } catch (e: Exception) {
-            Log.e("Backup", "Failed to parse backup", e)
+            Log.e(TAG, "Failed to parse backup", e)
             0
         }
     }
@@ -238,18 +239,18 @@ object Backup {
     fun validateStorageBackup(expected: Int): Boolean {
         return try {
             val backupFile = File(DIR, "${Prefs.STORAGE_PREFERENCES}.backup")
+            if (!backupFile.exists()) return false
+            // Validate and delete if corrupt
             val actual = countItemsInBackup(backupFile)
             if (actual != expected) {
-                Log.e("Backup", "Validation failed: expected $expected, got $actual")
+                Log.e(TAG, "Validation failed: expected $expected, got $actual")
                 if (BuildConfig.DEBUG) debugBackupContents(backupFile)
-                if (backupFile.exists()) {
-                    if (backupFile.delete()) {
-                        Log.w("Backup", "Deleted invalid backup file")
-                        // Optional: Create empty backup to prevent crashes
-                        // File(DIR, "${Prefs.STORAGE_PREFERENCES}.backup").createNewFile()
-                    } else {
-                        Log.e("Backup", "Failed to delete invalid backup")
-                    }
+                if (backupFile.delete()) {
+                    Log.w(TAG, "Deleted invalid backup file")
+                    // Optional: Create empty backup to prevent crashes
+                    // File(DIR, "${Prefs.STORAGE_PREFERENCES}.backup").createNewFile()
+                } else {
+                    Log.e(TAG, "Failed to delete invalid backup")
                 }
                 false
             } else true
@@ -261,16 +262,16 @@ object Backup {
     fun debugBackupContents(backupFile: File) {
         try {
             val content = backupFile.readText()
-            Log.d("Backup", "File size: ${content.length} chars")
-            Log.d("Backup", "First 500 chars:\n${content.take(500)}")
+            Log.d(TAG, "File size: ${content.length} chars")
+            Log.d(TAG, "First 500 chars:\n${content.take(500)}")
             // Count occurrences of <string>, <int> etc.
             val types = listOf("string", "int", "long", "boolean", "float", "set")
             types.forEach { type ->
                 val count = content.split("<$type ").size - 1
-                Log.d("Backup", "Found $count <$type> elements")
+                Log.d(TAG, "Found $count <$type> elements")
             }
         } catch (e: Exception) {
-            Log.e("Backup", "Failed to read backup", e)
+            Log.e(TAG, "Failed to read backup", e)
         }
     }
 }
