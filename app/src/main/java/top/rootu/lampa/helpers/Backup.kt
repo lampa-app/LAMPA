@@ -8,6 +8,7 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.xml.sax.InputSource
 import top.rootu.lampa.App
+import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.helpers.Prefs.defPrefs
 import java.io.File
 import java.io.StringReader
@@ -18,7 +19,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 object Backup {
     private val isOperationInProgress = AtomicBoolean(false)
-    private const val MAX_BACKUPS = 5
+    private const val MAX_BACKUPS = 3 // Except current
 
     val DIR: File by lazy { // Compatible directory selection for all APIs
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -39,7 +40,8 @@ object Backup {
             App.toast("Backup operation in progress")
             return false
         }
-
+        // Delete any .tmp files from failed writes
+        // DIR.listFiles { file -> file.name.endsWith(".tmp") }?.forEach { it.deleteSafely() }
         return try {
             val prefsFile = getPrefsFile(which)
             val content = try {
@@ -66,7 +68,8 @@ object Backup {
         }
 
         return try {
-            val content = loadFileSafely(if (which.isNullOrEmpty()) "prefs.backup" else "$which.backup")
+            val content =
+                loadFileSafely(if (which.isNullOrEmpty()) "prefs.backup" else "$which.backup")
             if (content.isBlank()) return false
             parseAndApplyPreferences(which, content)
         } finally {
@@ -85,40 +88,34 @@ object Backup {
 
     private fun rotateBackups(baseName: String) {
         try {
-            // 1. Initialize date format with minute precision
             val minuteFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.US)
 
-            // 2. Get existing backups sorted newest first
-            val backups = DIR.listFiles { file ->
-                file.name.startsWith(baseName) && file.name != baseName
+            // Get ALL matching files (including active backup)
+            val allBackups = DIR.listFiles { file ->
+                file.name.startsWith(baseName) // Include active backup
             }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
-            // 3. Archive current backup (if exists) with minute timestamp
-            File(DIR, baseName).takeIf { it.exists() }?.let { current ->
+            // Separate active backup from archives
+            val (activeBackup, _) = allBackups.partition { it.name == baseName }
+
+            // Archive current backup if exists
+            activeBackup.firstOrNull()?.let { current ->
                 val timestamp = minuteFormat.format(Date(current.lastModified()))
                 var uniqueName = "$baseName.$timestamp"
-
-                // Handle duplicates (same minute)
                 var counter = 1
                 while (File(DIR, uniqueName).exists()) {
                     uniqueName = "$baseName.$timestamp.$counter"
                     counter++
                 }
-
-                if (!current.renameTo(File(DIR, uniqueName))) {
-                    Log.w("Backup", "Failed to archive $baseName")
-                }
+                current.renameTo(File(DIR, uniqueName))
             }
 
-            // 4. Clean up excess backups (keeps newest MAX_BACKUPS)
-            backups.drop(MAX_BACKUPS).forEach {
-                if (!it.deleteSafely()) {
-                    Log.w("Backup", "Failed to delete old backup: ${it.name}")
-                }
+            // Clean up - keep only MAX_BACKUPS total (active + archives)
+            allBackups.drop(MAX_BACKUPS).forEach {
+                it.deleteSafely()
             }
         } catch (e: Exception) {
             Log.e("Backup", "Rotation failed", e)
-            App.toast("Backup rotation error")
         }
     }
 
@@ -141,25 +138,31 @@ object Backup {
                         "int" -> element.getAttribute("value").toIntOrNull()?.let {
                             edit.putInt(element.getAttribute("name"), it)
                         }
+
                         "long" -> element.getAttribute("value").toLongOrNull()?.let {
                             edit.putLong(element.getAttribute("name"), it)
                         }
+
                         "float" -> element.getAttribute("value").toFloatOrNull()?.let {
                             edit.putFloat(element.getAttribute("name"), it)
                         }
+
                         "string" -> element.textContent.takeIf { it.isNotBlank() }?.let {
                             edit.putString(element.getAttribute("name"), it)
                         }
+
                         "boolean" -> edit.putBoolean(
                             element.getAttribute("name"),
                             element.getAttribute("value") == "true"
                         )
+
                         "set" -> {
                             val values = mutableListOf<String>().apply {
                                 var ch = element.firstChild
                                 while (ch != null) {
                                     if (ch.nodeType == Node.ELEMENT_NODE) {
-                                        (ch as Element).textContent.takeIf { it.isNotBlank() }?.let { add(it) }
+                                        (ch as Element).textContent.takeIf { it.isNotBlank() }
+                                            ?.let { add(it) }
                                     }
                                     ch = ch.nextSibling
                                 }
@@ -206,5 +209,68 @@ object Backup {
         }
     }
 
-    private fun File.deleteSafely() = try { delete() } catch (_: Exception) { false }
+    private fun File.deleteSafely() = try {
+        delete()
+    } catch (_: Exception) {
+        false
+    }
+
+    fun countItemsInBackup(backupFile: File): Int {
+        return try {
+            val xmlFactory = DocumentBuilderFactory.newInstance()
+            val builder = xmlFactory.newDocumentBuilder()
+            val doc = builder.parse(backupFile)
+            val prefs = doc.getElementsByTagName("map").item(0)?.childNodes
+            var count = 0
+            for (i in 0 until (prefs?.length ?: 0)) {
+                val node = prefs?.item(i)
+                if (node?.nodeType == Node.ELEMENT_NODE) {
+                    count++
+                }
+            }
+            count
+        } catch (e: Exception) {
+            Log.e("Backup", "Failed to parse backup", e)
+            0
+        }
+    }
+
+    fun validateStorageBackup(expected: Int): Boolean {
+        return try {
+            val backupFile = File(DIR, "${Prefs.STORAGE_PREFERENCES}.backup")
+            val actual = countItemsInBackup(backupFile)
+            if (actual != expected) {
+                Log.e("Backup", "Validation failed: expected $expected, got $actual")
+                if (BuildConfig.DEBUG) debugBackupContents(backupFile)
+                if (backupFile.exists()) {
+                    if (backupFile.delete()) {
+                        Log.w("Backup", "Deleted invalid backup file")
+                        // Optional: Create empty backup to prevent crashes
+                        // File(DIR, "${Prefs.STORAGE_PREFERENCES}.backup").createNewFile()
+                    } else {
+                        Log.e("Backup", "Failed to delete invalid backup")
+                    }
+                }
+                false
+            } else true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun debugBackupContents(backupFile: File) {
+        try {
+            val content = backupFile.readText()
+            Log.d("Backup", "File size: ${content.length} chars")
+            Log.d("Backup", "First 500 chars:\n${content.take(500)}")
+            // Count occurrences of <string>, <int> etc.
+            val types = listOf("string", "int", "long", "boolean", "float", "set")
+            types.forEach { type ->
+                val count = content.split("<$type ").size - 1
+                Log.d("Backup", "Found $count <$type> elements")
+            }
+        } catch (e: Exception) {
+            Log.e("Backup", "Failed to read backup", e)
+        }
+    }
 }

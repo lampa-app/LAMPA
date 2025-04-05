@@ -83,9 +83,9 @@
     <string name="default_setting_title">Загрузить настройки по умолчанию</string>
     <string name="change_note">Это действие может вернуть настройки Lampa к значениям по умолчанию. Перед изменением рекомендуется сделать резервную копию настроек!</string>
     <string name="settings_saved_toast">Все настройки сохранены в %s</string>
-    <string name="settings_save_fail">Невозможно выполнить резервное копирование настроек</string>
+    <string name="settings_save_fail">Не удалось выполнить резервное копирование</string>
     <string name="settings_migrate_fail">Не удалось перенести настройки</string>
-    <string name="settings_rest_fail">Невозможно восстановить настройки</string>
+    <string name="settings_rest_fail">Не удалось восстановить настройки</string>
     <string name="settings_restored">Настройки восстановлены</string>
     <string name="migrate">Миграция</string>
     <!--App Errors-->

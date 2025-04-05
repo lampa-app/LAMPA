@@ -76,6 +76,7 @@ import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Backup
 import top.rootu.lampa.helpers.Backup.loadFromBackup
 import top.rootu.lampa.helpers.Backup.saveSettings
+import top.rootu.lampa.helpers.Backup.validateStorageBackup
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
@@ -914,7 +915,8 @@ class MainActivity : BaseActivity(),
                 try {
                     AndroidJS.clear();
                     let count = 0;
-                    for (var key in localStorage) {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
                         AndroidJS.set(key, localStorage.getItem(key));
                         count++;
                     }
@@ -1265,8 +1267,15 @@ class MainActivity : BaseActivity(),
         lifecycleScope.launch {
             dumpStorage { callback ->
                 if (callback.contains(JS_SUCCESS, true)) { // .trim().removeSurrounding("\"")
-                    // Proceed with saving settings if the backup was successful
-                    if (saveSettings(Prefs.APP_PREFERENCES) && saveSettings(Prefs.STORAGE_PREFERENCES)) {
+                    val itemsCount = callback.substringAfter("$JS_SUCCESS.")
+                        .substringBefore("items")
+                        .trim()
+                        .toIntOrNull() ?: 0
+                    // Proceed with saving settings if dumpStorage successful
+                    if (saveSettings(Prefs.APP_PREFERENCES) &&
+                        saveSettings(Prefs.STORAGE_PREFERENCES) &&
+                        validateStorageBackup(itemsCount)
+                    ) {
                         App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))
                     } else {
                         App.toast(R.string.settings_save_fail)
@@ -2981,7 +2990,8 @@ class MainActivity : BaseActivity(),
 
         return Uri.parse(item.url).toString() == normalizedInputUrl ||
                 item.quality?.values?.any { qualityUrl ->
-                    qualityUrl.isNotEmpty() && Uri.parse(qualityUrl).toString() == normalizedInputUrl
+                    qualityUrl.isNotEmpty() && Uri.parse(qualityUrl)
+                        .toString() == normalizedInputUrl
                 } == true
     }
 
