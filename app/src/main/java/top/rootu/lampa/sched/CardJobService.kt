@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class CardJobService : JobService() {
     private val isJobComplete = AtomicBoolean(false)
-    private val jobScope = CoroutineScope(Dispatchers.Default)
+    private val jobScope = CoroutineScope(Dispatchers.IO)
 
     override fun onStartJob(params: JobParameters?): Boolean {
         isJobComplete.set(false)
@@ -28,7 +28,7 @@ class CardJobService : JobService() {
                 )
                 Scheduler.updateContent(sync = true) // Update content with sync enabled
             } catch (e: Exception) {
-                if (BuildConfig.DEBUG) Log.e("CardJobService", "Error updating cards", e)
+                if (BuildConfig.DEBUG) Log.e("CardJobService", "Error updating content", e)
             } finally {
                 isJobComplete.set(true)
                 jobFinished(params, false) // Notify the system that the job is complete

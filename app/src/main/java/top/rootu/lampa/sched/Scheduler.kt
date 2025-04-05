@@ -27,7 +27,7 @@ object Scheduler {
     private const val CARDS_JOB_ID = 0
     private val isUpdate = AtomicBoolean(false)
 
-    private val schedulerScope = CoroutineScope(Dispatchers.Default)
+    private val schedulerScope = CoroutineScope(Dispatchers.IO)
 
     /**
      * Schedules periodic updates for Android TV content.
@@ -127,13 +127,13 @@ object Scheduler {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateContent call RecsService.updateRecs()."
+                    "updateContent call RecsService.updateRecs()"
                 )
                 RecsService.updateRecs() // Update recommendations for older versions
             } else {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateContent call LampaChannels.update($sync)."
+                    "updateContent call LampaChannels.update($sync)"
                 )
                 LampaChannels.update(sync) // Update channels for newer versions
             }
