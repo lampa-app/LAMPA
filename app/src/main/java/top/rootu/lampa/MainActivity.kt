@@ -133,6 +133,7 @@ class MainActivity : BaseActivity(),
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
     private var browserInitComplete = false
+    private var isListenerSetup = false // Track if listener is already set up
     private var isMenuVisible = false
     private lateinit var loaderView: LottieAnimationView
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
@@ -306,6 +307,7 @@ class MainActivity : BaseActivity(),
 
     override fun onDestroy() {
         if (browserInitComplete) {
+            cleanupListener()
             browser?.apply {
                 // Destroy only if not already destroyed
                 if (!isDestroyed) {
@@ -324,6 +326,7 @@ class MainActivity : BaseActivity(),
     override fun onUserLeaveHint() {
         logDebug("onUserLeaveHint()")
         if (browserInitComplete)
+            cleanupListener()
             browser?.apply {
                 pauseTimers()
                 clearCache(true)
@@ -394,7 +397,8 @@ class MainActivity : BaseActivity(),
         loaderView.visibility = View.GONE
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
-
+        // Reset flag on new page (even if previous cleanup missed)
+        isListenerSetup = false
         setupListener()
         syncLanguage()
 
@@ -443,6 +447,9 @@ class MainActivity : BaseActivity(),
                 // browser?.goBack()
                 // no Back with no focused webView workaround
                 runVoidJsFunc("window.history.back", "")
+            } else {
+                logDebug("browser cantGoBack, cleanupListener()")
+                cleanupListener()
             }
             // Clear any pending intents that might cause reloads
             intent = Intent() // Reset the intent
@@ -817,6 +824,11 @@ class MainActivity : BaseActivity(),
     }
 
     private fun setupListener() {
+        if (isListenerSetup) {
+            logDebug("Listener already set up, skipping...")
+            return
+        }
+        logDebug("Setting up storage change listener...")
         runVoidJsFunc(
             "Lampa.Storage.listener.remove",
             "'change'"
@@ -826,6 +838,20 @@ class MainActivity : BaseActivity(),
             "'change'," +
                     "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
         )
+        isListenerSetup = true
+        logDebug("Storage change listener set up successfully")
+    }
+
+    // Call this when the page is destroyed or navigated away
+    fun cleanupListener() {
+        logDebug("in cleanupListener() isListenerSetup: $isListenerSetup")
+        if (!isListenerSetup) return
+        runVoidJsFunc(
+            "Lampa.Storage.listener.remove",
+            "'change'"
+        )
+        isListenerSetup = false
+        logDebug("Storage change listener cleaned up")
     }
 
     private fun syncLanguage() {
