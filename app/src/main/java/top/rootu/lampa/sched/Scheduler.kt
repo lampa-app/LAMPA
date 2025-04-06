@@ -60,7 +60,7 @@ object Scheduler {
             val jobScheduler = context.getSystemService(JobScheduler::class.java)
             val jobInfo = JobInfo.Builder(
                 CARDS_JOB_ID,
-                ComponentName(context, CardJobService::class.java)
+                ComponentName(context, ContentJobService::class.java)
             ).apply {
                 setPeriodic(TimeUnit.MINUTES.toMillis(15)) // Schedule every 15 minutes
                 setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY) // Require any network
@@ -69,7 +69,7 @@ object Scheduler {
             }.build()
             if (BuildConfig.DEBUG) Log.d(
                 "Scheduler",
-                "jobScheduler schedule periodic updates with CardJobService"
+                "jobScheduler schedule periodic updates with ContentJobService"
             )
             jobScheduler?.schedule(jobInfo)
         } else { // Perform a one-shot update in a background thread
@@ -92,7 +92,7 @@ object Scheduler {
 
         @Suppress("DEPRECATION")
         // Create a PendingIntent for the alarm
-        val pendingIntent = Intent(context, CardAlarmManager::class.java).let { intent ->
+        val pendingIntent = Intent(context, ContentAlarmManager::class.java).let { intent ->
             PendingIntent.getService(context, CARDS_JOB_ID, intent, 0)
         }
 

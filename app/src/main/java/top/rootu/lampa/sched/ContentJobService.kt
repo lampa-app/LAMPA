@@ -13,7 +13,7 @@ import top.rootu.lampa.BuildConfig
 import java.util.concurrent.atomic.AtomicBoolean
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-class CardJobService : JobService() {
+class ContentJobService : JobService() {
     private val isJobComplete = AtomicBoolean(false)
     private val jobScope = CoroutineScope(Dispatchers.IO)
 
@@ -23,12 +23,12 @@ class CardJobService : JobService() {
         jobScope.launch {
             try {
                 if (BuildConfig.DEBUG) Log.i(
-                    "CardJobService",
-                    "CardJobService call updateContent(sync = true)"
+                    "ContentJobService",
+                    "ContentJobService call updateContent(sync = true)"
                 )
                 Scheduler.updateContent(sync = true) // Update content with sync enabled
             } catch (e: Exception) {
-                if (BuildConfig.DEBUG) Log.e("CardJobService", "Error updating content", e)
+                if (BuildConfig.DEBUG) Log.e("ContentJobService", "Error updating content", e)
             } finally {
                 isJobComplete.set(true)
                 jobFinished(params, false) // Notify the system that the job is complete

@@ -183,12 +183,12 @@
             tools:ignore="ExportedContentProvider" />
 
         <service
-            android:name=".sched.CardJobService"
+            android:name=".sched.ContentJobService"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
-            android:name=".sched.CardAlarmManager"
+            android:name=".sched.ContentAlarmManager"
             android:enabled="true" />
     </application>
 
