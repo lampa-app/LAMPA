@@ -221,7 +221,7 @@ class MainActivity : BaseActivity(),
                 "$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         private val listenerMutex = Mutex()
-        
+
         // Properties
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -326,10 +326,11 @@ class MainActivity : BaseActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         logDebug("onUserLeaveHint()")
-        browser?.apply {
-            pauseTimers()
-            clearCache(true)
-        }
+        if (browserInitComplete)
+            browser?.apply {
+                pauseTimers()
+                clearCache(true)
+            }
         super.onUserLeaveHint()
     }
 
