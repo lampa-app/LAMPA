@@ -135,7 +135,7 @@ class MainActivity : BaseActivity(),
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
     private var browserInitComplete = false
-    private var currentPageUrl: String? = null
+    private var currentPageUrl: String? = null // Track reloads in onBrowserPageFinished
     // private var isListenerSetup = false // Track if listener is already set up
     private var isMenuVisible = false
     private lateinit var loaderView: LottieAnimationView

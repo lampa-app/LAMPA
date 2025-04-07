@@ -71,7 +71,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
 
         browser?.webViewClient = object : WebViewClientCompat() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                // mainActivity.cleanupListener() // Clean up before new load
+                mainActivity.cleanupListener() // Clean up before new load
                 super.onPageStarted(view, url, favicon)
             }
 
