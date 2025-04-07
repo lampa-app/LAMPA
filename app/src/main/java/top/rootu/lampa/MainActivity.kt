@@ -53,6 +53,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Logger
@@ -133,7 +135,8 @@ class MainActivity : BaseActivity(),
     private var mXWalkInitializer: XWalkInitializer? = null
     private var browser: Browser? = null
     private var browserInitComplete = false
-    private var isListenerSetup = false // Track if listener is already set up
+    private var currentPageUrl: String? = null
+    // private var isListenerSetup = false // Track if listener is already set up
     private var isMenuVisible = false
     private lateinit var loaderView: LottieAnimationView
     private lateinit var resultLauncher: ActivityResultLauncher<Intent>
@@ -166,6 +169,8 @@ class MainActivity : BaseActivity(),
         const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 96
         const val JS_SUCCESS = "SUCCESS"
         const val JS_FAILURE = "FAILED"
+        private val jsCallback: (String?) -> Unit = { _ -> }
+        private val listenerMutex = Mutex()
 
         // Player Packages
         val MX_PACKAGES = setOf(
@@ -307,7 +312,7 @@ class MainActivity : BaseActivity(),
 
     override fun onDestroy() {
         if (browserInitComplete) {
-            cleanupListener()
+            // cleanupListener()
             browser?.apply {
                 // Destroy only if not already destroyed
                 if (!isDestroyed) {
@@ -325,12 +330,12 @@ class MainActivity : BaseActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         logDebug("onUserLeaveHint()")
-        if (browserInitComplete)
-            cleanupListener()
-            browser?.apply {
-                pauseTimers()
-                clearCache(true)
-            }
+        // if (browserInitComplete)
+        // cleanupListener()
+        browser?.apply {
+            pauseTimers()
+            clearCache(true)
+        }
         super.onUserLeaveHint()
     }
 
@@ -386,6 +391,11 @@ class MainActivity : BaseActivity(),
 
     override fun onBrowserPageFinished(view: ViewGroup, url: String) {
         logDebug("onBrowserPageFinished url: $url")
+        if (url != LAMPA_URL && url == currentPageUrl) {
+            logDebug("Ignoring duplicate page load for $url")
+            return
+        }
+        currentPageUrl = url
         // Restore Lampa settings and reload if migrate flag set
         if (migrate) {
             migrateSettings()
@@ -398,10 +408,11 @@ class MainActivity : BaseActivity(),
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
         // Reset flag on new page (even if previous cleanup missed)
-        isListenerSetup = false
-        setupListener()
-        syncLanguage()
-
+        // isListenerSetup = false
+        lifecycleScope.launch {
+            listenerCleanupAndSetup()
+            syncLanguage()
+        }
         // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
             val delay = 1000L // 1s delay after deep link to load content
@@ -423,6 +434,14 @@ class MainActivity : BaseActivity(),
                     Scheduler.scheduleUpdate(false) // false for one shot, true is onBoot
                 }
             }
+        }
+    }
+
+    suspend fun listenerCleanupAndSetup() {
+        listenerMutex.withLock {
+            cleanupListener()
+            delay(100) // Ensure cleanup completes
+            setupListener()
         }
     }
 
@@ -448,6 +467,7 @@ class MainActivity : BaseActivity(),
                 // no Back with no focused webView workaround
                 runVoidJsFunc("window.history.back", "")
             } else {
+                // FIXME! Ugly hack
                 logDebug("browser cantGoBack, cleanupListener()")
                 cleanupListener()
             }
@@ -824,34 +844,68 @@ class MainActivity : BaseActivity(),
     }
 
     private fun setupListener() {
-        if (isListenerSetup) {
-            logDebug("Listener already set up, skipping...")
-            return
-        }
+//        if (isListenerSetup) {
+//            logDebug("Listener already set up, skipping...")
+//            return
+//        }
         logDebug("Setting up storage change listener...")
-        runVoidJsFunc(
-            "Lampa.Storage.listener.remove",
-            "'change'"
-        )
-        runVoidJsFunc(
-            "Lampa.Storage.listener.add",
-            "'change'," +
-                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
-        )
-        isListenerSetup = true
-        logDebug("Storage change listener set up successfully")
+        browser?.evaluateJavascript(
+            """
+        (function() {
+            if (!window._listenerCount) window._listenerCount = 0;
+            // Only setup if not already exists
+            if (typeof window._androidStorageListener === 'undefined') {
+                window._androidStorageListener = function(o) {
+                    AndroidJS.storageChange(JSON.stringify(o));
+                };
+                
+                if (Lampa && Lampa.Storage && Lampa.Storage.listener) {
+                    if (Lampa.Storage.listener.follow) {
+                        Lampa.Storage.listener.follow('change', window._androidStorageListener);
+                    } else {
+                        Lampa.Storage.listener.add('change', window._androidStorageListener);
+                    }
+                    window._listenerCount++;
+                    AndroidJS.logListenerCount(window._listenerCount);
+                    return 'LISTENER_ADDED';
+                }
+                return 'NO_LAMPA_STORAGE';
+            }
+            return 'LISTENER_EXISTS';
+        })()
+        """.trimIndent()
+        ) { result ->
+            logDebug("Listener setup result: $result")
+        }
     }
 
     // Call this when the page is destroyed or navigated away
     fun cleanupListener() {
-        logDebug("in cleanupListener() isListenerSetup: $isListenerSetup")
-        if (!isListenerSetup) return
-        runVoidJsFunc(
-            "Lampa.Storage.listener.remove",
-            "'change'"
-        )
-        isListenerSetup = false
-        logDebug("Storage change listener cleaned up")
+        // logDebug("in cleanupListener() isListenerSetup: $isListenerSetup")
+        // if (!isListenerSetup) return
+        logDebug("Starting listener cleanup...")
+        browser?.evaluateJavascript(
+            """
+        (function() {
+            if (typeof window._androidStorageListener !== 'undefined') {
+                if (Lampa && Lampa.Storage && Lampa.Storage.listener) {
+                    if (Lampa.Storage.listener.unfollow) {
+                        Lampa.Storage.listener.unfollow('change', window._androidStorageListener);
+                    } else {
+                        Lampa.Storage.listener.remove('change');
+                    }
+                }
+                delete window._androidStorageListener;
+                if (window._listenerCount) window._listenerCount--;
+                return 'LISTENER_REMOVED';
+            }
+            return 'NO_LISTENER';
+        })()
+        """.trimIndent()
+        ) { result ->
+            logDebug("Listener cleanup result: $result")
+        }
+        // isListenerSetup = false
     }
 
     private fun syncLanguage() {
