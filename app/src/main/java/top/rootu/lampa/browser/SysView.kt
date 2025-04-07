@@ -17,6 +17,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.webkit.WebView.setWebContentsDebuggingEnabled
 import androidx.annotation.RequiresApi
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
@@ -35,6 +36,10 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
     private var browser: WebView? = null
     override var isDestroyed = false
 
+    companion object {
+        const val LOG_TAG = "WEB CONSOLE"
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun initialize() {
         browser = mainActivity.findViewById(viewResId)
@@ -47,8 +52,12 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
             isScrollContainer = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+            }
         }
         setFocus()
+
         val settings = browser?.settings
         @Suppress("DEPRECATION")
         settings?.apply {
@@ -221,7 +230,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         if (BuildConfig.DEBUG)
             browser?.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    Log.d("CONSOLE", consoleMessage.message())
+                    Log.d(LOG_TAG, consoleMessage.message())
                     return true
                 }
 
@@ -237,6 +246,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                     return false
                 }
             }
+        
 
         mainActivity.onBrowserInitCompleted()
     }
