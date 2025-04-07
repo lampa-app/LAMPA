@@ -86,18 +86,18 @@ object LampaProvider {
         val cubViewedIds =
             if (syncEnabled) cub?.filter { it.type == VIEW }?.mapNotNull { it.card_id }?.toSet()
                 ?: emptySet() else emptySet()
-        if (BuildConfig.DEBUG) Log.d("filterViewed", "favHistoryIds: $favHistoryIds")
-        if (BuildConfig.DEBUG) Log.d("filterViewed", "favViewedIds: $favViewedIds")
-        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubHistoryIds: $cubHistoryIds")
-        if (BuildConfig.DEBUG) Log.d("filterViewed", "cubViewedIds: $cubViewedIds")
+        if (BuildConfig.DEBUG) Log.d("LampaProvider", "filterViewed favHistoryIds: $favHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("LampaProvider", "filterViewed favViewedIds: $favViewedIds")
+        if (BuildConfig.DEBUG) Log.d("LampaProvider", "filterViewed cubHistoryIds: $cubHistoryIds")
+        if (BuildConfig.DEBUG) Log.d("LampaProvider", "filterViewed cubViewedIds: $cubViewedIds")
 
         return lst.filter { card ->
             val isInHistory = card.id in favHistoryIds || card.id in cubHistoryIds
             val isInViewed = card.id in favViewedIds || card.id in cubViewedIds
             if (isInHistory || isInViewed) {
                 if (BuildConfig.DEBUG) Log.d(
-                    "filterViewed",
-                    "Excluded card: ${card.id} (in history: $isInHistory, in viewed: $isInViewed)"
+                    "LampaProvider",
+                    "filterViewed Excluded card: ${card.id} (in history: $isInHistory, in viewed: $isInViewed)"
                 )
             }
             !isInHistory && !isInViewed

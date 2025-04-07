@@ -42,20 +42,22 @@ import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
 
-    @JavascriptInterface
-    @org.xwalk.core.JavascriptInterface
-    fun logListenerCount(count: Int) {
-        printLog(TAG, "Current listener count: $count")
-    }
+    private var lastEventHash: String? = null
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun storageChange(str: String?) {
-        str?.let {
-            val eo: JSONObject = if (str == "\"\"") {
+    fun storageChange(json: String?) {
+        val hash = json.hashCode().toString()
+        if (hash == lastEventHash) {
+            printLog(TAG, "Ignoring duplicate storage change event: $json")
+            return
+        }
+        lastEventHash = hash
+        json?.let {
+            val eo: JSONObject = if (json == "\"\"") {
                 JSONObject()
             } else {
-                JSONObject(str)
+                JSONObject(json)
             }
             if (!eo.has("name") || !eo.has("value")) return
 
