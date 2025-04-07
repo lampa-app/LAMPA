@@ -53,6 +53,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.gotev.speech.GoogleVoiceTypingDisabledException
 import net.gotev.speech.Logger
@@ -158,34 +160,34 @@ class MainActivity : BaseActivity(),
 
     companion object {
         // Constants
+        const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 96
         private const val TAG = "APP_MAIN"
         private const val RESULT_VIMU_ENDED = 2
         private const val RESULT_VIMU_START = 3
         private const val RESULT_VIMU_ERROR = 4
-        const val VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE = 96
-        const val JS_SUCCESS = "SUCCESS"
-        const val JS_FAILURE = "FAILED"
+        private const val JS_SUCCESS = "SUCCESS"
+        private const val JS_FAILURE = "FAILED"
 
         // Player Packages
-        val MX_PACKAGES = setOf(
+        private val MX_PACKAGES = setOf(
             "com.mxtech.videoplayer.ad", // Standard
             "com.mxtech.videoplayer.pro", // Pro
             "com.mxtech.videoplayer.beta", // Beta
         )
-        val UPLAYER_PACKAGES = setOf(
+        private val UPLAYER_PACKAGES = setOf(
             "com.uapplication.uplayer",  // Standard
             "com.uapplication.uplayer.beta", // Beta
         )
-        val VIMU_PACKAGES = setOf(
+        private val VIMU_PACKAGES = setOf(
             "net.gtvbox.videoplayer",  // Standard
             "net.gtvbox.vimuhd",       // ViMu HD
             "net.gtvbox.vimu",         // Legacy
         )
-        val EXO_PLAYER_PACKAGES = setOf(
+        private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
         )
-        val PLAYERS_BLACKLIST = setOf(
+        private val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
             "com.android.tv.frameworkpackagestubs",
             "com.google.android.tv.frameworkpackagestubs",
@@ -218,7 +220,8 @@ class MainActivity : BaseActivity(),
                 "(#[\\w-]*)?" +                   // Optional fragment
                 "$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
-
+        private val listenerMutex = Mutex()
+        
         // Properties
         var LAMPA_URL: String = ""
         var SELECTED_PLAYER: String? = ""
@@ -323,11 +326,10 @@ class MainActivity : BaseActivity(),
     // handle user pressed Home
     override fun onUserLeaveHint() {
         logDebug("onUserLeaveHint()")
-        if (browserInitComplete)
-            browser?.apply {
-                pauseTimers()
-                clearCache(true)
-            }
+        browser?.apply {
+            pauseTimers()
+            clearCache(true)
+        }
         super.onUserLeaveHint()
     }
 
@@ -395,18 +397,19 @@ class MainActivity : BaseActivity(),
 
         Log.d(TAG, "LAMPA onLoadFinished $url")
 
-        setupListener()
-        syncLanguage()
-
+        lifecycleScope.launch {
+            syncLanguage()
+        }
         // Hack to skip reload from Back history
         if (url.trimEnd('/').equals(LAMPA_URL, true)) {
-            val delay = 1000L // 1s delay after deep link to load content
+            // 1s delay after deep link to load content and after storage listener setup
+            val waitDelay = 1000L
             // Lazy Load Intent
-            processIntent(intent, delay)
+            processIntent(intent, waitDelay)
             lifecycleScope.launch {
-                delay(delay)
+                listenerCleanupAndSetup()
+                delay(waitDelay)
                 syncStorage() // Sync with Lampa settings
-                // getLampaTmdbUrls() // Update TMDB proxy URLs
                 syncBookmarks() // Sync Android TV Home user changes
                 // Process delayed functions with safe iteration
                 val itemsToProcess = delayedVoidJsFunc.toList()
@@ -416,6 +419,7 @@ class MainActivity : BaseActivity(),
                 }
                 // Background update Android TV channels and recommendations
                 withContext(Dispatchers.Default) {
+                    delay(waitDelay)
                     Scheduler.scheduleUpdate(false) // false for one shot, true is onBoot
                 }
             }
@@ -445,7 +449,7 @@ class MainActivity : BaseActivity(),
                 runVoidJsFunc("window.history.back", "")
             }
             // Clear any pending intents that might cause reloads
-            intent = Intent() // Reset the intent
+            // intent = Intent() // Reset the intent
         }
     }
 
@@ -816,20 +820,96 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    suspend fun listenerCleanupAndSetup() {
+        listenerMutex.withLock {
+            cleanupListener()
+            // Wait for cleanup to complete
+            delay(1000) // Ensure cleanup completes
+            // Verify cleanup
+            browser?.evaluateJavascript(
+                """
+                (function() {
+                    return {
+                        listenerExists: typeof window._androidStorageListener !== 'undefined',
+                        lampaReady: !!window.Lampa
+                    };
+                })()
+                """.trimIndent()
+            ) { result ->
+                logDebug("Listener cleanup verification: $result")
+            }
+            setupListener()
+        }
+    }
+
     private fun setupListener() {
-        runVoidJsFunc(
-            "Lampa.Storage.listener.remove",
-            "'change'"
-        )
-        runVoidJsFunc(
-            "Lampa.Storage.listener.add",
-            "'change'," +
-                    "function(o){AndroidJS.storageChange(JSON.stringify(o))}"
-        )
+        logDebug("Setting up storage change listener...")
+        browser?.evaluateJavascript(
+            """
+            (function() {
+                // Only setup if not already exists
+                if (typeof window._androidStorageListener === 'undefined') {
+                    window._androidStorageListener = function(o) {
+                        AndroidJS.storageChange(JSON.stringify(o));
+                    };
+                    if (Lampa && Lampa.Storage && Lampa.Storage.listener) {
+                        try {
+                            if (Lampa.Storage.listener.follow) {
+                                console.log('Use listener.follow');
+                                Lampa.Storage.listener.follow('change', window._androidStorageListener);
+                            } else {
+                                console.log('Use listener.add');
+                                Lampa.Storage.listener.add('change', window._androidStorageListener);
+                            }
+                        } catch (e) {
+                            console.error('Error adding listener:', e);
+                        }
+                        return 'LISTENER_ADDED';
+                    }
+                    return 'NO_LAMPA_STORAGE';
+                }
+                return 'LISTENER_EXISTS';
+            })()
+            """.trimIndent()
+        ) { result ->
+            logDebug("Listener setup result: $result")
+        }
+    }
+
+    // Call this when the page is destroyed or navigated away
+    fun cleanupListener() {
+        logDebug("Starting listener cleanup...")
+        browser?.evaluateJavascript(
+            """
+            (function() {
+                if (typeof window._androidStorageListener !== 'undefined') {
+                    if (Lampa && Lampa.Storage && Lampa.Storage.listener) {
+                        try {
+                            if (Lampa.Storage.listener.unfollow) {
+                                console.log('Use listener.unfollow');
+                                Lampa.Storage.listener.unfollow('change', window._androidStorageListener);
+                            } else {
+                                console.log('Use listener.remove');
+                                Lampa.Storage.listener.remove('change');
+                            }
+                        } catch (e) {
+                            console.error('Error removing listener:', e);
+                        }
+                    }
+                    delete window._androidStorageListener;
+                    console.log('Listener fully cleaned up');
+                    return 'LISTENER_REMOVED';
+                }
+                return 'NO_LISTENER';
+            })()
+            """.trimIndent()
+        ) { result ->
+            logDebug("Listener cleanup result: $result")
+        }
     }
 
     private fun syncLanguage() {
-        runJsStorageChangeField("language") // apply language
+        runJsStorageChangeField("language") // apply App language
     }
 
     private fun syncStorage() {

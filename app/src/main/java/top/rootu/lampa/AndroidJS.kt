@@ -42,134 +42,160 @@ import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
 
+    private var lastEventHash: String? = null
+
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
-    fun storageChange(str: String) {
-        val eo: JSONObject = if (str == "\"\"") {
-            JSONObject()
-        } else {
-            JSONObject(str)
+    fun storageChange(json: String?) {
+        val hash = json.hashCode().toString()
+        if (hash == lastEventHash) {
+            printLog(TAG, "Ignoring duplicate storage change event: $json")
+            return
         }
-        if (!eo.has("name") || !eo.has("value")) return
-
-        when (eo.optString("name")) {
-            "activity" -> {
-                MainActivity.lampaActivity = eo.optString("value", "{}")
-                printLog(TAG, "lampaActivity stored: ${MainActivity.lampaActivity}")
+        lastEventHash = hash
+        json?.let {
+            val eo: JSONObject = if (json == "\"\"") {
+                JSONObject()
+            } else {
+                JSONObject(json)
             }
+            if (!eo.has("name") || !eo.has("value")) return
 
-            "player_timecode" -> {
-                MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
-                printLog(TAG, "playerTimeCode stored: ${MainActivity.playerTimeCode}")
-            }
-
-            "playlist_next" -> {
-                MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
-                printLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
-            }
-
-            "torrserver_preload" -> {
-                MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
-                printLog(TAG, "torrserverPreload stored: ${MainActivity.torrserverPreload}")
-            }
-
-            "internal_torrclient" -> {
-                MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
-                printLog(TAG, "internalTorrserve stored: ${MainActivity.internalTorrserve}")
-            }
-
-            "language" -> {
-                val newLang = eo.optString("value", "ru")
-                if (newLang != "undefined" && mainActivity.appLang != newLang) {
-                    App.setAppLanguage(mainActivity, newLang)
-                    // mainActivity.appLang = newLang
-                    // mainActivity.runOnUiThread { mainActivity.recreate() }
-                    printLog(TAG, "language changed to $newLang")
-                } else {
-                    printLog(TAG, "language not changed [${mainActivity.appLang}]")
+            when (eo.optString("name")) {
+                "activity" -> {
+                    MainActivity.lampaActivity = eo.optString("value", "{}")
+                    printLog(TAG, "lampaActivity stored: ${MainActivity.lampaActivity}")
                 }
-            }
 
-            "source" -> {
-                mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
-                printLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
-            }
+                "player_timecode" -> {
+                    MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
+                    printLog(TAG, "playerTimeCode stored: ${MainActivity.playerTimeCode}")
+                }
 
-            "proxy_tmdb" -> {
-                val newState = eo.optString("value", "true") == "true"
-                MainActivity.proxyTmdbEnabled = newState
-                printLog(TAG, "proxyTmdbEnabled set to $newState")
-                if (MainActivity.proxyTmdbEnabled) {
-                    CoroutineScope(Dispatchers.Default).launch {
-                        delay(15000) // Long enough to wait of setup Lampa mirrors
-                        withContext(Dispatchers.Main) {
-                            mainActivity.getLampaTmdbUrls()
-                        }
+                "playlist_next" -> {
+                    MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
+                    printLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
+                }
+
+                "torrserver_preload" -> {
+                    MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
+                    printLog(TAG, "torrserverPreload stored: ${MainActivity.torrserverPreload}")
+                }
+
+                "internal_torrclient" -> {
+                    MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
+                    printLog(TAG, "internalTorrserve stored: ${MainActivity.internalTorrserve}")
+                }
+
+                "language" -> {
+                    val newLang = eo.optString("value", "ru")
+                    if (newLang != "undefined" && mainActivity.appLang != newLang) {
+                        App.setAppLanguage(mainActivity, newLang)
+                        // mainActivity.appLang = newLang
+                        // mainActivity.runOnUiThread { mainActivity.recreate() }
+                        printLog(TAG, "language changed to $newLang")
+                    } else {
+                        printLog(TAG, "language not changed [${mainActivity.appLang}]")
                     }
-                } else {
-                    // store defaults to prefs
-                    printLog(TAG, "Apply default TMDB URLs")
-                    mainActivity.tmdbApiUrl = TMDB.APIURL
-                    mainActivity.tmdbImgUrl = TMDB.IMGURL
                 }
-            }
 
-            "protocol" -> {
-                printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
-                mainActivity.getLampaTmdbUrls()
-            }
-
-            "baseUrlApiTMDB" -> {
-                val newUrl = eo.optString("value", TMDB.APIURL)
-                if (newUrl.startsWith("http", true) &&
-                    !newUrl.contains(mainActivity.tmdbApiUrl, true)
-                ) {
-                    mainActivity.tmdbApiUrl = newUrl
-                    printLog(TAG, "baseUrlApiTMDB changed, tmdbApiUrl ${mainActivity.tmdbApiUrl}")
-                } else {
-                    printLog(TAG, "baseUrlApiTMDB changed, tmdbApiUrl not changed: ${mainActivity.tmdbApiUrl}")
+                "source" -> {
+                    mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
+                    printLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
                 }
-            }
 
-            "baseUrlImageTMDB" -> {
-                val newUrl = eo.optString("value", TMDB.IMGURL)
-                if (newUrl.startsWith("http", true) &&
-                    !newUrl.contains(mainActivity.tmdbImgUrl, true)
-                ) {
-                    mainActivity.tmdbImgUrl = newUrl
-                    printLog(TAG, "baseUrlImageTMDB changed, tmdbImgUrl ${mainActivity.tmdbImgUrl}")
-                } else {
-                    printLog(TAG, "baseUrlImageTMDB changed, tmdbImgUrl not changed: ${mainActivity.tmdbImgUrl}")
+                "proxy_tmdb" -> {
+                    val newState = eo.optString("value", "true") == "true"
+                    MainActivity.proxyTmdbEnabled = newState
+                    printLog(TAG, "proxyTmdbEnabled set to $newState")
+                    if (MainActivity.proxyTmdbEnabled) {
+                        CoroutineScope(Dispatchers.Default).launch {
+                            delay(15000) // Long enough to wait of setup Lampa mirrors
+                            withContext(Dispatchers.Main) {
+                                mainActivity.getLampaTmdbUrls()
+                            }
+                        }
+                    } else {
+                        // store defaults to prefs
+                        printLog(TAG, "Apply default TMDB URLs")
+                        mainActivity.tmdbApiUrl = TMDB.APIURL
+                        mainActivity.tmdbImgUrl = TMDB.IMGURL
+                    }
                 }
-            }
 
-            "favorite" -> {
-                val json = eo.optString("value", "")
-                if (isValidJson(json)) {
-                    mainActivity.saveFavorite(json)
-                    printLog(TAG, "favorite JSON saved to prefs")
-                } else {
-                    Log.e(TAG, "Not valid JSON in favorite")
+                "protocol" -> {
+                    printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
+                    mainActivity.getLampaTmdbUrls()
                 }
-            }
 
-            "account_use" -> {
-                val use = eo.optBoolean("value", false)
-                printLog(TAG, "set syncEnabled $use")
-                mainActivity.syncEnabled = use
-            }
+                "baseUrlApiTMDB" -> {
+                    val newUrl = eo.optString("value", TMDB.APIURL)
+                    if (newUrl.startsWith("http", true) &&
+                        !newUrl.contains(mainActivity.tmdbApiUrl, true)
+                    ) {
+                        mainActivity.tmdbApiUrl = newUrl
+                        printLog(
+                            TAG,
+                            "baseUrlApiTMDB changed, tmdbApiUrl ${mainActivity.tmdbApiUrl}"
+                        )
+                    } else {
+                        printLog(
+                            TAG,
+                            "baseUrlApiTMDB changed, tmdbApiUrl not changed: ${mainActivity.tmdbApiUrl}"
+                        )
+                    }
+                }
 
-            "recomends_list" -> {
-                val json = eo.optString("value", "")
-                if (isValidJson(json)) {
-                    mainActivity.saveRecs(json)
-                    printLog(TAG, "recomends_list JSON saved to prefs")
-                } else {
-                    Log.e(TAG, "Not valid JSON in recomends_list")
+                "baseUrlImageTMDB" -> {
+                    val newUrl = eo.optString("value", TMDB.IMGURL)
+                    if (newUrl.startsWith("http", true) &&
+                        !newUrl.contains(mainActivity.tmdbImgUrl, true)
+                    ) {
+                        mainActivity.tmdbImgUrl = newUrl
+                        printLog(
+                            TAG,
+                            "baseUrlImageTMDB changed, tmdbImgUrl ${mainActivity.tmdbImgUrl}"
+                        )
+                    } else {
+                        printLog(
+                            TAG,
+                            "baseUrlImageTMDB changed, tmdbImgUrl not changed: ${mainActivity.tmdbImgUrl}"
+                        )
+                    }
+                }
+
+                "favorite" -> {
+                    val json = eo.optString("value", "")
+                    if (isValidJson(json)) {
+                        mainActivity.saveFavorite(json)
+                        printLog(TAG, "favorite JSON saved to prefs")
+                    } else {
+                        Log.e(TAG, "Not valid JSON in favorite")
+                    }
+                }
+
+                "account_use" -> {
+                    val use = eo.optBoolean("value", false)
+                    printLog(TAG, "set syncEnabled $use")
+                    mainActivity.syncEnabled = use
+                }
+
+                "recomends_list" -> {
+                    val json = eo.optString("value", "")
+                    if (isValidJson(json)) {
+                        mainActivity.saveRecs(json)
+                        printLog(TAG, "recomends_list JSON saved to prefs")
+                    } else {
+                        Log.e(TAG, "Not valid JSON in recomends_list")
+                    }
+                }
+
+                else -> { // no op
                 }
             }
         }
     }
+
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
