@@ -230,7 +230,13 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         if (BuildConfig.DEBUG)
             browser?.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    Log.d(LOG_TAG, consoleMessage.message())
+                    when (consoleMessage.messageLevel()) {
+                        ConsoleMessage.MessageLevel.LOG -> Log.v(LOG_TAG, consoleMessage.message())
+                        ConsoleMessage.MessageLevel.WARNING -> Log.w(LOG_TAG, consoleMessage.message())
+                        ConsoleMessage.MessageLevel.ERROR -> Log.e(LOG_TAG, consoleMessage.message())
+                        ConsoleMessage.MessageLevel.DEBUG -> Log.d(LOG_TAG, consoleMessage.message())
+                        else -> Log.i(LOG_TAG,  consoleMessage.message())
+                    }
                     return true
                 }
 
