@@ -147,9 +147,9 @@ object RecsService {
             Log.e("RecsService", "Failed to load poster: $uri", e)
             return if (width > height)
                 BitmapFactory.decodeResource(App.context.resources, R.drawable.lampa_banner)
-                else
+            else
                 BitmapFactory.decodeResource(App.context.resources, R.drawable.empty_poster)
-            //null
+            // null
         }
     }
 
