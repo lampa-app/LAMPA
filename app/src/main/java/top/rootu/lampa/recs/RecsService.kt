@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -135,7 +136,7 @@ object RecsService {
         return notification
     }
 
-    private fun loadPosterBitmap(uri: String, width: Int, height: Int): Bitmap? {
+    private fun loadPosterBitmap(uri: String, width: Int, height: Int): Bitmap {
         return try {
             Glide.with(App.context)
                 .asBitmap()
@@ -144,7 +145,11 @@ object RecsService {
                 .get()
         } catch (e: Exception) {
             Log.e("RecsService", "Failed to load poster: $uri", e)
-            null
+            return if (width > height)
+                BitmapFactory.decodeResource(App.context.resources, R.drawable.lampa_banner)
+                else
+                BitmapFactory.decodeResource(App.context.resources, R.drawable.empty_poster)
+            //null
         }
     }
 

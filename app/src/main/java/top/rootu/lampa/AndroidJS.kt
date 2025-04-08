@@ -109,12 +109,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     MainActivity.proxyTmdbEnabled = newState
                     printLog(TAG, "proxyTmdbEnabled set to $newState")
                     if (MainActivity.proxyTmdbEnabled) {
-                        CoroutineScope(Dispatchers.Default).launch {
-                            delay(15000) // Long enough to wait of setup Lampa mirrors
-                            withContext(Dispatchers.Main) {
-                                mainActivity.getLampaTmdbUrls()
-                            }
-                        }
+                        mainActivity.getLampaTmdbUrls()
+//                        CoroutineScope(Dispatchers.Default).launch {
+//                            delay(15000) // Long enough to wait of setup Lampa mirrors
+//                            withContext(Dispatchers.Main) {
+//                                mainActivity.getLampaTmdbUrls()
+//                            }
+//                        }
                     } else {
                         // store defaults to prefs
                         printLog(TAG, "Apply default TMDB URLs")

@@ -927,14 +927,35 @@ class MainActivity : BaseActivity(),
 
     fun getLampaTmdbUrls() {
         lifecycleScope.launch {
-            runVoidJsFunc(
-                "AndroidJS.storageChange",
-                "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
-            )
-            runVoidJsFunc(
-                "AndroidJS.storageChange",
-                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
-            )
+            browser?.evaluateJavascript(
+                """
+                (function() {
+                    if(window.appready) {
+                        console.log('Lampa ready, store baseUrlApiTMDB and baseUrlImageTMDB...');
+                        AndroidJS.storageChange(JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')}))
+                        AndroidJS.storageChange(JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')}))
+                    } else {
+                        console.log('Lampa not ready, wait load...');
+                        Lampa.Listener.follow('app', function (e) {
+                        if(e.type =='ready')
+                            console.log('Lampa ready, store baseUrlApiTMDB and baseUrlImageTMDB...');
+                            AndroidJS.storageChange(JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')}))
+                            AndroidJS.storageChange(JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')}))
+                        })
+                    }
+                    return '${JS_SUCCESS} setup TMDB URLs';
+                })()
+                """.trimIndent()
+            ) { result -> logDebug(result) }
+
+//            runVoidJsFunc(
+//                "AndroidJS.storageChange",
+//                "JSON.stringify({name: 'baseUrlApiTMDB', value: Lampa.TMDB.api('')})"
+//            )
+//            runVoidJsFunc(
+//                "AndroidJS.storageChange",
+//                "JSON.stringify({name: 'baseUrlImageTMDB', value: Lampa.TMDB.image('')})"
+//            )
         }
     }
 
