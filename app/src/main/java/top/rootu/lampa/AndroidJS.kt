@@ -41,7 +41,20 @@ import kotlin.system.exitProcess
 
 class AndroidJS(private val mainActivity: MainActivity, private val browser: Browser) {
 
+    private val store: SharedPreferences = App.context.storagePrefs
+
+    // Local properties
     private var lastEventHash: String? = null
+    private var reqResponse: MutableMap<String, String> = HashMap()
+    private var keys: Array<String?>? = null
+    private var values: Array<String?>? = null
+    private var dumped = false
+
+    companion object {
+        // Constants
+        private const val TAG = "AndroidJS"
+        private const val UPDATE_DELAY = 5000L // in ms, wait before update TV channel
+    }
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
@@ -76,16 +89,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     printLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
                 }
 
-//                "torrserver_preload" -> {
-//                    MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
-//                    printLog(TAG, "torrserverPreload stored: ${MainActivity.torrserverPreload}")
-//                }
-//
-//                "internal_torrclient" -> {
-//                    MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
-//                    printLog(TAG, "internalTorrserve stored: ${MainActivity.internalTorrserve}")
-//                }
-
                 "language" -> {
                     val newLang = eo.optString("value", "ru")
                     if (newLang != "undefined" && mainActivity.appLang != newLang) {
@@ -103,29 +106,25 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     printLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
                 }
 
+                "protocol" -> {
+                    if (MainActivity.proxyTmdbEnabled) {
+                        printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
+                        mainActivity.getLampaTmdbUrls()
+                    }
+                }
+
                 "proxy_tmdb" -> {
                     val newState = eo.optString("value", "true") == "true"
                     MainActivity.proxyTmdbEnabled = newState
                     printLog(TAG, "proxyTmdbEnabled set to $newState")
                     if (MainActivity.proxyTmdbEnabled) {
                         mainActivity.getLampaTmdbUrls()
-//                        CoroutineScope(Dispatchers.Default).launch {
-//                            delay(15000) // Long enough to wait of setup Lampa mirrors
-//                            withContext(Dispatchers.Main) {
-//                                mainActivity.getLampaTmdbUrls()
-//                            }
-//                        }
                     } else {
                         // store defaults to prefs
                         printLog(TAG, "Apply default TMDB URLs")
                         mainActivity.tmdbApiUrl = TMDB.APIURL
                         mainActivity.tmdbImgUrl = TMDB.IMGURL
                     }
-                }
-
-                "protocol" -> {
-                    printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
-                    mainActivity.getLampaTmdbUrls()
                 }
 
                 "baseUrlApiTMDB" -> {
@@ -260,7 +259,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         // update Recs to filter viewed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CoroutineScope(Dispatchers.Default).launch {
-                delay(5000)
+                delay(UPDATE_DELAY)
                 LampaChannels.updateRecsChannel()
             }
         }
@@ -442,7 +441,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
         // update Recs to filter viewed
         CoroutineScope(Dispatchers.Default).launch {
-            delay(5000)
+            delay(UPDATE_DELAY)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
             } else {
@@ -519,7 +518,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 LampaProvider.CONT,
                 LampaProvider.THRW -> {
                     CoroutineScope(Dispatchers.Default).launch {
-                        delay(5000)
+                        delay(UPDATE_DELAY)
                         updateChanByName(where)
                     }
                 }
@@ -527,7 +526,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 LampaProvider.LATE -> {
                     // Handle add to Watch Next from Lampa
                     CoroutineScope(Dispatchers.Default).launch {
-                        delay(5000)
+                        delay(UPDATE_DELAY)
                         updateWatchNext()
                     }
                 }
@@ -537,11 +536,6 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     // https://stackoverflow.com/a/41560207
     // https://copyprogramming.com/howto/android-webview-savestate
-    private val store: SharedPreferences = App.context.storagePrefs
-    private var keys: Array<String?>? = null
-    private var values: Array<String?>? = null
-    private var dumped = false
-
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Synchronized
@@ -615,10 +609,5 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     private fun JSONObject.putSafe(key: String, value: Any) = try {
         put(key, value)
     } catch (_: JSONException) { /* Ignore */
-    }
-
-    companion object {
-        private const val TAG = "AndroidJS"
-        var reqResponse: MutableMap<String, String> = HashMap()
     }
 }

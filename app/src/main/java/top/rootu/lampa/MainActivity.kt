@@ -190,19 +190,19 @@ class MainActivity : BaseActivity(),
         private val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
             "com.android.tv.frameworkpackagestubs",
-            "com.google.android.tv.frameworkpackagestubs",
-            "com.google.android.apps.photos",
             "com.estrongs.android.pop",
             "com.estrongs.android.pop.pro",
             "com.ghisler.android.totalcommander",
+            "com.google.android.tv.frameworkpackagestubs",
+            "com.google.android.apps.photos",
             "com.instantbits.cast.webvideo",
             "com.lonelycatgames.xplore",
             "com.mitv.videoplayer",
             "com.mixplorer.silver",
             "com.opera.browser",
+            "nextapp.fx",
             "org.droidtv.contentexplorer",
             "pl.solidexplorer2",
-            "nextapp.fx",
             // more to add...
         )
         private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
@@ -917,8 +917,6 @@ class MainActivity : BaseActivity(),
         runJsStorageChangeField("activity", "{}") // get current lampaActivity
         runJsStorageChangeField("player_timecode") // for player params
         runJsStorageChangeField("playlist_next") // for player playlist
-//        runJsStorageChangeField("torrserver_preload")
-//        runJsStorageChangeField("internal_torrclient")
         runJsStorageChangeField("source") // get current catalog for Recs
         runJsStorageChangeField("account_use") // get bookmarks sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
