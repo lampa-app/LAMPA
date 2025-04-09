@@ -215,7 +215,7 @@ class MainActivity : BaseActivity(),
                 // "^(https?://)?" + // Protocol (http or https, optional)
                 "(\\[${IP6_REGEX}]|${IP4_REGEX}|${DOMAIN_REGEX})" +  // IPv6, IPv4, or domain
                 "(:\\d+)?" +                      // Optional port
-                "(/[-\\w@:%._+~#=&]*)?" +         // Optional path (allows symbols)
+                "(/[-\\w@:%._+~#=&]*(/[-\\w@:%._+~#=&]*)*)?" + // Optional path (allows subpaths)
                 "(\\?[\\w@:%._+~#=&-]*)?" +       // Optional query string
                 "(#[\\w-]*)?" +                   // Optional fragment
                 "$"
@@ -230,8 +230,8 @@ class MainActivity : BaseActivity(),
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var playerTimeCode: String = "continue"
         var playerAutoNext: Boolean = true
-        var internalTorrserve: Boolean = false
-        var torrserverPreload: Boolean = false
+        // var internalTorrserve: Boolean = false
+        // var torrserverPreload: Boolean = false
         var proxyTmdbEnabled: Boolean = false
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
@@ -915,12 +915,12 @@ class MainActivity : BaseActivity(),
 
     private fun syncStorage() {
         runJsStorageChangeField("activity", "{}") // get current lampaActivity
-        runJsStorageChangeField("player_timecode")
-        runJsStorageChangeField("playlist_next")
-        runJsStorageChangeField("torrserver_preload")
-        runJsStorageChangeField("internal_torrclient")
-        runJsStorageChangeField("source") // get current catalog
-        runJsStorageChangeField("account_use") // get sync state
+        runJsStorageChangeField("player_timecode") // for player params
+        runJsStorageChangeField("playlist_next") // for player playlist
+//        runJsStorageChangeField("torrserver_preload")
+//        runJsStorageChangeField("internal_torrclient")
+        runJsStorageChangeField("source") // get current catalog for Recs
+        runJsStorageChangeField("account_use") // get bookmarks sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
         runJsStorageChangeField("proxy_tmdb") // to get current baseUrlApiTMDB and baseUrlImageTMDB
     }

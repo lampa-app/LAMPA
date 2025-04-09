@@ -14,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import top.rootu.lampa.browser.Browser
@@ -77,15 +76,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     printLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
                 }
 
-                "torrserver_preload" -> {
-                    MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
-                    printLog(TAG, "torrserverPreload stored: ${MainActivity.torrserverPreload}")
-                }
-
-                "internal_torrclient" -> {
-                    MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
-                    printLog(TAG, "internalTorrserve stored: ${MainActivity.internalTorrserve}")
-                }
+//                "torrserver_preload" -> {
+//                    MainActivity.torrserverPreload = eo.optString("value", "false") == "true"
+//                    printLog(TAG, "torrserverPreload stored: ${MainActivity.torrserverPreload}")
+//                }
+//
+//                "internal_torrclient" -> {
+//                    MainActivity.internalTorrserve = eo.optString("value", "false") == "true"
+//                    printLog(TAG, "internalTorrserve stored: ${MainActivity.internalTorrserve}")
+//                }
 
                 "language" -> {
                     val newLang = eo.optString("value", "ru")
