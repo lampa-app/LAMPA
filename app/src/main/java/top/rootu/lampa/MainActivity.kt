@@ -1569,6 +1569,15 @@ class MainActivity : BaseActivity(),
 
         // Show the dialog
         val dialog = builder.create()
+            .apply {
+                window?.apply {
+                    // top position (no keyboard overlap)
+                    attributes = attributes.apply {
+                        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                        verticalMargin = 0.1F
+                    }
+                }
+            }
 
         // Set up the input field
         setupInputField(input, tilt, msg, dialog, inputManager)
