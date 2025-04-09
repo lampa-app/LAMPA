@@ -886,13 +886,8 @@ class MainActivity : BaseActivity(),
                 if (typeof window._androidStorageListener !== 'undefined') {
                     if (Lampa && Lampa.Storage && Lampa.Storage.listener) {
                         try {
-                            if (Lampa.Storage.listener.unfollow) {
-                                console.log('Use listener.unfollow');
-                                Lampa.Storage.listener.unfollow('change', window._androidStorageListener);
-                            } else {
-                                console.log('Use listener.remove');
-                                Lampa.Storage.listener.remove('change');
-                            }
+                            console.log('Use listener.remove');
+                            Lampa.Storage.listener.remove('change', window._androidStorageListener);
                         } catch (e) {
                             console.error('Error removing listener:', e);
                         }
