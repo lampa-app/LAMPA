@@ -110,6 +110,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     if (MainActivity.proxyTmdbEnabled) {
                         printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
                         mainActivity.getLampaTmdbUrls()
+                    } else {
+                        printLog(TAG, "protocol changed. TMDB Proxy disabled, nothing to do.")
                     }
                 }
 
