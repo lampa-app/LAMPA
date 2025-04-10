@@ -181,6 +181,8 @@ dependencies {
     implementation "androidx.webkit:webkit:$webkitVersion"
     // for TLS v1.3 on API < 29
     implementation 'org.conscrypt:conscrypt-android:2.5.3'
+    // For Crosswalk compatibility
+    implementation 'junit:junit:4.13.2' // Or latest version
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
     ruStoreApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
