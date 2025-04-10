@@ -37,7 +37,6 @@ android {
     defaultConfig {
         applicationId "top.rootu.lampa"
         minSdkVersion 19
-        //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 35
         versionCode getVersionCode()
         versionName getVersionName()
@@ -169,15 +168,13 @@ dependencies {
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
     def muiVersion = '1.12.0'
     implementation "com.google.android.material:material:${muiVersion}"
-    //noinspection GradleDependency
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kp_version" // or jdk7
     // coroutines
     def coroutinesVersion = '1.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     // json serializer
     implementation 'com.google.code.gson:gson:2.12.0'
     // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.6.2'
+    implementation 'com.airbnb.android:lottie:6.6.4'
     // webkit
     def webkitVersion = '1.11.0' // 1.11.0 - latest version for API < 21
     //noinspection GradleDependency
