@@ -104,7 +104,7 @@ object WatchNext {
             TAG,
             "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }}"
         )
-        printLog(TAG, "pending to remove: ${pending.size} ${pending.map { it.id }}")
+        printLog(TAG, "updateWatchNext() WatchNext items pending to remove: ${pending.size} ${pending.map { it.id }}")
 
         excludePending.forEach { card ->
             withContext(Dispatchers.Default) {

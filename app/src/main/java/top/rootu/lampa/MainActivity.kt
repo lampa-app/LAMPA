@@ -167,6 +167,20 @@ class MainActivity : BaseActivity(),
         private const val RESULT_VIMU_ERROR = 4
         private const val JS_SUCCESS = "SUCCESS"
         private const val JS_FAILURE = "FAILED"
+        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
+        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
+        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
+        private const val IP6_REGEX =
+            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
+        private const val DOMAIN_REGEX = "([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,}"
+        private const val URL_REGEX = "^https?://" + // Mandatory protocol
+                // "^(https?://)?" + // Protocol (http or https, optional)
+                "(\\[${IP6_REGEX}]|${IP4_REGEX}|${DOMAIN_REGEX})" +  // IPv6, IPv4, or domain
+                "(:\\d+)?" +                      // Optional port
+                "(/[-\\w@:%._+~#=&]*(/[-\\w@:%._+~#=&]*)*)?" + // Optional path (allows subpaths)
+                "(\\?[\\w@:%._+~#=&-]*)?" +       // Optional query string
+                "(#[\\w-]*)?" +                   // Optional fragment
+                "$"
 
         // Player Packages
         private val MX_PACKAGES = setOf(
@@ -205,20 +219,6 @@ class MainActivity : BaseActivity(),
             "pl.solidexplorer2",
             // more to add...
         )
-        private const val IP4_DIG = "([01]?\\d?\\d|2[0-4]\\d|25[0-5])"
-        private const val IP4_REGEX = "(${IP4_DIG}\\.){3}${IP4_DIG}"
-        private const val IP6_DIG = "[0-9A-Fa-f]{1,4}"
-        private const val IP6_REGEX =
-            "((${IP6_DIG}:){7}${IP6_DIG}|(${IP6_DIG}:){1,7}:|:(:${IP6_DIG}){1,7}|(${IP6_DIG}::?){1,6}${IP6_DIG})"
-        private const val DOMAIN_REGEX = "([-A-Za-z\\d]+\\.)+[-A-Za-z]{2,}"
-        private const val URL_REGEX = "^https?://" + // Mandatory protocol
-                // "^(https?://)?" + // Protocol (http or https, optional)
-                "(\\[${IP6_REGEX}]|${IP4_REGEX}|${DOMAIN_REGEX})" +  // IPv6, IPv4, or domain
-                "(:\\d+)?" +                      // Optional port
-                "(/[-\\w@:%._+~#=&]*(/[-\\w@:%._+~#=&]*)*)?" + // Optional path (allows subpaths)
-                "(\\?[\\w@:%._+~#=&-]*)?" +       // Optional query string
-                "(#[\\w-]*)?" +                   // Optional fragment
-                "$"
         private val URL_PATTERN = Pattern.compile(URL_REGEX)
         private val listenerMutex = Mutex()
 
@@ -230,8 +230,6 @@ class MainActivity : BaseActivity(),
         var delayedVoidJsFunc = mutableListOf<List<String>>()
         var playerTimeCode: String = "continue"
         var playerAutoNext: Boolean = true
-        // var internalTorrserve: Boolean = false
-        // var torrserverPreload: Boolean = false
         var proxyTmdbEnabled: Boolean = false
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
@@ -723,7 +721,7 @@ class MainActivity : BaseActivity(),
             RESULT_CANCELED, RESULT_VIMU_START, RESULT_VIMU_ENDED -> {
                 val pos = intent.getIntExtra("position", 0)
                 val dur = intent.getIntExtra("duration", 0)
-                if (pos > 0 && dur > 0) {
+                if (pos > 0 && dur > 0) { // ViMu duration can be -1 on playback error
                     val ended = isAfterEndCreditsPosition(pos.toLong(), dur.toLong())
                     Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended=$ended]")
                     resultPlayer(videoUrl, pos, dur, ended)
