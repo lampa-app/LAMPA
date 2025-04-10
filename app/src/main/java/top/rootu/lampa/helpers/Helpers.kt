@@ -151,6 +151,31 @@ object Helpers {
         }
     }
 
+    /**
+     * Checks if the device supports Android TV content provider
+     */
+    fun isTvContentProviderAvailable(context: Context): Boolean {
+        return isContentProviderAvailable(context, "android.media.tv")
+    }
+
+    /**
+     * Checks if the device supports specific TV channel content provider
+     */
+    fun isTvChannelContentProviderAvailable(context: Context): Boolean {
+        return isContentProviderAvailable(context, "android.media.tv.channel")
+    }
+
+    /**
+     * Generic content provider availability checker
+     */
+    private fun isContentProviderAvailable(context: Context, authority: String): Boolean {
+        return try {
+            context.packageManager.resolveContentProvider(authority, 0) != null
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun buildPendingIntent(
         card: LampaCard,
         continueWatch: Boolean?,
@@ -239,7 +264,9 @@ object Helpers {
 
     val isAndroidTV: Boolean
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") &&
+                    !isHuaweiDevice // &&
+                    // !isBrokenATV
         }
 
     /**
@@ -376,16 +403,6 @@ object Helpers {
         }
     }
 
-    fun printLog(message: String) {
-        printLog("DEBUG", message)
-    }
-
-    fun printLog(tag: String = "DEBUG", message: String) {
-        if (BuildConfig.DEBUG) {
-            Log.d(tag, message)
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun hasSAFChooser(pm: PackageManager?): Boolean {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -418,6 +435,16 @@ object Helpers {
             } catch (_: PackageManager.NameNotFoundException) {
                 false
             }
+        }
+    }
+
+    fun debugLog(message: String) {
+        debugLog("DEBUG", message)
+    }
+
+    fun debugLog(tag: String = "DEBUG", message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, message)
         }
     }
 

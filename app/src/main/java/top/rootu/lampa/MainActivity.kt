@@ -84,6 +84,7 @@ import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
@@ -954,7 +955,7 @@ class MainActivity : BaseActivity(),
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}")
     private suspend fun syncBookmarks() = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return@withContext
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
         withContext(Dispatchers.Main) {
             runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
         }
@@ -1275,7 +1276,7 @@ class MainActivity : BaseActivity(),
         // Define menu items
         val menuItems = mutableListOf(
             MenuItem(
-                title = if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                title = if (isTvContentProviderAvailable(App.context) && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     getString(R.string.update_chan_title)
                 } else if (isAndroidTV) {
                     getString(R.string.update_home_title)
@@ -1283,7 +1284,7 @@ class MainActivity : BaseActivity(),
                     getString(R.string.close_menu_title)
                 },
                 action = "updateOrClose",
-                icon = if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24
+                icon = if (isTvContentProviderAvailable(App.context)) R.drawable.round_refresh_24 else R.drawable.round_close_24
             ),
             MenuItem(
                 title = getString(R.string.change_url_title),
@@ -1574,21 +1575,20 @@ class MainActivity : BaseActivity(),
                         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                         verticalMargin = 0.1F
                     }
+                    // Automatically show the keyboard
+                    setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
                 }
             }
 
+        showFullScreenDialog(dialog)
+
         // Set up the input field
         setupInputField(input, tilt, msg, dialog, inputManager)
-
-        showFullScreenDialog(dialog)
 
         // Set up the migrate button
         dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
             handleMigrateButtonClick(dialog)
         }
-
-        // Automatically show the keyboard
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
     }
 
     // Helper function to set up the input field
@@ -1606,37 +1606,82 @@ class MainActivity : BaseActivity(),
                 tilt?.error = msg
             }
             setAdapter(urlAdapter)
-
-            if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-                setOnFocusChangeListener { _, hasFocus ->
-                    if (hasFocus && !isPopupShowing) {
-                        showDropDown()
+            // Common setup for all API levels
+            setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    try {
+                        if (!isPopupShowing) {
+                            showDropDown()
+                        }
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
-                    } else {
+                    } catch (_: Exception) {
+                    }
+                } else {
+                    try {
                         dismissDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    } catch (_: Exception) {
                     }
                 }
-                setOnItemClickListener { _, _, _, _ ->
+            }
+
+            setOnItemClickListener { _, _, _, _ ->
+                try {
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
                     dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                } catch (_: Exception) {
                 }
-                setOnClickListener {
+            }
+
+            setOnClickListener {
+                try {
                     dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    inputManager.showSoftInput(this, 0)
+                    inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                } catch (_: Exception) {
+                }
+            }
+
+            setOnKeyListener { view, keyCode, event ->
+                try {
+                    when {
+                        // Handle ENTER key
+                        keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP -> {
+                            if (isPopupShowing) {
+                                dismissDropDown()
+                            }
+                            inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                            true
+                        }
+                        // Handle BACK key
+                        keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP -> {
+                            if (!isPopupShowing) {
+                                showDropDown()
+                            }
+                            inputManager.hideSoftInputFromWindow(view.windowToken, 0)
+                            true
+                        }
+                        // For other keys or action phases
+                        else -> false
+                    }
+                } catch (_: Exception) {
+                    false
                 }
             }
 
             setOnEditorActionListener { _, actionId, _ ->
-                when (actionId) {
-                    EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
-                        inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
-                        dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
-                        true
-                    }
+                try {
+                    when (actionId) {
+                        EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
+                            inputManager.hideSoftInputFromWindow(windowToken, 0)
+                            dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                            true
+                        }
 
-                    else -> false
+                        else -> false
+                    }
+                } catch (_: Exception) {
+                    false
                 }
             }
         }
@@ -3116,7 +3161,7 @@ class MainActivity : BaseActivity(),
      * Updates Watch Next on Android TV.
      */
     private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return@withContext
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
         try {
             val card = getCardFromActivity(lampaActivity) ?: return@withContext
             // Get current playback state

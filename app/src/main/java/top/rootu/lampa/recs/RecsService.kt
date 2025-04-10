@@ -42,7 +42,8 @@ object RecsService {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
 
-        val recommendations = getRecs()
+        val recommendations =
+            LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
         val itemsToSend = min(recommendations.size, MAX_RECS_CAP)
 
         if (BuildConfig.DEBUG) {
@@ -57,10 +58,6 @@ object RecsService {
                 Log.e("RecsService", "Failed to build recommendation for card: ${card.id}", e)
             }
         }
-    }
-
-    private fun getRecs(): List<LampaCard> {
-        return LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)

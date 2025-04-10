@@ -121,21 +121,8 @@ android {
 dependencies {
 
     // https://developer.android.com/studio/write/java8-support#library-desugaring
-    // For AGP 7.4+
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5' // AGP 7.4+
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    // JavaScript to run PAC file to get correct proxies
-    implementation 'org.mozilla:rhino:1.7.15'
-    def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
-    //noinspection GradleDependency
-    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
-    //noinspection GradleDependency
-    implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
-    // multidex
-    implementation 'androidx.multidex:multidex:2.0.1'
-    // netcipher
-    implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
-    // androidx
     def actKtxVer = '1.9.3' // 1.9.3 - latest version for API < 21
     //noinspection GradleDependency
     implementation "androidx.activity:activity-ktx:$actKtxVer"
@@ -148,17 +135,18 @@ dependencies {
     def coreKtxVer = '1.13.1' // 1.13.1 - latest version for API < 21
     //noinspection GradleDependency
     implementation "androidx.core:core-ktx:$coreKtxVer"
-    def lifecycleVersion = '2.8.7'
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
-    implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-process:2.8.7"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
+    implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.recommendation:recommendation:1.0.0'
     implementation 'androidx.tvprovider:tvprovider:1.0.0'
-    def vectordrawableVersion = '1.2.0'
-    implementation "androidx.vectordrawable:vectordrawable:${vectordrawableVersion}"
-    implementation 'org.brotli:dec:0.1.2'
-    //glide
-    def glideVersion = '4.16.0'
+    implementation 'androidx.vectordrawable:vectordrawable:1.2.0'
+    def webkitVersion = '1.11.0' // 1.11.0 - latest version for API < 21
+    //noinspection GradleDependency
+    implementation "androidx.webkit:webkit:$webkitVersion"
+    implementation 'com.airbnb.android:lottie:6.6.4' // lottie loaders
+    def glideVersion = '4.16.0' // glide stable
     implementation "com.github.bumptech.glide:glide:${glideVersion}"
     implementation("com.github.bumptech.glide:okhttp3-integration:${glideVersion}") {
         exclude group: 'glide-parent'
@@ -166,23 +154,19 @@ dependencies {
     }
     ksp "com.github.bumptech.glide:ksp:${glideVersion}"
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
-    def muiVersion = '1.12.0'
-    implementation "com.google.android.material:material:${muiVersion}"
-    // coroutines
-    def coroutinesVersion = '1.10.1'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
-    // json serializer
+    implementation 'com.google.android.material:material:1.12.0'
     implementation 'com.google.code.gson:gson:2.12.0'
-    // lottie loaders
-    implementation 'com.airbnb.android:lottie:6.6.4'
-    // webkit
-    def webkitVersion = '1.11.0' // 1.11.0 - latest version for API < 21
+    def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
     //noinspection GradleDependency
-    implementation "androidx.webkit:webkit:$webkitVersion"
-    // for TLS v1.3 on API < 29
-    implementation 'org.conscrypt:conscrypt-android:2.5.3'
-    // For Crosswalk compatibility
-    implementation 'junit:junit:4.13.2' // Or latest version
+    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
+    //noinspection GradleDependency
+    implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
+    implementation 'junit:junit:4.13.2' // For Crosswalk compatibility
+    implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
+    implementation 'org.brotli:dec:0.1.2'
+    implementation 'org.conscrypt:conscrypt-android:2.5.3' // for TLS v1.3 on API < 29
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
+    implementation 'org.mozilla:rhino:1.7.15' // JavaScript to run PAC file to get correct proxies
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
     ruStoreApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])

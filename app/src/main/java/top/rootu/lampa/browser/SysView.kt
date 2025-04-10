@@ -27,7 +27,7 @@ import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.isTelegramInstalled
-import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.getNetworkErrorString
 import top.rootu.lampa.helpers.isAttachedToWindowCompat
 
@@ -91,7 +91,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20java.lang.String)
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                printLog("shouldOverrideUrlLoading(view, url) view $view url $url")
+                debugLog("shouldOverrideUrlLoading(view, url) view $view url $url")
                 url?.let {
                     if (it.startsWith("tg://")) {
                         // Handle Telegram link
@@ -116,7 +116,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
-                printLog("shouldOverrideUrlLoading(view, request) view $view request $request")
+                debugLog("shouldOverrideUrlLoading(view, request) view $view request $request")
                 if (request.url.scheme.equals("tg", true)) {
                     if (isTelegramInstalled(mainActivity)) {
                         val intent = Intent(Intent.ACTION_VIEW, request.url)
@@ -164,7 +164,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION
                     )
                 ) {
-                    printLog("ERROR ${error.errorCode} ${error.description} on load ${request.url}")
+                    debugLog("ERROR ${error.errorCode} ${error.description} on load ${request.url}")
                     if (request.url.toString().trimEnd('/')
                             .equals(MainActivity.LAMPA_URL, true)
                     ) {
@@ -197,7 +197,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 description: String?,
                 failingUrl: String?
             ) {
-                printLog("ERROR $errorCode $description on load $failingUrl")
+                debugLog("ERROR $errorCode $description on load $failingUrl")
                 if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
                     view?.loadUrl("about:blank")
                     val reason = App.context.getNetworkErrorString(description.toString())
@@ -222,7 +222,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 handler: SslErrorHandler?,
                 error: SslError?
             ) {
-                printLog("Ignore SSL error: $error")
+                debugLog("Ignore SSL error: $error")
                 handler?.proceed() // Ignore SSL certificate errors
             }
         }
@@ -329,26 +329,26 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         textColor: String = "#E6E6E6"
     ): String {
         return """
-    <html>
-        <body style="margin:0;padding:0;overflow:hidden;">
-            <div style="display:table;width:100%;height:100vh;overflow:hidden;">
-                <div align="center" style="display:table-cell;vertical-align:middle;">
-                    <svg width="120" height="120" 
-                         style="overflow:visible;enable-background:new 0 0 120 120" 
-                         viewBox="0 0 32 32" 
-                         xmlns="http://www.w3.org/2000/svg">
-                        <g>
-                            <circle cx="16" cy="16" r="16" style="fill:$iconColor;"/>
-                            <path d="M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z" 
-                                  style="fill:$textColor;"/>
-                        </g>
-                    </svg>
-                    <br/><br/>
-                    <p style="color:$textColor;">$errorMessage</p>
+        <html>
+            <body style="margin:0;padding:0;overflow:hidden;">
+                <div style="display:table;width:100%;height:100vh;overflow:hidden;">
+                    <div align="center" style="display:table-cell;vertical-align:middle;">
+                        <svg width="120" height="120" 
+                             style="overflow:visible;enable-background:new 0 0 120 120" 
+                             viewBox="0 0 32 32" 
+                             xmlns="http://www.w3.org/2000/svg">
+                            <g>
+                                <circle cx="16" cy="16" r="16" style="fill:$iconColor;"/>
+                                <path d="M14.5,25h3v-3h-3V25z M14.5,6v13h3V6H14.5z" 
+                                      style="fill:$textColor;"/>
+                            </g>
+                        </svg>
+                        <br/><br/>
+                        <p style="color:$textColor;">$errorMessage</p>
+                    </div>
                 </div>
-            </div>
-        </body>
-    </html>
-    """.trimIndent()
+            </body>
+        </html>
+        """.trimIndent()
     }
 }

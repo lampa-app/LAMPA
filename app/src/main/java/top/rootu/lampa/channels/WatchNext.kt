@@ -19,8 +19,8 @@ import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Helpers.getJson
-import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
@@ -44,7 +44,7 @@ object WatchNext {
 
     @SuppressLint("RestrictedApi")
     fun add(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         card.id?.let { movieId ->
             val existingProgram = findProgramByMovieId(movieId)
             val removed = removeIfNotBrowsable(existingProgram)
@@ -72,15 +72,15 @@ object WatchNext {
     }
 
     fun rem(movieId: String?) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         movieId?.let { deleteFromWatchNext(it) }
     }
 
     suspend fun updateWatchNext() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         val context = App.context
         val deleted = removeStale()
-        printLog(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
+        debugLog(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
 
         val lst = when { // reversed order
             // CUB
@@ -100,11 +100,11 @@ object WatchNext {
         val (excludePending, pending) = lst.partition {
             !context.wathToRemove.contains(it.id.toString())
         }
-        printLog(
+        debugLog(
             TAG,
             "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }}"
         )
-        printLog(TAG, "updateWatchNext() WatchNext items pending to remove: ${pending.size} ${pending.map { it.id }}")
+        debugLog(TAG, "updateWatchNext() WatchNext items pending to remove: ${pending.size} ${pending.map { it.id }}")
 
         excludePending.forEach { card ->
             withContext(Dispatchers.Default) {
@@ -118,7 +118,7 @@ object WatchNext {
     }
 
     fun addLastPlayed(card: LampaCard, lampaActivity: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
 
         card.id?.let { movieId ->
             // deleteFromWatchNext(RESUME_ID) // Clear any existing continue watch
@@ -136,7 +136,7 @@ object WatchNext {
     }
 
     fun removeContinueWatch(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         // deleteFromWatchNext(RESUME_ID)
         card.id?.let { movieId -> deleteFromWatchNext(movieId) }
     }
@@ -170,7 +170,7 @@ object WatchNext {
     private fun deleteFromWatchNext(movieId: String) {
         val program = findProgramByMovieId(movieId)
         program?.let {
-            printLog(TAG, "deleteFromWatchNext($movieId) removeProgram(${it.id})")
+            debugLog(TAG, "deleteFromWatchNext($movieId) removeProgram(${it.id})")
             removeProgram(it.id)
         }
     }

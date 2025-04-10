@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
-import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
@@ -22,9 +21,9 @@ import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
-import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvChannelContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isValidJson
-import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.lampaSource
 import top.rootu.lampa.helpers.Prefs.saveAccountBookmarks
@@ -61,7 +60,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun storageChange(json: String?) {
         val hash = json.hashCode().toString()
         if (hash == lastEventHash) {
-            printLog(TAG, "Ignoring duplicate storage change event: $json")
+            debugLog(TAG, "Ignoring duplicate storage change event: $json")
             return
         }
         lastEventHash = hash
@@ -76,17 +75,17 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             when (eo.optString("name")) {
                 "activity" -> {
                     MainActivity.lampaActivity = eo.optString("value", "{}")
-                    printLog(TAG, "lampaActivity stored: ${MainActivity.lampaActivity}")
+                    debugLog(TAG, "lampaActivity stored: ${MainActivity.lampaActivity}")
                 }
 
                 "player_timecode" -> {
                     MainActivity.playerTimeCode = eo.optString("value", MainActivity.playerTimeCode)
-                    printLog(TAG, "playerTimeCode stored: ${MainActivity.playerTimeCode}")
+                    debugLog(TAG, "playerTimeCode stored: ${MainActivity.playerTimeCode}")
                 }
 
                 "playlist_next" -> {
                     MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
-                    printLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
+                    debugLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
                 }
 
                 "language" -> {
@@ -95,35 +94,35 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         App.setAppLanguage(mainActivity, newLang)
                         // mainActivity.appLang = newLang
                         // mainActivity.runOnUiThread { mainActivity.recreate() }
-                        printLog(TAG, "language changed to $newLang")
+                        debugLog(TAG, "language changed to $newLang")
                     } else {
-                        printLog(TAG, "language not changed [${mainActivity.appLang}]")
+                        debugLog(TAG, "language not changed [${mainActivity.appLang}]")
                     }
                 }
 
                 "source" -> {
                     mainActivity.lampaSource = eo.optString("value", mainActivity.lampaSource)
-                    printLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
+                    debugLog(TAG, "lampaSource stored: ${mainActivity.lampaSource}")
                 }
 
                 "protocol" -> {
                     if (MainActivity.proxyTmdbEnabled) {
-                        printLog(TAG, "protocol changed. run getLampaTmdbUrls()")
+                        debugLog(TAG, "protocol changed. run getLampaTmdbUrls()")
                         mainActivity.getLampaTmdbUrls()
                     } else {
-                        printLog(TAG, "protocol changed. TMDB Proxy disabled, nothing to do.")
+                        debugLog(TAG, "protocol changed. TMDB Proxy disabled, nothing to do.")
                     }
                 }
 
                 "proxy_tmdb" -> {
                     val newState = eo.optString("value", "true") == "true"
                     MainActivity.proxyTmdbEnabled = newState
-                    printLog(TAG, "proxyTmdbEnabled set to $newState")
+                    debugLog(TAG, "proxyTmdbEnabled set to $newState")
                     if (MainActivity.proxyTmdbEnabled) {
                         mainActivity.getLampaTmdbUrls()
                     } else {
                         // store defaults to prefs
-                        printLog(TAG, "Apply default TMDB URLs")
+                        debugLog(TAG, "Apply default TMDB URLs")
                         mainActivity.tmdbApiUrl = TMDB.APIURL
                         mainActivity.tmdbImgUrl = TMDB.IMGURL
                     }
@@ -135,12 +134,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         !newUrl.contains(mainActivity.tmdbApiUrl, true)
                     ) {
                         mainActivity.tmdbApiUrl = newUrl
-                        printLog(
+                        debugLog(
                             TAG,
                             "baseUrlApiTMDB changed, tmdbApiUrl ${mainActivity.tmdbApiUrl}"
                         )
                     } else {
-                        printLog(
+                        debugLog(
                             TAG,
                             "baseUrlApiTMDB changed, tmdbApiUrl not changed: ${mainActivity.tmdbApiUrl}"
                         )
@@ -153,12 +152,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                         !newUrl.contains(mainActivity.tmdbImgUrl, true)
                     ) {
                         mainActivity.tmdbImgUrl = newUrl
-                        printLog(
+                        debugLog(
                             TAG,
                             "baseUrlImageTMDB changed, tmdbImgUrl ${mainActivity.tmdbImgUrl}"
                         )
                     } else {
-                        printLog(
+                        debugLog(
                             TAG,
                             "baseUrlImageTMDB changed, tmdbImgUrl not changed: ${mainActivity.tmdbImgUrl}"
                         )
@@ -169,7 +168,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     val json = eo.optString("value", "")
                     if (isValidJson(json)) {
                         mainActivity.saveFavorite(json)
-                        printLog(TAG, "favorite JSON saved to prefs")
+                        debugLog(TAG, "favorite JSON saved to prefs")
                     } else {
                         Log.e(TAG, "Not valid JSON in favorite")
                     }
@@ -177,7 +176,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
                 "account_use" -> {
                     val use = eo.optBoolean("value", false)
-                    printLog(TAG, "set syncEnabled $use")
+                    debugLog(TAG, "set syncEnabled $use")
                     mainActivity.syncEnabled = use
                 }
 
@@ -185,7 +184,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     val json = eo.optString("value", "")
                     if (isValidJson(json)) {
                         mainActivity.saveRecs(json)
-                        printLog(TAG, "recomends_list JSON saved to prefs")
+                        debugLog(TAG, "recomends_list JSON saved to prefs")
                     } else {
                         Log.e(TAG, "Not valid JSON in recomends_list")
                     }
@@ -217,54 +216,54 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Throws(JSONException::class)
-    fun openTorrentLink(str: String, str2: String): Boolean {
-        val jSONObject: JSONObject = if (str2 == "\"\"") {
-            JSONObject()
-        } else {
-            JSONObject(str2)
-        }
-        val intent = Intent("android.intent.action.VIEW")
-        val parse = Uri.parse(str)
-        if (str.startsWith("magnet")) {
-            intent.data = parse
-        } else {
-            intent.setDataAndType(parse, "application/x-bittorrent")
-        }
-        val title = jSONObject.optString("title")
-        if (!TextUtils.isEmpty(title)) {
-            intent.putExtra("title", title)
-            intent.putExtra("displayName", title)
-            intent.putExtra("forcename", title)
-        }
-        val poster = jSONObject.optString("poster")
-        if (!TextUtils.isEmpty(poster)) {
-            intent.putExtra("poster", poster)
-        }
-        val category = jSONObject.optString("media")
-        if (!TextUtils.isEmpty(category)) {
-            intent.putExtra("category", category)
-        }
-        if (jSONObject.optJSONObject("data") != null) {
-            val optJSONObject = jSONObject.optJSONObject("data")
-            if (optJSONObject != null) {
-                intent.putExtra("data", optJSONObject.toString())
+    fun openTorrentLink(url: String, jsonString: String): Boolean {
+        val jsonData = if (jsonString == "\"\"") JSONObject() else JSONObject(jsonString)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = if (url.startsWith("magnet")) {
+                Uri.parse(url)
+            } else {
+                Uri.parse(url).also {
+                    setDataAndType(it, "application/x-bittorrent")
+                }
+            }
+
+            jsonData.optString("title").takeIf { it.isNotEmpty() }?.let { title ->
+                putExtra("title", title)
+                putExtra("displayName", title)
+                putExtra("forcename", title)
+            }
+
+            jsonData.optString("poster").takeIf { it.isNotEmpty() }?.let { poster ->
+                putExtra("poster", poster)
+            }
+
+            jsonData.optString("media").takeIf { it.isNotEmpty() }?.let { category ->
+                putExtra("category", category)
+            }
+
+            jsonData.optJSONObject("data")?.let { dataObj ->
+                putExtra("data", dataObj.toString())
             }
         }
+
         mainActivity.runOnUiThread {
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                Log.e(TAG, e.message, e)
+                Log.e(TAG, "Failed to open torrent link", e)
                 App.toast(R.string.no_torrent_activity_found, true)
             }
         }
-        // update Recs to filter viewed
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CoroutineScope(Dispatchers.Default).launch {
-                delay(UPDATE_DELAY)
+        // Force update Recs to filter viewed
+        CoroutineScope(Dispatchers.Default).launch {
+            delay(UPDATE_DELAY)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                RecsService.updateRecs()
             }
         }
+
         return true
     }
 
@@ -315,7 +314,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String, returnI: Int) {
-        printLog(TAG, "httpReq JSON $str")
+        debugLog(TAG, "httpReq JSON $str")
         try {
             val jsonObject = JSONObject(str)
             Http.disableH2(jsonObject.optBoolean("disableH2", false))
@@ -390,21 +389,21 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                             putSafe("message", "request error: ${e.message ?: "unknown error"}")
                         }
                         reqResponse[returnI.toString()] = errorJson.toString()
-                        printLog(TAG, "error: ${e.message ?: "unknown error"}")
+                        debugLog(TAG, "error: ${e.message ?: "unknown error"}")
                         "error"
                     }
                 }
 
-                override fun onPostExecute(result: String?) {
+                override fun onPostExecute(result: String) {
                     mainActivity.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '"
-                                + result.toString()
+                                + result
                             .replace("\\", "\\\\")
                             .replace("'", "\\'")
                             .replace("\n", "\\\n")
                                 + "')")
-                        browser.evaluateJavascript(js) { if (BuildConfig.DEBUG) Log.d(TAG, "$js") }
+                        browser.evaluateJavascript(js) { debugLog(TAG, "$js") }
                     }
                 }
             }
@@ -428,7 +427,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun openPlayer(link: String, jsonStr: String) {
-        printLog(TAG, "openPlayer: $link json:$jsonStr")
+        debugLog(TAG, "openPlayer: $link json:$jsonStr")
         val jsonObject = try {
             JSONObject(jsonStr.ifEmpty { "{}" }).apply {
                 if (!has("url")) {
@@ -441,15 +440,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
 
-        // update Recs to filter viewed
+        // Force update Recs to filter viewed
         CoroutineScope(Dispatchers.Default).launch {
             delay(UPDATE_DELAY)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    RecsService.updateRecs()
-                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                RecsService.updateRecs()
             }
         }
     }
@@ -489,12 +486,12 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun saveBookmarks(json: String?) {
-        printLog(TAG, "saveBookmarks fired!")
+        debugLog(TAG, "saveBookmarks fired!")
         CoroutineScope(Dispatchers.Default).launch {
             // Filter out invalid CubBookmark objects
             val validBookmarks = filterValidCubBookmarks(json)
             if (validBookmarks.isNotEmpty()) {
-                printLog(TAG, "saveBookmarks - found ${validBookmarks.size} valid elements")
+                debugLog(TAG, "saveBookmarks - found ${validBookmarks.size} valid elements")
                 // Save the valid bookmarks
                 mainActivity.saveAccountBookmarks(Gson().toJson(validBookmarks))
             } else {
@@ -508,8 +505,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
-        if (where != null && isAndroidTV) {
-            printLog(TAG, "updateChannel [$where]")
+        if (where != null && isTvChannelContentProviderAvailable(App.context)) {
+            debugLog(TAG, "updateChannel [$where]")
             when (where) {
                 LampaProvider.HIST,
                 LampaProvider.BOOK,

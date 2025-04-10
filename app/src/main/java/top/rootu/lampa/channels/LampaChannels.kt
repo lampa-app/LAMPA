@@ -7,9 +7,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.content.LampaProvider
-import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 
 object LampaChannels {
     private const val TAG = "LampaChannels"
@@ -18,7 +19,7 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun update(sync: Boolean = true) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
 
         synchronized(lock) {
             if (BuildConfig.DEBUG) Log.d(TAG, "update(sync: $sync)")
@@ -65,17 +66,18 @@ object LampaChannels {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateRecsChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         synchronized(lock) {
             if (BuildConfig.DEBUG) Log.d(TAG, "updateRecsChannel()")
-            val list = LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP)
+            val list =
+                LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP)
             ChannelManager.update(LampaProvider.RECS, list)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun updateChanByName(name: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !Helpers.isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         synchronized(lock) {
             if (BuildConfig.DEBUG) Log.d(TAG, "updateChanByName($name)")
             val list = LampaProvider.get(name, false)?.items.orEmpty()
