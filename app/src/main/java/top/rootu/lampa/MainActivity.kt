@@ -1606,38 +1606,82 @@ class MainActivity : BaseActivity(),
                 tilt?.error = msg
             }
             setAdapter(urlAdapter)
-
-            if (VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-                setOnFocusChangeListener { _, hasFocus ->
-                    if (hasFocus && !isPopupShowing) {
-                        showDropDown()
+            // Common setup for all API levels
+            setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    try {
+                        if (!isPopupShowing) {
+                            showDropDown()
+                        }
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
-                    } else {
+                    } catch (_: Exception) {
+                    }
+                } else {
+                    try {
                         dismissDropDown()
                         dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                    } catch (_: Exception) {
                     }
                 }
-                setOnItemClickListener { _, _, _, _ ->
+            }
+
+            setOnItemClickListener { _, _, _, _ ->
+                try {
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
                     dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                } catch (_: Exception) {
                 }
-                setOnClickListener {
+            }
+
+            setOnClickListener {
+                try {
                     dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
                     inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                } catch (_: Exception) {
+                }
+            }
 
+            setOnKeyListener { view, keyCode, event ->
+                try {
+                    when {
+                        // Handle ENTER key
+                        keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP -> {
+                            if (isPopupShowing) {
+                                dismissDropDown()
+                            }
+                            inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                            true
+                        }
+                        // Handle BACK key
+                        keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP -> {
+                            if (!isPopupShowing) {
+                                showDropDown()
+                            }
+                            inputManager.hideSoftInputFromWindow(view.windowToken, 0)
+                            true
+                        }
+                        // For other keys or action phases
+                        else -> false
+                    }
+                } catch (_: Exception) {
+                    false
                 }
             }
 
             setOnEditorActionListener { _, actionId, _ ->
-                when (actionId) {
-                    EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
-                        inputManager.hideSoftInputFromWindow(rootView.windowToken, 0)
-                        dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
-                        true
-                    }
+                try {
+                    when (actionId) {
+                        EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_DONE -> {
+                            inputManager.hideSoftInputFromWindow(windowToken, 0)
+                            dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                            true
+                        }
 
-                    else -> false
+                        else -> false
+                    }
+                } catch (_: Exception) {
+                    false
                 }
             }
         }
