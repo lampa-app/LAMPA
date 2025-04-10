@@ -1575,21 +1575,20 @@ class MainActivity : BaseActivity(),
                         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                         verticalMargin = 0.1F
                     }
+                    // Automatically show the keyboard
+                    setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
                 }
             }
 
+        showFullScreenDialog(dialog)
+
         // Set up the input field
         setupInputField(input, tilt, msg, dialog, inputManager)
-
-        showFullScreenDialog(dialog)
 
         // Set up the migrate button
         dialog.getButton(BUTTON_NEUTRAL).setOnClickListener {
             handleMigrateButtonClick(dialog)
         }
-
-        // Automatically show the keyboard
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
     }
 
     // Helper function to set up the input field
@@ -1625,7 +1624,8 @@ class MainActivity : BaseActivity(),
                 setOnClickListener {
                     dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    inputManager.showSoftInput(this, 0)
+                    inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+
                 }
             }
 
