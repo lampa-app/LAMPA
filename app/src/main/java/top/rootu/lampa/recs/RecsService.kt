@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -34,10 +35,9 @@ object RecsService {
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun updateRecs() {
-        val context = App.context
-
         if (!isAndroidTV) return
 
+        val context = App.context
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
@@ -88,7 +88,11 @@ object RecsService {
         }
 
         val info = buildRecommendationInfo(card)
-        val genres = card.genres?.mapNotNull { it?.name?.capitalize(Locale.ROOT) }?.toTypedArray()
+        val genres = card.genres?.mapNotNull {
+            it.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.toTypedArray()
 
         builder.setBadgeIcon(R.drawable.lampa_logo_icon)
             .setIdTag("${card.id}")
@@ -98,7 +102,7 @@ object RecsService {
             .setGenres(genres)
             .setContentIntentData(
                 ContentRecommendation.INTENT_TYPE_ACTIVITY,
-                buildPendingIntent(card, null),
+                buildPendingIntent(card, null, null),
                 0,
                 null
             )
@@ -116,6 +120,7 @@ object RecsService {
         card.background_image?.let { builder.setBackgroundImageUri(it) }
 
         val notification = builder.build().getNotificationObject(context)
+        @Suppress("DEPRECATION")
         notification.priority = index - 5000
 
         if (context.isAmazonDev) {
@@ -131,7 +136,7 @@ object RecsService {
         return notification
     }
 
-    private fun loadPosterBitmap(uri: String, width: Int, height: Int): Bitmap? {
+    private fun loadPosterBitmap(uri: String, width: Int, height: Int): Bitmap {
         return try {
             Glide.with(App.context)
                 .asBitmap()
@@ -140,7 +145,11 @@ object RecsService {
                 .get()
         } catch (e: Exception) {
             Log.e("RecsService", "Failed to load poster: $uri", e)
-            null
+            return if (width > height)
+                BitmapFactory.decodeResource(App.context.resources, R.drawable.lampa_banner)
+            else
+                BitmapFactory.decodeResource(App.context.resources, R.drawable.empty_poster)
+            // null
         }
     }
 
@@ -151,9 +160,11 @@ object RecsService {
             info.add(App.context.getString(R.string.series))
             card.number_of_seasons?.let { info.add("S$it") }
         }
-        card.genres?.joinToString(", ") { genre ->
-            genre?.name?.capitalize(Locale.ROOT).orEmpty()
-        }?.let { info.add(it) }
+        card.genres?.mapNotNull {
+            it.name?.replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            }
+        }?.joinToString(", ")?.let { info.add(it) }
         return info
     }
 

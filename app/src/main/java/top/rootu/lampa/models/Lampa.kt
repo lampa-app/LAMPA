@@ -3,6 +3,8 @@ package top.rootu.lampa.models
 import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 
+const val LAMPA_CARD_KEY = "lampaCardJSON" // Used in Intents and PlayStateManager
+
 data class Favorite(
     val card: List<LampaCard>?,
     val like: List<String>?,
@@ -108,7 +110,11 @@ data class LampaCard(
             type == "scripted" -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
 
-            type?.contains("miniseries", true) == true || type?.contains("news", true) == true -> type = "tv"
+            type?.contains("miniseries", true) == true || type?.contains(
+                "news",
+                true
+            ) == true -> type = "tv"
+
             type.isNullOrEmpty() -> type =
                 if (release_date.isNullOrEmpty() || !name.isNullOrEmpty()) "tv" else "movie"
         }
@@ -117,8 +123,9 @@ data class LampaCard(
     private fun fixGenres() {
         if (!genre_ids.isNullOrEmpty() && genres.isNullOrEmpty()) {
             genres = genre_ids.mapNotNull { id ->
-                val genreId = id.toIntOrNull()
-                if (genreId != null) Genre(id, TMDB.genres[genreId] ?: "", "") else null
+                id.toIntOrNull()?.let { genreId ->
+                    Genre(genreId.toString(), TMDB.genres[genreId] ?: "", "")
+                }
             }
         }
     }
@@ -133,10 +140,13 @@ data class LampaCard(
     }
 
     override fun toString(): String {
-        val tt = name ?: title ?: "–"
-        return "LampaCard(source:$source id:$id type:$type $tt $img)"
+        val displayName = when {
+            !name.isNullOrEmpty() -> name
+            !title.isNullOrEmpty() -> title
+            else -> "-"
+        }
+        return "LampaCard(source:$source id:$id type:$type $displayName $img)"
     }
-
 }
 
 data class LampaRec(

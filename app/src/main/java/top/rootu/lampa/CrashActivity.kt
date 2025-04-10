@@ -7,7 +7,6 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.TypedValue
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -20,7 +19,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
-class CrashActivity : AppCompatActivity() {
+class CrashActivity : BaseActivity() {
 
     private var bottomSheetDialog: BottomSheetDialog? = null
     private lateinit var binding: ActivityCrashBinding
@@ -78,7 +77,7 @@ class CrashActivity : AppCompatActivity() {
             dialogBinding.saveErrorLogs.setOnClickListener {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm")
                 val dtm = LocalDateTime.now().format(formatter)
-                if (Backup.writeFile("${dtm}.crashlog.txt", errorData.toString()))
+                if (Backup.writeFileSafely("${dtm}.crashlog.txt", errorData.toString()))
                     App.toast("${getString(R.string.app_crash_save_to)} ${Backup.DIR}")
                 showBottomSheetDialog(false)
             }

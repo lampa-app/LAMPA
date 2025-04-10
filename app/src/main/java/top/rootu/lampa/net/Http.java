@@ -25,6 +25,7 @@ public class Http {
     private static String pacUrl = "";
     private static PacProxySelector ps;
     private static boolean disableH2 = false;
+    private static final long MAX_ALLOWED_BODY_SIZE = 2 * 1024 * 1024; // 2MB in bytes
 
     public Http() {
     }
@@ -80,7 +81,12 @@ public class Http {
         try {
             json.put("headers", jsonHeaders);
             json.put("currentUrl", response.request().url().toString());
-            json.put("body", body.string());
+            // Avoid OOM
+            if (body.contentLength() > MAX_ALLOWED_BODY_SIZE) {
+                json.put("body", "[Response too large, skipped]");
+            } else {
+                json.put("body", body.string());
+            }
         } catch (JSONException jsonException) {
             jsonException.printStackTrace();
         }

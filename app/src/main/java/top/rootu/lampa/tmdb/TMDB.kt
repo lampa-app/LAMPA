@@ -86,14 +86,14 @@ object TMDB {
     }
 
     private fun fetchGenres(endpoint: String): List<Genre>? {
-        return video(endpoint)?.genres as List<Genre>?
+        return video(endpoint)?.genres
     }
 
     private fun populateGenres(genreList: List<Genre?>, ret: HashMap<Int, String>) {
-        for (g in genreList) {
-            g?.let {
-                if (!g.name.isNullOrEmpty()) {
-                    ret[g.id] = g.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        for (genre in genreList) {
+            genre?.let {
+                if (!genre.name.isNullOrEmpty()) {
+                    ret[genre.id] = genre.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                 }
             }
         }

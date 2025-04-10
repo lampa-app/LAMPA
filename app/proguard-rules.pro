@@ -22,3 +22,12 @@
 -keepclassmembers class top.rootu.lampa.AndroidJS {
    public *;
 }
+-keep class kotlin.** { *; }
+-keep class kotlin.collections.** { *; }
+-keep class kotlin.ranges.** { *; }
+-keep class kotlin.sequences.** { *; }
+-keep class kotlin.text.** { *; }
+-keep class org.xwalk.core.** { *; }
+-dontwarn org.xwalk.core.**
+-keep class j$.util.** { *; }
+-dontwarn j$.util.**

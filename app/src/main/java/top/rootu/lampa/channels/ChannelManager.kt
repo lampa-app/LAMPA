@@ -26,7 +26,6 @@ import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.data
-import top.rootu.lampa.helpers.setLanguage
 import top.rootu.lampa.models.LampaCard
 import java.util.Locale
 
@@ -45,7 +44,6 @@ object ChannelManager {
      * Gets the localized display name for a channel.
      */
     fun getChannelDisplayName(name: String): String {
-        App.context.setLanguage()
         return when (name) {
             RECS -> App.context.getString(R.string.ch_recs)
             LIKE -> App.context.getString(R.string.ch_liked)
@@ -247,7 +245,7 @@ object ChannelManager {
         val country = card.production_countries?.mapNotNull { country ->
             when {
                 !country.iso_3166_1.isNullOrEmpty() -> country.iso_3166_1
-                !country.name.isNullOrEmpty() -> country.name.trim()
+                country.name.isNotEmpty() -> country.name.trim()
                 else -> null
             }
         }?.joinToString(", ")
@@ -272,7 +270,7 @@ object ChannelManager {
             .setAvailability(TvContractCompat.PreviewProgramColumns.AVAILABILITY_AVAILABLE)
             .setDescription(card.overview)
             .setGenre(info.joinToString(" · "))
-            .setIntent(buildPendingIntent(card, null)) // provName
+            .setIntent(buildPendingIntent(card, null, null)) // provName
             .setInternalProviderId(card.id.toString())
             .setWeight(weight)
             .setType(type)

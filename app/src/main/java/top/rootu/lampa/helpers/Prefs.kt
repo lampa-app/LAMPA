@@ -30,8 +30,8 @@ object Prefs {
     private const val LAMPA_SOURCE = "source"
     private const val APP_BROWSER = "browser"
     private const val APP_LANG = "lang"
-    private const val TMDB_API = "tmdb_api_url"
-    private const val TMDB_IMG = "tmdb_image_url"
+    private const val TMDB_API_KEY = "tmdb_api_url"
+    private const val TMDB_IMG_KEY = "tmdb_image_url"
     private const val FAV_KEY = "fav"
     private const val REC_KEY = "rec"
     private const val CUB_KEY = "cub"
@@ -46,8 +46,6 @@ object Prefs {
     private const val COR_KEY = "cont_rem"
     private const val THR_KEY = "thrw_rem"
     private const val SYNC_KEY = "sync_account"
-    private const val PLAY_ACT_KEY = "playActivityJS"
-    private const val RESUME_KEY = "resumeJS"
     private const val MIGRATE_KEY = "migrate"
 
     // Extension properties for SharedPreferences
@@ -90,12 +88,12 @@ object Prefs {
         set(lang) = appPrefs.edit().putString(APP_LANG, lang).apply()
 
     var Context.tmdbApiUrl: String
-        get() = appPrefs.getString(TMDB_API, TMDB.APIURL) ?: TMDB.APIURL
-        set(url) = appPrefs.edit().putString(TMDB_API, url).apply()
+        get() = appPrefs.getString(TMDB_API_KEY, TMDB.APIURL) ?: TMDB.APIURL
+        set(url) = appPrefs.edit().putString(TMDB_API_KEY, url).apply()
 
     var Context.tmdbImgUrl: String
-        get() = appPrefs.getString(TMDB_IMG, TMDB.IMGURL) ?: TMDB.IMGURL
-        set(url) = appPrefs.edit().putString(TMDB_IMG, url).apply()
+        get() = appPrefs.getString(TMDB_IMG_KEY, TMDB.IMGURL) ?: TMDB.IMGURL
+        set(url) = appPrefs.edit().putString(TMDB_IMG_KEY, url).apply()
 
     val Context.firstRun: Boolean
         get() {
@@ -105,15 +103,6 @@ object Prefs {
                 .apply()
             return isFirstRun
         }
-
-    // Extension properties for Continue Watch
-    var Context.playActivityJS: String?
-        get() = defPrefs.getString(PLAY_ACT_KEY, "{}")
-        set(json) = defPrefs.edit().putString(PLAY_ACT_KEY, json).apply()
-
-    var Context.resumeJS: String?
-        get() = defPrefs.getString(RESUME_KEY, "{}")
-        set(json) = defPrefs.edit().putString(RESUME_KEY, json).apply()
 
     // Extension properties for favorites and bookmarks
     val Context.FAV: Favorite?

@@ -34,6 +34,10 @@
         <package android:name="net.gtvbox.videoplayer" />
         <package android:name="net.gtvbox.vimuhd" />
         <package android:name="org.telegram.messenger" />
+        <package android:name="org.telegram.plus" />
+        <package android:name="org.telegram.messenger.web" />
+        <package android:name="nekox.messenger" />
+        <package android:name="uz.dilijan.messenger" />
 
         <intent>
             <action android:name="android.speech.RecognitionService" />
@@ -186,12 +190,12 @@
             tools:ignore="ExportedContentProvider" />
 
         <service
-            android:name=".sched.CardJobService"
+            android:name=".sched.ContentJobService"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
-            android:name=".sched.CardAlarmManager"
+            android:name=".sched.ContentAlarmManager"
             android:enabled="true" />
     </application>
 

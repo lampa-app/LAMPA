@@ -1,19 +1,17 @@
 package top.rootu.lampa.helpers
 
-import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
-import android.content.res.Resources
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
-import android.os.LocaleList
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.Log
 import android.util.TypedValue
 import androidx.annotation.RequiresApi
@@ -38,6 +36,7 @@ import top.rootu.lampa.helpers.Prefs.addViewToRemove
 import top.rootu.lampa.helpers.Prefs.addWatchNextToAdd
 import top.rootu.lampa.helpers.Prefs.addWatchNextToRemove
 import top.rootu.lampa.models.CubBookmark
+import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.models.WatchNextToAdd
 import java.util.Locale
@@ -91,19 +90,12 @@ object Helpers {
         return true
     }
 
-    fun setLocale(activity: Activity, languageCode: String?) {
-        if (BuildConfig.DEBUG) Log.d("APP_MAIN", "set Locale to [$languageCode]")
-        val locale = languageCode?.let { Locale(it) } ?: return
-        Locale.setDefault(locale)
-        val resources: Resources = activity.resources
-        val config: Configuration = resources.configuration
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-            config.setLocales(LocaleList(locale))
-        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-            config.setLocale(locale)
-        else
-            config.locale = locale
-        resources.updateConfiguration(config, resources.displayMetrics)
+    fun isConnected(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            isConnectedNewApi(context)
+        } else {
+            isConnectedOld(context)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -120,14 +112,6 @@ object Helpers {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
         return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-    }
-
-    fun isConnected(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            isConnectedNewApi(context)
-        } else {
-            isConnectedOld(context)
-        }
     }
 
     fun dp2px(context: Context, dip: Float): Int {
@@ -157,25 +141,43 @@ object Helpers {
         }
     }
 
-    fun buildPendingIntent(card: LampaCard, continueWatch: Boolean?): Intent {
-        val intent = Intent(App.context, MainActivity::class.java)
-        // TODO: fix this id and media type mess
-        val intID = card.id?.toIntOrNull() // required for processIntent()
-        intID?.let { intent.putExtra("id", it) }
-        intent.putExtra("source", card.source)
-        intent.putExtra("media", card.type)
-
-        val idStr = try {
+    // Helper function to serialize LampaCard to JSON
+    private fun serializeCardToJson(card: LampaCard): String? {
+        return try {
             Gson().toJson(card)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("serializeCardToJson", "Failed to serialize card $card to JSON", e)
             null
-        } // used to get card from HomeWatch
-        idStr?.let { intent.putExtra("LampaCardJS", idStr) }
+        }
+    }
 
-        continueWatch?.let { intent.putExtra("continueWatch", it) }
+    fun buildPendingIntent(
+        card: LampaCard,
+        continueWatch: Boolean?,
+        activityJson: String?
+    ): Intent {
+        val intent = Intent(App.context, MainActivity::class.java).apply {
+            // Set ID, source, and media type from the card
+            card.id?.let { putExtra("id", it) }
+            card.source?.let { putExtra("source", it) }
+            card.type?.let { putExtra("media", it) }
 
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        intent.action = card.id.toString()
+            // Serialize the card to JSON and add it to the intent
+            val cardJson = serializeCardToJson(card)
+            cardJson?.let { putExtra(LAMPA_CARD_KEY, it) } // used to get card from HomeWatch
+
+            // Add continueWatch flag if provided with lampaActivity
+            continueWatch?.let {
+                putExtra("continueWatch", it)
+                activityJson?.let { putExtra("lampaActivity", it) }
+            }
+
+            // Set intent flags and action
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_NEW_TASK)
+            action = card.id ?: ""
+        }
         return intent
     }
 
@@ -228,7 +230,8 @@ object Helpers {
                 "sberbox",
                 "sbdv-00006",
                 "streaming box 8000",
-                "vidaa_tv"
+                "vidaa_tv",
+                "i-905",
             )
             val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
             return match
@@ -373,9 +376,147 @@ object Helpers {
         }
     }
 
-    fun printLog(message: String, tag: String = "DEBUG") {
+    fun printLog(message: String) {
+        printLog("DEBUG", message)
+    }
+
+    fun printLog(tag: String = "DEBUG", message: String) {
         if (BuildConfig.DEBUG) {
             Log.d(tag, message)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    fun hasSAFChooser(pm: PackageManager?): Boolean {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "video/*"
+        return intent.resolveActivity(pm!!) != null
+    }
+
+    /**
+     * Checks if Telegram (official or unofficial) is installed on the device.
+     * Supports checking multiple package names for unofficial clients.
+     *
+     * @param context The application context
+     * @return true if any Telegram client is installed, false otherwise
+     */
+    fun isTelegramInstalled(context: Context): Boolean {
+        val telegramPackages = listOf(
+            "org.telegram.messenger",     // Official Telegram
+            "org.telegram.plus",         // Telegram Plus
+            "org.telegram.messenger.web", // Telegram Web
+            "nekox.messenger",           // Nekogram
+            "org.thunderdog.challegram",  // Challegram
+            "uz.dilijan.messenger"       // Other unofficial clients
+        )
+
+        return telegramPackages.any { packageName ->
+            try {
+                context.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+                true
+            } catch (_: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }
+
+    // Helper function to log intent data
+    @Suppress("DEPRECATION")
+    fun debugLogIntentData(tag: String = "DEBUG", intent: Intent?) {
+        if (!BuildConfig.DEBUG || intent == null) return
+        // Log basic intent info
+        Log.d(tag, "Intent URI: ${intent.toUri(0)}")
+        // Log all extras
+        intent.extras?.let { bundle ->
+            val output = StringBuilder("Intent Extras:\n")
+            bundle.keySet().forEach { key ->
+                output.append("• $key = ${bundleValueToString(bundle.get(key))}\n")
+            }
+            Log.d(tag, output.toString())
+        } ?: Log.d(tag, "No extras found in intent")
+    }
+
+    fun logIntentContent(tag: String, intent: Intent?) {
+        if (intent == null) {
+            Log.d(tag, "Intent is null")
+            return
+        }
+
+        Log.d(tag, "Intent Action: ${intent.action ?: "null"}")
+        Log.d(tag, "Intent Data: ${intent.dataString ?: "null"}")
+        Log.d(tag, "Intent Type: ${intent.type ?: "null"}")
+        Log.d(tag, "Intent Package: ${intent.`package` ?: "null"}")
+        Log.d(tag, "Intent Component: ${intent.component?.flattenToString() ?: "null"}")
+        Log.d(tag, "Intent Flags: ${intent.flags} (hex: 0x${Integer.toHexString(intent.flags)})")
+
+        // Log categories if they exist
+        if (intent.categories != null) {
+            for (category in intent.categories) {
+                Log.d(tag, "Intent Category: $category")
+            }
+        } else {
+            Log.d(tag, "Intent Categories: null")
+        }
+
+        // Log extras
+        val extras: Bundle? = intent.extras
+        if (extras != null && !extras.isEmpty) {
+            Log.d(tag, "Intent Extras:")
+            for (key in extras.keySet()) {
+                val value = extras.get(key)
+                Log.d(tag, "  $key = $value (${value?.javaClass?.simpleName ?: "null"})")
+            }
+        } else {
+            Log.d(tag, "Intent Extras: null or empty")
+        }
+
+        // Log clipboard data if it exists
+        if (intent.clipData != null) {
+            Log.d(tag, "Intent ClipData:")
+            val clipData = intent.clipData
+            for (i in 0 until clipData!!.itemCount) {
+                val item = clipData.getItemAt(i)
+                Log.d(tag, "  Item $i:")
+                Log.d(tag, "    Text: ${item.text}")
+                Log.d(tag, "    URI: ${item.uri}")
+                Log.d(tag, "    Intent: ${item.intent}")
+            }
+        }
+    }
+
+    /**
+     * Safely converts bundle values to readable strings
+     */
+    private fun bundleValueToString(value: Any?): String {
+        return when (value) {
+            null -> "NULL"
+            is String -> value
+            is Int, is Long, is Float, is Double, is Boolean -> value.toString()
+            is Parcelable -> "Parcelable(${value.javaClass.simpleName})"
+            is Array<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is List<*> -> value.joinToString(
+                prefix = "[",
+                postfix = "]"
+            ) { bundleValueToString(it) }
+
+            is Bundle -> {
+                @Suppress("DEPRECATION")
+                val subItems =
+                    value.keySet().joinToString { "$it=${bundleValueToString(value.get(it))}" }
+                "Bundle{$subItems}"
+            }
+
+            else -> try {
+                // Fallback for other types
+                value.toString()
+            } catch (_: Exception) {
+                "Unprintable(${value.javaClass.simpleName ?: "null"})"
+            }
         }
     }
 }

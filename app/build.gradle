@@ -114,6 +114,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
     namespace 'top.rootu.lampa'
 }
@@ -168,6 +169,8 @@ dependencies {
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
     def muiVersion = '1.12.0'
     implementation "com.google.android.material:material:${muiVersion}"
+    //noinspection GradleDependency
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kp_version" // or jdk7
     // coroutines
     def coroutinesVersion = '1.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"

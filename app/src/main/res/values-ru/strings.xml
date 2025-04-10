@@ -83,9 +83,9 @@
     <string name="default_setting_title">Загрузить настройки по умолчанию</string>
     <string name="change_note">Это действие может вернуть настройки Lampa к значениям по умолчанию. Перед изменением рекомендуется сделать резервную копию настроек!</string>
     <string name="settings_saved_toast">Все настройки сохранены в %s</string>
-    <string name="settings_save_fail">Невозможно выполнить резервное копирование настроек</string>
+    <string name="settings_save_fail">Не удалось выполнить резервное копирование</string>
     <string name="settings_migrate_fail">Не удалось перенести настройки</string>
-    <string name="settings_rest_fail">Невозможно восстановить настройки</string>
+    <string name="settings_rest_fail">Не удалось восстановить настройки</string>
     <string name="settings_restored">Настройки восстановлены</string>
     <string name="migrate">Миграция</string>
     <!--App Errors-->
@@ -98,9 +98,36 @@
     <string name="app_crash_restart">Перезапустить</string>
     <string name="app_crash_showlog">Показать журнал</string>
     <string name="app_crash_errlogs">Журнал ошибок</string>
-    <string name="error_unknown">Неизвестная ошибка</string>
-    <string name="error_no_internet">Нет Интернета</string>
-    <string name="error_dns">Не удалось определить IP-адрес</string>
-    <string name="error_timeout">Время ожидания ответа истекло</string>
     <string name="app_requires_manage_storage_perm">Для использования этой функции приложению требуется разрешение на управление внешним хранилищем!</string>
+    <string name="generic_error">Произошла ошибка</string>
+    <!-- Net Errors -->
+    <string name="net_error_failed">Ошибка сетевого запроса</string>
+    <string name="net_error_timed_out">Таймаут соединения</string>
+    <string name="net_error_connection_timed_out">Таймаут соединения</string>
+    <string name="net_error_connection_closed">Соединение закрыто</string>
+    <string name="net_error_connection_reset">Соединение сброшено</string>
+    <string name="net_error_connection_refused">Соединение отклонено</string>
+    <string name="net_error_connection_failed">Ошибка соединения</string>
+    <string name="net_error_name_not_resolved">Не удалось разрешить имя хоста</string>
+    <string name="net_error_address_unreachable">Адрес недоступен</string>
+    <string name="net_error_network_access_denied">Доступ к сети запрещен</string>
+    <string name="net_error_proxy_connection_failed">Ошибка подключения к прокси</string>
+    <string name="net_error_internet_disconnected">Нет подключения к интернету</string>
+    <string name="net_error_too_many_redirects">Слишком много перенаправлений</string>
+    <string name="net_error_empty_response">Пустой ответ</string>
+    <string name="net_error_multiple_content_length">Несколько заголовков Content-Length</string>
+    <string name="net_error_multiple_content_disposition">Несколько заголовков Content-Disposition</string>
+    <string name="net_error_multiple_location">Несколько заголовков Location</string>
+    <string name="net_error_content_length_mismatch">Несоответствие длины содержимого</string>
+    <string name="net_error_incomplete_chunked_encoding">Неполное chunked-кодирование</string>
+    <string name="net_error_ssl_protocol_error">Ошибка SSL-протокола</string>
+    <string name="net_error_ssl_unsafe_negotiation">Небезопасное SSL-соединение</string>
+    <string name="net_error_bad_ssl_client_auth_cert">Неверный SSL-сертификат клиента</string>
+    <string name="net_error_ssl_weak_server_key">Слабый SSL-ключ сервера</string>
+    <string name="net_error_ssl_pinned_key_missing">Отсутствует закрепленный SSL-ключ</string>
+    <string name="net_error_temporarily_throttled">Временно ограничено</string>
+    <string name="net_error_blocked_by_client">Заблокировано клиентом</string>
+    <string name="net_error_network_changed">Сеть изменена</string>
+    <string name="net_error_blocked_by_admin">Заблокировано администратором</string>
+    <string name="net_error_blocked_enrollment_check">Ожидается проверка регистрации</string>
 </resources>

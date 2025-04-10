@@ -1,11 +1,14 @@
 package top.rootu.lampa.browser
 
+import android.view.View
 import android.view.ViewGroup
 import top.rootu.lampa.MainActivity
 
 interface Browser {
     val mainActivity: MainActivity
     val viewResId : Int
+
+    var isDestroyed: Boolean
 
     /**
      * Interface used to update the Crosswalk runtime
@@ -15,7 +18,7 @@ interface Browser {
         fun onBrowserPageFinished(view: ViewGroup, url: String)
     }
 
-    fun init()
+    fun initialize() // Renamed from init() to avoid conflict
 
     /**
      * Sets the WebView's user-agent string. If the string is `null` or empty,
@@ -165,4 +168,5 @@ interface Browser {
     fun canGoBack(): Boolean
     fun goBack()
     fun setFocus()
+    fun getView(): View?
 }

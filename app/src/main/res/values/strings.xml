@@ -86,9 +86,9 @@
     <string name="default_setting_title">Load Default Settings</string>
     <string name="change_note">This action can reset the Lampa settings to their default values. Before this change, it is recommended to make a backup copy of your settings!</string>
     <string name="settings_saved_toast">All settings saved to %s</string>
-    <string name="settings_save_fail">Unable to backup settings</string>
-    <string name="settings_migrate_fail">Unable to migrate settings</string>
-    <string name="settings_rest_fail">Unable to restore settings</string>
+    <string name="settings_save_fail">Failed to perform backup</string>
+    <string name="settings_migrate_fail">Failed to migrate settings</string>
+    <string name="settings_rest_fail">Failed to restore settings</string>
     <string name="settings_restored">Settings restored</string>
     <string name="migrate">Migration</string>
     <!--App Errors-->
@@ -101,9 +101,36 @@
     <string name="app_crash_restart">Restart App</string>
     <string name="app_crash_showlog">Show Logs</string>
     <string name="app_crash_errlogs">Error Logs</string>
-    <string name="error_unknown">Unknown Error</string>
-    <string name="error_no_internet">No Internet</string>
-    <string name="error_dns">DNS Error</string>
-    <string name="error_timeout">Request Timed Out</string>
     <string name="app_requires_manage_storage_perm">The app requires manage external storage permission to use this feature!</string>
+    <string name="generic_error">An error occurred</string>
+    <!-- Net Errors -->
+    <string name="net_error_failed">Network request failed</string>
+    <string name="net_error_timed_out">Connection timed out</string>
+    <string name="net_error_connection_timed_out">Connection timed out</string>
+    <string name="net_error_connection_closed">Connection closed</string>
+    <string name="net_error_connection_reset">Connection reset</string>
+    <string name="net_error_connection_refused">Connection refused</string>
+    <string name="net_error_connection_failed">Connection failed</string>
+    <string name="net_error_name_not_resolved">Hostname not resolved</string>
+    <string name="net_error_address_unreachable">Address unreachable</string>
+    <string name="net_error_network_access_denied">Network access denied</string>
+    <string name="net_error_proxy_connection_failed">Proxy connection failed</string>
+    <string name="net_error_internet_disconnected">No internet connection</string>
+    <string name="net_error_too_many_redirects">Too many redirects</string>
+    <string name="net_error_empty_response">Empty response</string>
+    <string name="net_error_multiple_content_length">Multiple content length headers</string>
+    <string name="net_error_multiple_content_disposition">Multiple content disposition headers</string>
+    <string name="net_error_multiple_location">Multiple location headers</string>
+    <string name="net_error_content_length_mismatch">Content length mismatch</string>
+    <string name="net_error_incomplete_chunked_encoding">Incomplete chunked encoding</string>
+    <string name="net_error_ssl_protocol_error">SSL protocol error</string>
+    <string name="net_error_ssl_unsafe_negotiation">Unsafe SSL negotiation</string>
+    <string name="net_error_bad_ssl_client_auth_cert">Invalid SSL client certificate</string>
+    <string name="net_error_ssl_weak_server_key">Weak SSL server key</string>
+    <string name="net_error_ssl_pinned_key_missing">SSL pinned key missing</string>
+    <string name="net_error_temporarily_throttled">Temporarily throttled</string>
+    <string name="net_error_blocked_by_client">Blocked by client</string>
+    <string name="net_error_network_changed">Network changed</string>
+    <string name="net_error_blocked_by_admin">Blocked by administrator</string>
+    <string name="net_error_blocked_enrollment_check">Enrollment check pending</string>
 </resources>

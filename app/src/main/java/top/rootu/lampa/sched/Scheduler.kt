@@ -28,10 +28,10 @@ object Scheduler {
     private const val CARDS_JOB_ID = 0
     private val isUpdate = AtomicBoolean(false)
 
-    private val schedulerScope = CoroutineScope(Dispatchers.Default)
+    private val schedulerScope = CoroutineScope(Dispatchers.IO)
 
     /**
-     * Schedules periodic updates for cards.
+     * Schedules periodic updates for Android TV content.
      *
      * @param sched Whether to schedule updates or perform a one-shot update.
      */
@@ -61,7 +61,7 @@ object Scheduler {
             val jobScheduler = context.getSystemService(JobScheduler::class.java)
             val jobInfo = JobInfo.Builder(
                 CARDS_JOB_ID,
-                ComponentName(context, CardJobService::class.java)
+                ComponentName(context, ContentJobService::class.java)
             ).apply {
                 setPeriodic(TimeUnit.MINUTES.toMillis(15)) // Schedule every 15 minutes
                 setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY) // Require any network
@@ -70,16 +70,16 @@ object Scheduler {
             }.build()
             if (BuildConfig.DEBUG) Log.d(
                 "Scheduler",
-                "jobScheduler schedule periodic updates with CardJobService"
+                "jobScheduler schedule periodic updates with ContentJobService"
             )
             jobScheduler?.schedule(jobInfo)
         } else { // Perform a one-shot update in a background thread
             schedulerScope.launch {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "jobScheduler call updateCards(sync: $sched)"
+                    "jobScheduler call updateContent(sync = $sched)"
                 )
-                updateCards(sched)
+                updateContent(sync = sched)
             }
         }
     }
@@ -91,8 +91,9 @@ object Scheduler {
         val context = App.context
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+        @Suppress("DEPRECATION")
         // Create a PendingIntent for the alarm
-        val pendingIntent = Intent(context, CardAlarmManager::class.java).let { intent ->
+        val pendingIntent = Intent(context, ContentAlarmManager::class.java).let { intent ->
             PendingIntent.getService(context, CARDS_JOB_ID, intent, 0)
         }
 
@@ -115,26 +116,25 @@ object Scheduler {
     }
 
     /**
-     * Updates the cards data.
+     * Updates the Android TV Home content.
      *
-     * @param sync Whether to sync data with the server.
+     * @param sync Whether to update TV channels sequentially or in parallel.
      */
     @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun updateCards(sync: Boolean) {
-
-        if (isUpdate.compareAndSet(false, true)) return
-
+    fun updateContent(sync: Boolean) {
+        if (!isUpdate.compareAndSet(false, true))
+            return // Early return if update is already running
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateCards call RecsService.updateRecs()."
+                    "updateContent call RecsService.updateRecs()"
                 )
                 RecsService.updateRecs() // Update recommendations for older versions
             } else {
                 if (BuildConfig.DEBUG) Log.d(
                     "Scheduler",
-                    "updateCards call LampaChannels.update($sync)."
+                    "updateContent call LampaChannels.update($sync)"
                 )
                 LampaChannels.update(sync) // Update channels for newer versions
             }

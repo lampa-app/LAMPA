@@ -21,7 +21,7 @@ import top.rootu.lampa.helpers.hideSystemUI
 import top.rootu.lampa.helpers.Updater
 
 
-class UpdateActivity : AppCompatActivity() {
+class UpdateActivity : BaseActivity() {
 
 //    Not required for getExternalFilesDir(null)
 //    @RequiresApi(Build.VERSION_CODES.R)

@@ -37,8 +37,8 @@ object LampaChannels {
             )
 
             if (!sync) {
-                // Use coroutines to fetch data concurrently
-                CoroutineScope(Dispatchers.IO).launch {
+                // Use coroutines to update data concurrently
+                CoroutineScope(Dispatchers.Default).launch {
                     val deferredResults = channels.map { (name, fetchFunction) ->
                         async { name to fetchFunction() }
                     }
@@ -56,7 +56,7 @@ object LampaChannels {
                     ChannelManager.update(name, items)
                 }
                 // Update WatchNext after all channels are updated
-                CoroutineScope(Dispatchers.IO).launch {
+                CoroutineScope(Dispatchers.Default).launch {
                     WatchNext.updateWatchNext()
                 }
             }
