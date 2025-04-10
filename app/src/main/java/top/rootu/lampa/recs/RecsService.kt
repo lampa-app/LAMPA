@@ -174,7 +174,7 @@ object RecsService {
 
         return try {
             // Create a mutable copy of the bitmap to draw on
-            val mutableBitmap = bitmap.copy(bitmap.config, true)
+            val mutableBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
             val canvas = Canvas(mutableBitmap)
 
             // Set up text properties

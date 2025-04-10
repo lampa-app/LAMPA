@@ -2,11 +2,19 @@ package top.rootu.lampa.helpers
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION
+import android.os.Environment
+import android.provider.Settings
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import top.rootu.lampa.BuildConfig
+import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.isGenymotion
 
 object PermHelpers {
@@ -15,6 +23,9 @@ object PermHelpers {
     private val PERMISSIONS_STORAGE = arrayOf<String>(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE
+    )
+    private val PERMISSIONS_STORAGE_R = arrayOf<String>(
+        Manifest.permission.MANAGE_EXTERNAL_STORAGE
     )
 
     // Mic Permissions
@@ -33,7 +44,12 @@ object PermHelpers {
      */
     @JvmStatic
     fun verifyStoragePermissions(context: Context?) {
-        requestPermissions(context, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE)
+        if (VERSION.SDK_INT >= Build.VERSION_CODES.R) requestPermissions(
+            context,
+            PERMISSIONS_STORAGE_R,
+            REQUEST_EXTERNAL_STORAGE
+        )
+        else requestPermissions(context, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE)
     }
 
     fun verifyMicPermissions(context: Context?) {
@@ -49,7 +65,8 @@ object PermHelpers {
     @JvmStatic
     fun hasStoragePermissions(context: Context?): Boolean {
         // Check if we have write permission
-        return hasPermissions(context, *PERMISSIONS_STORAGE)
+        return if (VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager()
+        else hasPermissions(context, *PERMISSIONS_STORAGE)
     }
 
     fun hasMicPermissions(context: Context?): Boolean {
@@ -66,11 +83,28 @@ object PermHelpers {
         if (!hasPermissions(activity, *permissions) && !isGenymotion) {
             if (activity is Activity) {
                 // We don't have permission so prompt the user
-                ActivityCompat.requestPermissions(
-                    activity,
-                    permissions,
-                    requestId
-                )
+                if (permissions == PERMISSIONS_STORAGE_R) {
+                    Toast.makeText(
+                        activity,
+                        R.string.app_requires_manage_storage_perm,
+                        Toast.LENGTH_LONG
+                    ).show()
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:" + BuildConfig.APPLICATION_ID)
+                    )
+                    try {
+                        activity.startActivityForResult(intent, requestId)
+                    } catch (e: ActivityNotFoundException) {
+                        e.printStackTrace()
+                    }
+                } else {
+                    ActivityCompat.requestPermissions(
+                        activity,
+                        permissions,
+                        requestId
+                    )
+                }
             }
         }
     }
