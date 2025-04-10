@@ -42,7 +42,8 @@ object RecsService {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
 
-        val recommendations = LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
+        val recommendations =
+            LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
         val itemsToSend = min(recommendations.size, MAX_RECS_CAP)
 
         if (BuildConfig.DEBUG) {
