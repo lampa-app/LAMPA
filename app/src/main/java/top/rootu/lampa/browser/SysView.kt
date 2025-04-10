@@ -27,7 +27,7 @@ import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.isTelegramInstalled
-import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.getNetworkErrorString
 import top.rootu.lampa.helpers.isAttachedToWindowCompat
 
@@ -91,7 +91,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             // https://developer.android.com/reference/android/webkit/WebViewClient#shouldOverrideUrlLoading(android.webkit.WebView,%20java.lang.String)
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                printLog("shouldOverrideUrlLoading(view, url) view $view url $url")
+                debugLog("shouldOverrideUrlLoading(view, url) view $view url $url")
                 url?.let {
                     if (it.startsWith("tg://")) {
                         // Handle Telegram link
@@ -116,7 +116,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
-                printLog("shouldOverrideUrlLoading(view, request) view $view request $request")
+                debugLog("shouldOverrideUrlLoading(view, request) view $view request $request")
                 if (request.url.scheme.equals("tg", true)) {
                     if (isTelegramInstalled(mainActivity)) {
                         val intent = Intent(Intent.ACTION_VIEW, request.url)
@@ -164,7 +164,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION
                     )
                 ) {
-                    printLog("ERROR ${error.errorCode} ${error.description} on load ${request.url}")
+                    debugLog("ERROR ${error.errorCode} ${error.description} on load ${request.url}")
                     if (request.url.toString().trimEnd('/')
                             .equals(MainActivity.LAMPA_URL, true)
                     ) {
@@ -197,7 +197,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 description: String?,
                 failingUrl: String?
             ) {
-                printLog("ERROR $errorCode $description on load $failingUrl")
+                debugLog("ERROR $errorCode $description on load $failingUrl")
                 if (failingUrl.toString().trimEnd('/').equals(MainActivity.LAMPA_URL, true)) {
                     view?.loadUrl("about:blank")
                     val reason = App.context.getNetworkErrorString(description.toString())
@@ -222,7 +222,7 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 handler: SslErrorHandler?,
                 error: SslError?
             ) {
-                printLog("Ignore SSL error: $error")
+                debugLog("Ignore SSL error: $error")
                 handler?.proceed() // Ignore SSL certificate errors
             }
         }

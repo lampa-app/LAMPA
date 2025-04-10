@@ -1,7 +1,7 @@
 package top.rootu.lampa
 
 import kotlinx.coroutines.*
-import top.rootu.lampa.helpers.Helpers.printLog
+import top.rootu.lampa.helpers.Helpers.debugLog
 import java.util.concurrent.Executors
 
 enum class Status {
@@ -66,15 +66,15 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
             try {
                 // Execute onPreExecute on the main thread
                 preJob = launch(Dispatchers.Main) {
-                    printLog("$taskName onPreExecute started")
+                    debugLog("$taskName onPreExecute started")
                     onPreExecute()
-                    printLog("$taskName onPreExecute finished")
+                    debugLog("$taskName onPreExecute finished")
                 }
                 preJob!!.join()
 
                 // Execute doInBackground on the specified dispatcher
                 bgJob = async(dispatcher) {
-                    printLog("$taskName doInBackground started")
+                    debugLog("$taskName doInBackground started")
                     doInBackground(*params)
                 }
 
@@ -84,19 +84,19 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
                 // Execute onPostExecute on the main thread
                 if (!isCancelled) {
                     withContext(Dispatchers.Main) {
-                        printLog("$taskName doInBackground finished")
+                        debugLog("$taskName doInBackground finished")
                         onPostExecute(result)
                         status = Status.FINISHED
                     }
                 }
             } catch (e: CancellationException) {
-                printLog("$taskName was cancelled: ${e.message}")
+                debugLog("$taskName was cancelled: ${e.message}")
                 status = Status.FINISHED
                 withContext(Dispatchers.Main) {
                     onCancelled(bgJob?.getCompleted())
                 }
             } catch (e: Exception) {
-                printLog("$taskName encountered an error: ${e.message}")
+                debugLog("$taskName encountered an error: ${e.message}")
                 status = Status.FINISHED
                 withContext(Dispatchers.Main) {
                     onCancelled(null)
@@ -107,7 +107,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
 
     fun cancel(mayInterruptIfRunning: Boolean) {
         if (preJob == null || bgJob == null) {
-            printLog("$taskName has already been cancelled/finished/not yet started.")
+            debugLog("$taskName has already been cancelled/finished/not yet started.")
             return
         }
 
@@ -123,7 +123,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
 
             preJob?.cancel(CancellationException("PreExecute: Coroutine Task cancelled"))
             bgJob?.cancel(CancellationException("doInBackground: Coroutine Task cancelled"))
-            printLog("$taskName has been cancelled.")
+            debugLog("$taskName has been cancelled.")
         }
     }
 

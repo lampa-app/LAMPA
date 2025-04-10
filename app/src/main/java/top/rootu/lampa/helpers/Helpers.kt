@@ -403,16 +403,6 @@ object Helpers {
         }
     }
 
-    fun printLog(message: String) {
-        printLog("DEBUG", message)
-    }
-
-    fun printLog(tag: String = "DEBUG", message: String) {
-        if (BuildConfig.DEBUG) {
-            Log.d(tag, message)
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun hasSAFChooser(pm: PackageManager?): Boolean {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -445,6 +435,16 @@ object Helpers {
             } catch (_: PackageManager.NameNotFoundException) {
                 false
             }
+        }
+    }
+
+    fun debugLog(message: String) {
+        debugLog("DEBUG", message)
+    }
+
+    fun debugLog(tag: String = "DEBUG", message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, message)
         }
     }
 
