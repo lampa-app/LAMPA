@@ -16,9 +16,16 @@ class AppListAdapter internal constructor(
     context: Context,
     private val appsInfo: List<ResolveInfo>
 ) : BaseAdapter() {
+    private val iconCache = mutableMapOf<String, Drawable>()
+    private val labelCache = mutableMapOf<String, String>()
     private val mLayoutInflater: LayoutInflater = LayoutInflater.from(context)
     private val pm: PackageManager = context.packageManager
 
+    private class ViewHolder(
+        val icon: ImageView,
+        val mainText: TextView,
+        val secondaryText: TextView
+    )
 
     override fun getCount(): Int {
         return appsInfo.size
@@ -33,29 +40,43 @@ class AppListAdapter internal constructor(
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        var view = convertView
-        if (view == null)
-            view = mLayoutInflater.inflate(R.layout.app_list_item, null)
-        val image = view?.findViewById<ImageView>(R.id.imageViewIcon)
-        val textViewMain = view?.findViewById<TextView>(R.id.textViewMain)
-        val textViewSecond = view?.findViewById<TextView>(R.id.textViewSecond)
-        image?.setImageDrawable(getItemIcon(position))
-        textViewMain?.text = getItemLabel(position)
-        textViewSecond?.text = getItemPackage(position)
-        return view!!
+        val view: View
+        val viewHolder: ViewHolder
+
+        if (convertView == null) {
+            view = mLayoutInflater.inflate(R.layout.app_list_item, parent, false)
+            viewHolder = ViewHolder(
+                view.findViewById(R.id.imageViewIcon),
+                view.findViewById(R.id.textViewMain),
+                view.findViewById(R.id.textViewSecond)
+            )
+            view.tag = viewHolder
+        } else {
+            view = convertView
+            viewHolder = convertView.tag as ViewHolder
+        }
+
+        viewHolder.icon.setImageDrawable(getItemIcon(position))
+        viewHolder.mainText.text = getItemLabel(position)
+        viewHolder.secondaryText.text = getItemPackage(position)
+
+        return view
     }
 
+
     private fun getItemIcon(position: Int): Drawable? {
-        return getItem(position).loadIcon(pm)
+        val packageName = getItemPackage(position)
+        return iconCache.getOrPut(packageName) {
+            getItem(position).loadIcon(pm)
+        }
     }
 
     private fun getItemLabel(position: Int): String {
-        val loadLabel = getItem(position).loadLabel(pm)
-        var label = ""
-        if (loadLabel == null || loadLabel.toString().also { label = it }.isEmpty()) {
-            label = getItemPackage(position)
+        val resolveInfo = getItem(position)
+        val packageName = resolveInfo.activityInfo.packageName
+        return labelCache.getOrPut(packageName) {
+            resolveInfo.loadLabel(pm).toString()
         }
-        return label
     }
 
     fun getItemPackage(position: Int): String {
