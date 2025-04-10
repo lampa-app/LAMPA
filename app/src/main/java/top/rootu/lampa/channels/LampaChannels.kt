@@ -26,57 +26,15 @@ object LampaChannels {
 
             // List of channel names and their corresponding update functions
             val channels = listOf(
-                LampaProvider.RECS to {
-                    LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP)
-                },
-                LampaProvider.LIKE to {
-                    LampaProvider.get(
-                        LampaProvider.LIKE,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.BOOK to {
-                    LampaProvider.get(
-                        LampaProvider.BOOK,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.HIST to {
-                    LampaProvider.get(
-                        LampaProvider.HIST,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.LOOK to {
-                    LampaProvider.get(
-                        LampaProvider.LOOK,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.VIEW to {
-                    LampaProvider.get(
-                        LampaProvider.VIEW,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.SCHD to {
-                    LampaProvider.get(
-                        LampaProvider.SCHD,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.CONT to {
-                    LampaProvider.get(
-                        LampaProvider.CONT,
-                        false
-                    )?.items.orEmpty()
-                },
-                LampaProvider.THRW to {
-                    LampaProvider.get(
-                        LampaProvider.THRW,
-                        false
-                    )?.items.orEmpty()
-                }
+                LampaProvider.RECS to { LampaProvider.get(LampaProvider.RECS, true)?.items.orEmpty().take(MAX_RECS_CAP) },
+                LampaProvider.LIKE to { LampaProvider.get(LampaProvider.LIKE, false)?.items.orEmpty() },
+                LampaProvider.BOOK to { LampaProvider.get(LampaProvider.BOOK, false)?.items.orEmpty() },
+                LampaProvider.HIST to { LampaProvider.get(LampaProvider.HIST, false)?.items.orEmpty() },
+                LampaProvider.LOOK to { LampaProvider.get(LampaProvider.LOOK, false)?.items.orEmpty() },
+                LampaProvider.VIEW to { LampaProvider.get(LampaProvider.VIEW, false)?.items.orEmpty() },
+                LampaProvider.SCHD to { LampaProvider.get(LampaProvider.SCHD, false)?.items.orEmpty() },
+                LampaProvider.CONT to { LampaProvider.get(LampaProvider.CONT, false)?.items.orEmpty() },
+                LampaProvider.THRW to { LampaProvider.get(LampaProvider.THRW, false)?.items.orEmpty() }
             )
 
             if (!sync) {
