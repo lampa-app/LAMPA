@@ -42,7 +42,7 @@ object RecsService {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
 
-        val recommendations = getRecs()
+        val recommendations = LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
         val itemsToSend = min(recommendations.size, MAX_RECS_CAP)
 
         if (BuildConfig.DEBUG) {
@@ -57,10 +57,6 @@ object RecsService {
                 Log.e("RecsService", "Failed to build recommendation for card: ${card.id}", e)
             }
         }
-    }
-
-    private fun getRecs(): List<LampaCard> {
-        return LampaProvider.get(LampaProvider.RECS, true)?.items?.take(MAX_RECS_CAP).orEmpty()
     }
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -174,7 +170,7 @@ object RecsService {
 
         return try {
             // Create a mutable copy of the bitmap to draw on
-            val mutableBitmap = bitmap.copy(bitmap.config, true)
+            val mutableBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
             val canvas = Canvas(mutableBitmap)
 
             // Set up text properties

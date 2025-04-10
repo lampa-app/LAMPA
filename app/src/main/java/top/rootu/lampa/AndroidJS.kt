@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
-import android.text.TextUtils
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
@@ -217,54 +216,54 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Throws(JSONException::class)
-    fun openTorrentLink(str: String, str2: String): Boolean {
-        val jSONObject: JSONObject = if (str2 == "\"\"") {
-            JSONObject()
-        } else {
-            JSONObject(str2)
-        }
-        val intent = Intent("android.intent.action.VIEW")
-        val parse = Uri.parse(str)
-        if (str.startsWith("magnet")) {
-            intent.data = parse
-        } else {
-            intent.setDataAndType(parse, "application/x-bittorrent")
-        }
-        val title = jSONObject.optString("title")
-        if (!TextUtils.isEmpty(title)) {
-            intent.putExtra("title", title)
-            intent.putExtra("displayName", title)
-            intent.putExtra("forcename", title)
-        }
-        val poster = jSONObject.optString("poster")
-        if (!TextUtils.isEmpty(poster)) {
-            intent.putExtra("poster", poster)
-        }
-        val category = jSONObject.optString("media")
-        if (!TextUtils.isEmpty(category)) {
-            intent.putExtra("category", category)
-        }
-        if (jSONObject.optJSONObject("data") != null) {
-            val optJSONObject = jSONObject.optJSONObject("data")
-            if (optJSONObject != null) {
-                intent.putExtra("data", optJSONObject.toString())
+    fun openTorrentLink(url: String, jsonString: String): Boolean {
+        val jsonData = if (jsonString == "\"\"") JSONObject() else JSONObject(jsonString)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = if (url.startsWith("magnet")) {
+                Uri.parse(url)
+            } else {
+                Uri.parse(url).also {
+                    setDataAndType(it, "application/x-bittorrent")
+                }
+            }
+
+            jsonData.optString("title").takeIf { it.isNotEmpty() }?.let { title ->
+                putExtra("title", title)
+                putExtra("displayName", title)
+                putExtra("forcename", title)
+            }
+
+            jsonData.optString("poster").takeIf { it.isNotEmpty() }?.let { poster ->
+                putExtra("poster", poster)
+            }
+
+            jsonData.optString("media").takeIf { it.isNotEmpty() }?.let { category ->
+                putExtra("category", category)
+            }
+
+            jsonData.optJSONObject("data")?.let { dataObj ->
+                putExtra("data", dataObj.toString())
             }
         }
+
         mainActivity.runOnUiThread {
             try {
                 mainActivity.startActivity(intent)
             } catch (e: Exception) {
-                Log.e(TAG, e.message, e)
+                Log.e(TAG, "Failed to open torrent link", e)
                 App.toast(R.string.no_torrent_activity_found, true)
             }
         }
-        // update Recs to filter viewed
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CoroutineScope(Dispatchers.Default).launch {
-                delay(UPDATE_DELAY)
+        // Force update Recs to filter viewed
+        CoroutineScope(Dispatchers.Default).launch {
+            delay(UPDATE_DELAY)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                RecsService.updateRecs()
             }
         }
+
         return true
     }
 
@@ -441,15 +440,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
         mainActivity.runOnUiThread { mainActivity.runPlayer(jsonObject) }
 
-        // update Recs to filter viewed
+        // Force update Recs to filter viewed
         CoroutineScope(Dispatchers.Default).launch {
             delay(UPDATE_DELAY)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 LampaChannels.updateRecsChannel()
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    RecsService.updateRecs()
-                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                RecsService.updateRecs()
             }
         }
     }

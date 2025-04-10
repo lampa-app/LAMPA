@@ -124,44 +124,35 @@ dependencies {
     //noinspection GradleDependency 2.0.4 for AGP 7.4
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    // JavaScript to run PAC file to get correct proxies
-    implementation 'org.mozilla:rhino:1.7.15'
-    def okhttpVersion = '3.12.13' // 3.12.13 - latest version for API < 21
-    //noinspection GradleDependency
-    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
-    //noinspection GradleDependency
-    implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
-    // multidex
-    implementation 'androidx.multidex:multidex:2.0.1'
-    // netcipher
-    implementation 'info.guardianproject.netcipher:netcipher:2.1.0'
-    // androidx
-    def actKtxVer = '1.8.0' // 1.8.0 - latest version for API 16
+
+    def actKtxVer = '1.8.0' // 1.8.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.activity:activity-ktx:$actKtxVer"
-    def appCompatVer = '1.6.1' // 1.6.1 - latest version for API 16
+    def appCompatVer = '1.6.1' // 1.6.1 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.appcompat:appcompat:$appCompatVer"
-    def constraintVersion = '2.1.4' // 2.1.4 last api16 compatible
+    def constraintVersion = '2.1.4' // 2.1.4 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.constraintlayout:constraintlayout:${constraintVersion}"
-    def coreKtxVer = '1.12.0' // 1.12.0 - latest version for API 16
+    def coreKtxVer = '1.12.0' // 1.12.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.core:core-ktx:$coreKtxVer"
-    def lifecycleVersion = '2.6.2' // 2.6.2 - latest version for API 16
-    //noinspection GradleDependency
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
+    def lifecycleVersion = '2.6.2' // 2.6.2 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.lifecycle:lifecycle-process:$lifecycleVersion"
+    //noinspection GradleDependency
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
+    implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.recommendation:recommendation:1.0.0'
     implementation 'androidx.tvprovider:tvprovider:1.0.0'
-    def vectordrawableVersion = '1.1.0' // 1.1.0 - latest version for API 16
+    def vectordrawableVersion = '1.1.0' // 1.1.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.vectordrawable:vectordrawable:${vectordrawableVersion}"
-    implementation 'org.brotli:dec:0.1.2'
-    //glide
-    def glideVersion = '4.16.0'
+    def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
+    //noinspection GradleDependency
+    implementation "androidx.webkit:webkit:$webkitVersion"
+    def glideVersion = '4.16.0' // glide stable
     implementation "com.github.bumptech.glide:glide:${glideVersion}"
     implementation("com.github.bumptech.glide:okhttp3-integration:${glideVersion}") {
         exclude group: 'glide-parent'
@@ -169,28 +160,29 @@ dependencies {
     }
     ksp "com.github.bumptech.glide:ksp:${glideVersion}"
     implementation "com.github.bumptech.glide:annotations:${glideVersion}"
-    def muiVersion = '1.11.0' // 1.11.0 - latest version for API 16
+    def muiVersion = '1.11.0' // 1.11.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "com.google.android.material:material:${muiVersion}"
-    // coroutines
-    def coroutinesVersion = '1.7.3' // 1.7.3 - latest version for API 16
+    def okhttpVersion = '3.12.13' // okhttp 3.12.13 - latest version for API < 21
+    //noinspection GradleDependency
+    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
+    //noinspection GradleDependency
+    implementation "com.squareup.okhttp3:okhttp-dnsoverhttps:$okhttpVersion"
+    implementation 'org.brotli:dec:0.1.2'
     //noinspection GradleDependency
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kp_version" // or jdk7
+    def coroutinesVersion = '1.7.3' // coroutines 1.7.3 - last api16 compatible
     //noinspection GradleDependency
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
-    // json serializer
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
     implementation 'com.google.code.gson:gson:2.9.1'
-    // lottie loaders
-    def lottieVersion = '6.4.1'
+    def lottieVersion = '6.4.1' // lottie loaders
     //noinspection GradleDependency 6.6.2+ throw NullPointerException on build
     implementation "com.airbnb.android:lottie:$lottieVersion"
-    // webkit
-    def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
-    //noinspection GradleDependency
-    implementation "androidx.webkit:webkit:$webkitVersion"
-    // for TLS v1.3 on API < 29
-    implementation 'org.conscrypt:conscrypt-android:2.5.3'
+    implementation 'info.guardianproject.netcipher:netcipher:2.1.0' // SSL / TLS
+    implementation 'junit:junit:4.13.2' // For Crosswalk compatibility
+    implementation 'org.conscrypt:conscrypt-android:2.5.3' // for TLS v1.3 on API < 29
+    implementation 'org.mozilla:rhino:1.7.15' // JavaScript to run PAC file to get correct proxies
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
     ruStoreApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
