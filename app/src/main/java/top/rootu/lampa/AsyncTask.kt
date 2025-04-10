@@ -3,133 +3,184 @@ package top.rootu.lampa
 import kotlinx.coroutines.*
 import top.rootu.lampa.helpers.Helpers.debugLog
 import java.util.concurrent.Executors
+import kotlin.coroutines.CoroutineContext
 
-enum class Status {
-    PENDING,
-    RUNNING,
-    FINISHED
-}
-
+/**
+ * An abstract class that enables proper and easy use of background threads with coroutines.
+ * This class is a modern replacement for Android's deprecated AsyncTask using Kotlin coroutines.
+ *
+ * @param taskName The name of the task used for debugging purposes
+ * @param Params The type of the parameters sent to the task upon execution
+ * @param Progress The type of the progress units published during the background computation
+ * @param Result The type of the result of the background computation
+ */
 abstract class AsyncTask<Params, Progress, Result>(private val taskName: String) {
+
+    /**
+     * Indicates the current status of the task.
+     */
+    enum class Status {
+        PENDING, // The task has not been executed yet
+        RUNNING, // The task is currently running
+        FINISHED //The task has finished executing
+    }
 
     companion object {
         private const val TAG = "AsyncTask"
-        private var threadPoolExecutor: CoroutineDispatcher? = null
+
+        /**
+         * Single thread dispatcher used for sequential task execution.
+         * Lazily initialized on first use.
+         */
+        private val singleThreadDispatcher by lazy {
+            Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+        }
     }
 
     @Volatile
-    var status: Status = Status.PENDING
-    private var preJob: Job? = null
-    private var bgJob: Deferred<Result>? = null
+    private var _status: Status = Status.PENDING
+
+    /**
+     * Returns the current status of the task.
+     */
+    val status: Status get() = _status
+
+    private var parentJob: Job = Job()
+    private var backgroundJob: Deferred<Result>? = null
 
     @Volatile
     var isCancelled = false
-
-    abstract fun doInBackground(vararg params: Params?): Result
-    open fun onProgressUpdate(vararg values: Progress?) {}
-    open fun onPostExecute(result: Result?) {}
-    open fun onPreExecute() {}
-    open fun onCancelled(result: Result?) {}
+        private set
 
     /**
-     * Executes background task parallel with other background tasks in the queue using
-     * default thread pool.
+     * Override this method to perform a computation on a background thread.
+     * @param params The parameters of the task
+     * @return A result, defined by the subclass of this task
      */
-    fun execute(vararg params: Params?) {
-        execute(Dispatchers.Default, *params)
-    }
+    protected abstract fun doInBackground(vararg params: Params): Result
 
     /**
-     * Executes background tasks sequentially with other background tasks in the queue using
-     * single thread executor @Executors.newSingleThreadExecutor().
+     * Runs on the main thread after [publishProgress] is invoked.
+     * @param values The progress values to update the UI with
      */
-    fun executeOnExecutor(vararg params: Params?) {
-        if (threadPoolExecutor == null) {
-            threadPoolExecutor = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-        }
-        execute(threadPoolExecutor!!, *params)
-    }
+    protected open fun onProgressUpdate(vararg values: Progress) {}
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun execute(dispatcher: CoroutineDispatcher, vararg params: Params?) {
-        if (status != Status.PENDING) {
-            when (status) {
-                Status.RUNNING -> throw IllegalStateException("Cannot execute task: the task is already running.")
-                Status.FINISHED -> throw IllegalStateException("Cannot execute task: the task has already been executed (a task can be executed only once).")
-                else -> {}
+    /**
+     * Runs on the main thread after [doInBackground] completes successfully.
+     * @param result The result of the background computation if available, null otherwise
+     */
+    protected open fun onPostExecute(result: Result) {}
+
+    /**
+     * Runs on the main thread before [doInBackground] is executed.
+     */
+    protected open fun onPreExecute() {}
+
+    /**
+     * Runs on the main thread after cancellation with the result available.
+     * @param result The result if available, null otherwise
+     */
+    protected open fun onCancelled(result: Result?) {}
+
+    /**
+     * Runs on the main thread after cancellation regardless of result availability.
+     */
+    protected open fun onCancelled() {}
+
+    /**
+     * Executes the task with the specified parameters in parallel with other tasks.
+     * @param params The parameters of the task
+     */
+    fun execute(vararg params: Params) = execute(Dispatchers.Default, *params)
+
+    /**
+     * Executes the task with the specified parameters sequentially (one at a time).
+     * @param params The parameters of the task
+     */
+    fun executeOnExecutor(vararg params: Params) = execute(singleThreadDispatcher, *params)
+
+    /**
+     * Internal implementation of task execution.
+     * @param dispatcher The coroutine context to run the background task in
+     * @param params The parameters of the task
+     * @throws IllegalStateException if the task is already running or has been executed
+     */
+    @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
+    private fun execute(dispatcher: CoroutineContext, vararg params: Params) {
+        if (_status != Status.PENDING) {
+            throw when (_status) {
+                Status.RUNNING -> IllegalStateException("Task is already running")
+                Status.FINISHED -> IllegalStateException("Task can be executed only once")
+                else -> IllegalStateException()
             }
         }
 
-        status = Status.RUNNING
+        _status = Status.RUNNING
+        isCancelled = false
 
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.Main + parentJob).launch {
             try {
-                // Execute onPreExecute on the main thread
-                preJob = launch(Dispatchers.Main) {
-                    debugLog("$taskName onPreExecute started")
-                    onPreExecute()
-                    debugLog("$taskName onPreExecute finished")
+                // Pre-execute phase
+                debugLog(TAG, "$taskName onPreExecute started")
+                onPreExecute()
+                debugLog(TAG, "$taskName onPreExecute finished")
+
+                // Background execution
+                backgroundJob = GlobalScope.async(dispatcher) {
+                    debugLog(TAG, "$taskName doInBackground started")
+                    doInBackground(*params).also {
+                        debugLog(TAG, "$taskName doInBackground finished")
+                    }
                 }
-                preJob!!.join()
 
-                // Execute doInBackground on the specified dispatcher
-                bgJob = async(dispatcher) {
-                    debugLog("$taskName doInBackground started")
-                    doInBackground(*params)
-                }
-
-                // Wait for the background task to complete
-                val result = bgJob!!.await()
-
-                // Execute onPostExecute on the main thread
-                if (!isCancelled) {
-                    withContext(Dispatchers.Main) {
-                        debugLog("$taskName doInBackground finished")
+                // Post-execute phase
+                backgroundJob?.let { deferred ->
+                    val result = deferred.await()
+                    if (!isCancelled) {
                         onPostExecute(result)
-                        status = Status.FINISHED
                     }
                 }
             } catch (e: CancellationException) {
-                debugLog("$taskName was cancelled: ${e.message}")
-                status = Status.FINISHED
-                withContext(Dispatchers.Main) {
-                    onCancelled(bgJob?.getCompleted())
-                }
+                debugLog(TAG, "$taskName was cancelled: ${e.message}")
+                onCancelled(backgroundJob?.getCompleted())
+                onCancelled()
             } catch (e: Exception) {
-                debugLog("$taskName encountered an error: ${e.message}")
-                status = Status.FINISHED
-                withContext(Dispatchers.Main) {
-                    onCancelled(null)
-                }
+                debugLog(TAG, "$taskName encountered an error: ${e.message}")
+                onCancelled(null)
+                onCancelled()
+            } finally {
+                _status = Status.FINISHED
             }
         }
     }
 
-    fun cancel(mayInterruptIfRunning: Boolean) {
-        if (preJob == null || bgJob == null) {
-            debugLog("$taskName has already been cancelled/finished/not yet started.")
-            return
-        }
+    /**
+     * Attempts to cancel execution of this task.
+     * @param mayInterruptIfRunning true if the thread executing this task should be interrupted;
+     *                              false otherwise
+     */
+    fun cancel(mayInterruptIfRunning: Boolean = true) {
+        if (_status == Status.FINISHED) return
 
-        if (mayInterruptIfRunning || (!preJob!!.isActive && !bgJob!!.isActive)) {
-            isCancelled = true
-            status = Status.FINISHED
+        isCancelled = true
+        _status = Status.FINISHED
 
-            if (bgJob!!.isCompleted) {
-                CoroutineScope(Dispatchers.Main).launch {
-                    onCancelled(bgJob!!.await())
-                }
-            }
-
-            preJob?.cancel(CancellationException("PreExecute: Coroutine Task cancelled"))
-            bgJob?.cancel(CancellationException("doInBackground: Coroutine Task cancelled"))
-            debugLog("$taskName has been cancelled.")
+        if (mayInterruptIfRunning) {
+            parentJob.cancel("Task $taskName cancelled")
+            backgroundJob?.cancel()
+            debugLog(TAG, "$taskName has been cancelled with interruption")
+        } else {
+            debugLog(TAG, "$taskName cancellation requested (no interruption)")
         }
     }
 
-    fun publishProgress(vararg progress: Progress) {
-        CoroutineScope(Dispatchers.Main).launch { //need to update main thread
-            if (!isCancelled) {
+    /**
+     * Publishes progress to the main thread.
+     * @param progress One or more progress values to publish
+     */
+    protected fun publishProgress(vararg progress: Progress) {
+        if (!isCancelled) {
+            CoroutineScope(Dispatchers.Main).launch {
                 onProgressUpdate(*progress)
             }
         }

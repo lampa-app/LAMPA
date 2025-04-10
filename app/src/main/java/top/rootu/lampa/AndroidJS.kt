@@ -394,16 +394,16 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     }
                 }
 
-                override fun onPostExecute(result: String?) {
+                override fun onPostExecute(result: String) {
                     mainActivity.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '"
-                                + result.toString()
+                                + result
                             .replace("\\", "\\\\")
                             .replace("'", "\\'")
                             .replace("\n", "\\\n")
                                 + "')")
-                        browser.evaluateJavascript(js) { if (BuildConfig.DEBUG) Log.d(TAG, "$js") }
+                        browser.evaluateJavascript(js) { debugLog(TAG, "$js") }
                     }
                 }
             }
