@@ -20,6 +20,7 @@ import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
@@ -44,7 +45,7 @@ object WatchNext {
 
     @SuppressLint("RestrictedApi")
     fun add(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         card.id?.let { movieId ->
             val existingProgram = findProgramByMovieId(movieId)
             val removed = removeIfNotBrowsable(existingProgram)
@@ -72,12 +73,12 @@ object WatchNext {
     }
 
     fun rem(movieId: String?) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         movieId?.let { deleteFromWatchNext(it) }
     }
 
     suspend fun updateWatchNext() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         val context = App.context
         val deleted = removeStale()
         printLog(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
@@ -118,7 +119,7 @@ object WatchNext {
     }
 
     fun addLastPlayed(card: LampaCard, lampaActivity: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
 
         card.id?.let { movieId ->
             // deleteFromWatchNext(RESUME_ID) // Clear any existing continue watch
@@ -136,7 +137,7 @@ object WatchNext {
     }
 
     fun removeContinueWatch(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
         // deleteFromWatchNext(RESUME_ID)
         card.id?.let { movieId -> deleteFromWatchNext(movieId) }
     }

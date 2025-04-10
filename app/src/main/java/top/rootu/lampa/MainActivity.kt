@@ -84,6 +84,7 @@ import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.PermHelpers
 import top.rootu.lampa.helpers.PermHelpers.hasMicPermissions
@@ -954,7 +955,7 @@ class MainActivity : BaseActivity(),
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}")
     private suspend fun syncBookmarks() = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !(isAndroidTV)) return@withContext
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
         withContext(Dispatchers.Main) {
             runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
         }
@@ -1275,7 +1276,7 @@ class MainActivity : BaseActivity(),
         // Define menu items
         val menuItems = mutableListOf(
             MenuItem(
-                title = if (isAndroidTV && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                title = if (isTvContentProviderAvailable(App.context) && VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     getString(R.string.update_chan_title)
                 } else if (isAndroidTV) {
                     getString(R.string.update_home_title)
@@ -1283,7 +1284,7 @@ class MainActivity : BaseActivity(),
                     getString(R.string.close_menu_title)
                 },
                 action = "updateOrClose",
-                icon = if (isAndroidTV) R.drawable.round_refresh_24 else R.drawable.round_close_24
+                icon = if (isTvContentProviderAvailable(App.context)) R.drawable.round_refresh_24 else R.drawable.round_close_24
             ),
             MenuItem(
                 title = getString(R.string.change_url_title),
@@ -3116,7 +3117,7 @@ class MainActivity : BaseActivity(),
      * Updates Watch Next on Android TV.
      */
     private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isAndroidTV) return@withContext
+        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
         try {
             val card = getCardFromActivity(lampaActivity) ?: return@withContext
             // Get current playback state

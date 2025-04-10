@@ -21,7 +21,7 @@ import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
-import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvChannelContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.Helpers.printLog
 import top.rootu.lampa.helpers.Prefs.appLang
@@ -505,7 +505,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @org.xwalk.core.JavascriptInterface
     fun updateChannel(where: String?) {
         // https://github.com/yumata/lampa-source/blob/e5505b0e9cf5f95f8ec49bddbbb04086fccf26c8/src/app.js#L203
-        if (where != null && isAndroidTV) {
+        if (where != null && isTvChannelContentProviderAvailable(App.context)) {
             printLog(TAG, "updateChannel [$where]")
             when (where) {
                 LampaProvider.HIST,

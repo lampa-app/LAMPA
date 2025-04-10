@@ -14,7 +14,7 @@ import top.rootu.lampa.channels.ChannelManager
 import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Helpers
-import top.rootu.lampa.helpers.Helpers.isAndroidTV
+import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.sched.Scheduler
 
@@ -25,7 +25,7 @@ class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
 
         val action = intent.action
 
-        if (action == null || !(isAndroidTV))
+        if (action == null || !(isTvContentProviderAvailable(App.context)))
             return
 
         val watchNextId = intent.getLongExtra(TvContract.EXTRA_WATCH_NEXT_PROGRAM_ID, -1L)
@@ -48,7 +48,12 @@ class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
                         "ACTION_PREVIEW_PROGRAM_ADDED_TO_WATCH_NEXT, preview $previewId, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (BuildConfig.DEBUG) Log.d(
+                        TAG,
+                        "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${
+                            WatchNext.getCardFromWatchNextProgramId(watchNextId)
+                        }"
+                    )
                     if (!App.context.isInWatchNext(it)) {
                         val card = WatchNext.getCardFromWatchNextProgramId(watchNextId)
                         Helpers.manageFavorite("add", "wath", it, card)
@@ -65,7 +70,12 @@ class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
                         "ACTION_WATCH_NEXT_PROGRAM_BROWSABLE_DISABLED, watch-next $watchNextId movieId $movieId"
                     )
                 movieId?.let {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${WatchNext.getCardFromWatchNextProgramId(watchNextId)}")
+                    if (BuildConfig.DEBUG) Log.d(
+                        TAG,
+                        "$it isInWatchNext? ${App.context.isInWatchNext(it)} card ${
+                            WatchNext.getCardFromWatchNextProgramId(watchNextId)
+                        }"
+                    )
                     if (App.context.isInWatchNext(movieId)) {
                         Helpers.manageFavorite("rem", "wath", movieId)
                     }
@@ -87,7 +97,12 @@ class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
                     if (!chan.isNullOrEmpty())
                         Helpers.manageFavorite("rem", chan, movieId)
                     try { // remove from contentPrivider
-                        movieIdAndChanId.second?.let { chid -> ChannelManager.deleteFromChannel(chid, movieId) }
+                        movieIdAndChanId.second?.let { chid ->
+                            ChannelManager.deleteFromChannel(
+                                chid,
+                                movieId
+                            )
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "error delete $movieId from channel $chan: $e")
                     }

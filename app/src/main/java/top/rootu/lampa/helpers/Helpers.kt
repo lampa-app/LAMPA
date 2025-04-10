@@ -151,6 +151,31 @@ object Helpers {
         }
     }
 
+    /**
+     * Checks if the device supports Android TV content provider
+     */
+    fun isTvContentProviderAvailable(context: Context): Boolean {
+        return isContentProviderAvailable(context, "android.media.tv")
+    }
+
+    /**
+     * Checks if the device supports specific TV channel content provider
+     */
+    fun isTvChannelContentProviderAvailable(context: Context): Boolean {
+        return isContentProviderAvailable(context, "android.media.tv.channel")
+    }
+
+    /**
+     * Generic content provider availability checker
+     */
+    private fun isContentProviderAvailable(context: Context, authority: String): Boolean {
+        return try {
+            context.packageManager.resolveContentProvider(authority, 0) != null
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun buildPendingIntent(
         card: LampaCard,
         continueWatch: Boolean?,
@@ -239,7 +264,9 @@ object Helpers {
 
     val isAndroidTV: Boolean
         get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice && !isBrokenATV
+            return App.context.packageManager.hasSystemFeature("android.software.leanback") &&
+                    !isHuaweiDevice // &&
+                    // !isBrokenATV
         }
 
     /**
