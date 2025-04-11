@@ -89,7 +89,7 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
      * Executes the task with the specified parameters in parallel with other tasks.
      * @param params The parameters of the task
      */
-    fun execute(vararg params: Params) = execute(Dispatchers.Default, *params)
+    fun execute(vararg params: Params) = execute(Dispatchers.IO, *params)
 
     /**
      * Executes the task with the specified parameters sequentially (one at a time).
