@@ -549,57 +549,39 @@ class MainActivity : BaseActivity(),
         val resultCode = result.resultCode
 
         if (BuildConfig.DEBUG) {
-            logDebugInfo(data, resultCode, videoUrl)
-            debugLogIntentData(TAG, data)
+            Log.d(TAG, "Returned videoUrl: $videoUrl")
+            when (resultCode) {
+                RESULT_OK -> Log.d(TAG, "RESULT_OK")
+                RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED")
+                RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER")
+                RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED")
+                RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START")
+                RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR")
+                else -> Log.w(TAG, "Undefined result code [$resultCode]")
+            }
         }
+        debugLogIntentData(TAG, data)
 
         data?.let { intent ->
             when (intent.action) {
-                "com.mxtech.intent.result.VIEW" -> handleMxPlayerResult(
-                    intent,
-                    resultCode,
-                    videoUrl
-                )
-
-                "org.videolan.vlc.player.result" -> handleVlcPlayerResult(
-                    intent,
-                    resultCode,
-                    videoUrl
-                )
-
-                "is.xyz.mpv.MPVActivity.result" -> handleMpvPlayerResult(
-                    intent,
-                    resultCode,
-                    videoUrl
-                )
-
-                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" -> handleUPlayerResult(
-                    intent,
-                    resultCode,
-                    videoUrl
-                )
-
-                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" -> handleViMuPlayerResult(
-                    intent,
-                    resultCode,
-                    videoUrl
-                )
-
+                // MX & Just Player
+                "com.mxtech.intent.result.VIEW" ->
+                    handleMxPlayerResult(intent, resultCode, videoUrl)
+                // VLC
+                "org.videolan.vlc.player.result" ->
+                    handleVlcPlayerResult(intent, resultCode, videoUrl)
+                // MPV
+                "is.xyz.mpv.MPVActivity.result" ->
+                    handleMpvPlayerResult(intent, resultCode, videoUrl)
+                // UPlayer
+                "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" ->
+                    handleUPlayerResult(intent, resultCode, videoUrl)
+                // ViMu
+                "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" ->
+                    handleViMuPlayerResult(intent, resultCode, videoUrl)
+                // Others
                 else -> handleGenericPlayerResult(intent, resultCode, videoUrl)
             }
-        }
-    }
-
-    private fun logDebugInfo(data: Intent?, resultCode: Int, videoUrl: String) {
-        logDebug("Returned videoUrl: $videoUrl")
-        when (resultCode) {
-            RESULT_OK -> Log.d(TAG, "RESULT_OK: ${data?.toUri(0)}")
-            RESULT_CANCELED -> Log.d(TAG, "RESULT_CANCELED: ${data?.toUri(0)}")
-            RESULT_FIRST_USER -> Log.d(TAG, "RESULT_FIRST_USER: ${data?.toUri(0)}")
-            RESULT_VIMU_ENDED -> Log.d(TAG, "RESULT_VIMU_ENDED: ${data?.toUri(0)}")
-            RESULT_VIMU_START -> Log.d(TAG, "RESULT_VIMU_START: ${data?.toUri(0)}")
-            RESULT_VIMU_ERROR -> Log.e(TAG, "RESULT_VIMU_ERROR: ${data?.toUri(0)}")
-            else -> Log.w(TAG, "Undefined result code [$resultCode]: ${data?.toUri(0)}")
         }
     }
 
