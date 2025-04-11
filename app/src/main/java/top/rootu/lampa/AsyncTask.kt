@@ -1,7 +1,7 @@
 package top.rootu.lampa
 
+import android.util.Log
 import kotlinx.coroutines.*
-import top.rootu.lampa.helpers.Helpers.debugLog
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
 
@@ -26,8 +26,6 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
     }
 
     companion object {
-        private const val TAG = "AsyncTask"
-
         /**
          * Single thread dispatcher used for sequential task execution.
          * Lazily initialized on first use.
@@ -121,15 +119,15 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
         CoroutineScope(Dispatchers.Main + parentJob).launch {
             try {
                 // Pre-execute phase
-                debugLog(TAG, "$taskName onPreExecute started")
+                // debugLog(taskName, "$taskName onPreExecute started")
                 onPreExecute()
-                debugLog(TAG, "$taskName onPreExecute finished")
+                // debugLog(taskName, "$taskName onPreExecute finished")
 
                 // Background execution
                 backgroundJob = GlobalScope.async(dispatcher) {
-                    debugLog(TAG, "$taskName doInBackground started")
+                    // debugLog(taskName, "$taskName doInBackground started")
                     doInBackground(*params).also {
-                        debugLog(TAG, "$taskName doInBackground finished")
+                        // debugLog(taskName, "$taskName doInBackground finished")
                     }
                 }
 
@@ -141,11 +139,11 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
                     }
                 }
             } catch (e: CancellationException) {
-                debugLog(TAG, "$taskName was cancelled: ${e.message}")
+                Log.e(taskName, "$taskName was cancelled: ${e.message}")
                 onCancelled(backgroundJob?.getCompleted())
                 onCancelled()
             } catch (e: Exception) {
-                debugLog(TAG, "$taskName encountered an error: ${e.message}")
+                Log.e(taskName, "$taskName encountered an error: ${e.message}")
                 onCancelled(null)
                 onCancelled()
             } finally {
@@ -168,9 +166,9 @@ abstract class AsyncTask<Params, Progress, Result>(private val taskName: String)
         if (mayInterruptIfRunning) {
             parentJob.cancel("Task $taskName cancelled")
             backgroundJob?.cancel()
-            debugLog(TAG, "$taskName has been cancelled with interruption")
+            Log.d(taskName, "$taskName has been cancelled with interruption")
         } else {
-            debugLog(TAG, "$taskName cancellation requested (no interruption)")
+            Log.d(taskName, "$taskName cancellation requested (no interruption)")
         }
     }
 

@@ -439,10 +439,10 @@ object Helpers {
     }
 
     fun debugLog(message: String) {
-        debugLog("DEBUG", message)
+        debugLog("DEBUG_LOG", message)
     }
 
-    fun debugLog(tag: String = "DEBUG", message: String) {
+    fun debugLog(tag: String = "DEBUG_LOG", message: String) {
         if (BuildConfig.DEBUG) {
             Log.d(tag, message)
         }

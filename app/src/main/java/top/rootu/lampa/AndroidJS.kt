@@ -366,7 +366,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
-            class LampaAsyncTask : AsyncTask<Void?, String?, String>("LampaAsyncTask") {
+            class LampaAsyncTask : AsyncTask<Void?, Int?, String>("LampaAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
                     val http = Http()
                     return try {
