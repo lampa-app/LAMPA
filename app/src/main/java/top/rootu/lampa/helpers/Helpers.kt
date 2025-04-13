@@ -6,6 +6,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.tv.TvContract
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -154,15 +155,33 @@ object Helpers {
     /**
      * Checks if the device supports Android TV content provider
      */
-    fun isTvContentProviderAvailable(context: Context): Boolean {
-        return isContentProviderAvailable(context, "android.media.tv")
-    }
+    val isTvContentProviderAvailable: Boolean
+        get() {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && // to simplify checks on Pre-Oreo devices
+                    isContentProviderAvailable(App.context, "android.media.tv")
+        }
 
     /**
      * Checks if the device supports specific TV channel content provider
      */
-    fun isTvChannelContentProviderAvailable(context: Context): Boolean {
-        return isContentProviderAvailable(context, "android.media.tv.channel")
+    val isTvChannelContentProviderAvailable: Boolean
+        get() {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+                    isContentProviderAvailable(App.context, "android.media.tv.channel")
+        }
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    fun isTvChannelContentProviderAccessible(context: Context): Boolean {
+        return try {
+            val uri = TvContract.Channels.CONTENT_URI
+            context.contentResolver.query(uri, null, null, null, null)?.use {
+                true // Provider exists and is accessible
+            } == true
+        } catch (e: SecurityException) {
+            false // Missing permissions
+        } catch (e: Exception) {
+            false // Provider not available
+        }
     }
 
     /**

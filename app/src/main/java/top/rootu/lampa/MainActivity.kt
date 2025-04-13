@@ -84,7 +84,6 @@ import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
-import top.rootu.lampa.helpers.Helpers.isTvChannelContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Helpers.isValidJson
 import top.rootu.lampa.helpers.PermHelpers
@@ -938,7 +937,7 @@ class MainActivity : BaseActivity(),
     // runVoidJsFunc("Lampa.Favorite.$action", "'$catgoryName', {id: $id}")
     // runVoidJsFunc("Lampa.Favorite.add", "'wath', ${Gson().toJson(card)}")
     private suspend fun syncBookmarks() = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
+        if (!isTvContentProviderAvailable) return@withContext
         withContext(Dispatchers.Main) {
             runVoidJsFunc("Lampa.Favorite.init", "") // Initialize if no favorite
         }
@@ -1259,7 +1258,7 @@ class MainActivity : BaseActivity(),
         // Define menu items
         val menuItems = mutableListOf(
             MenuItem(
-                title = if (VERSION.SDK_INT >= Build.VERSION_CODES.O && isTvContentProviderAvailable(App.context)) {
+                title = if (isTvContentProviderAvailable) {
                     getString(R.string.update_chan_title)
                 } else if (isAndroidTV) {
                     getString(R.string.update_home_title)
@@ -3144,7 +3143,7 @@ class MainActivity : BaseActivity(),
      * Updates Watch Next on Android TV.
      */
     private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.Default) {
-        if (VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return@withContext
+        if (!isTvContentProviderAvailable) return@withContext
         try {
             val card = getCardFromActivity(lampaActivity) ?: return@withContext
             // Get current playback state

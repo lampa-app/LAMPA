@@ -18,14 +18,16 @@ import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.sched.Scheduler
 
+private const val TAG: String = "HomeWatch"
+
 @TargetApi(Build.VERSION_CODES.O)
-class HomeWatch(private val TAG: String = "HomeWatch") : BroadcastReceiver() {
+class HomeWatch() : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
 
         val action = intent.action
 
-        if (action == null || !(isTvContentProviderAvailable(App.context)))
+        if (action == null || !(isTvContentProviderAvailable))
             return
 
         val watchNextId = intent.getLongExtra(TvContract.EXTRA_WATCH_NEXT_PROGRAM_ID, -1L)

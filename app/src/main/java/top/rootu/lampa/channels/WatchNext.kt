@@ -2,7 +2,6 @@ package top.rootu.lampa.channels
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
@@ -17,10 +16,10 @@ import top.rootu.lampa.App
 import top.rootu.lampa.PlayerStateManager
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Helpers
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
-import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Prefs.CUB
 import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
@@ -44,7 +43,7 @@ object WatchNext {
 
     @SuppressLint("RestrictedApi")
     fun add(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
+        if (!isTvContentProviderAvailable) return
         card.id?.let { movieId ->
             val existingProgram = findProgramByMovieId(movieId)
             val removed = removeIfNotBrowsable(existingProgram)
@@ -72,12 +71,12 @@ object WatchNext {
     }
 
     fun rem(movieId: String?) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
+        if (!isTvContentProviderAvailable) return
         movieId?.let { deleteFromWatchNext(it) }
     }
 
     suspend fun updateWatchNext() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
+        if (!isTvContentProviderAvailable) return
         val context = App.context
         val deleted = removeStale()
         debugLog(TAG, "updateWatchNext() WatchNext stale cards removed: $deleted")
@@ -104,7 +103,10 @@ object WatchNext {
             TAG,
             "updateWatchNext() WatchNext items: ${excludePending.size} ${excludePending.map { it.id }}"
         )
-        debugLog(TAG, "updateWatchNext() WatchNext items pending to remove: ${pending.size} ${pending.map { it.id }}")
+        debugLog(
+            TAG,
+            "updateWatchNext() WatchNext items pending to remove: ${pending.size} ${pending.map { it.id }}"
+        )
 
         excludePending.forEach { card ->
             withContext(Dispatchers.Default) {
@@ -118,7 +120,7 @@ object WatchNext {
     }
 
     fun addLastPlayed(card: LampaCard, lampaActivity: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
+        if (!isTvContentProviderAvailable) return
 
         card.id?.let { movieId ->
             // deleteFromWatchNext(RESUME_ID) // Clear any existing continue watch
@@ -136,7 +138,7 @@ object WatchNext {
     }
 
     fun removeContinueWatch(card: LampaCard) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isTvContentProviderAvailable(App.context)) return
+        if (!isTvContentProviderAvailable) return
         // deleteFromWatchNext(RESUME_ID)
         card.id?.let { movieId -> deleteFromWatchNext(movieId) }
     }
@@ -304,8 +306,10 @@ object WatchNext {
             state?.let {
                 val (positionMs, durationMs) = it.run {
                     val timeline = currentItem?.timeline
-                    val position = timeline?.time?.times(1000)?.toLong() ?: currentPosition // Convert seconds to ms
-                    val duration = timeline?.duration?.times(1000)?.toLong() ?: 0L // Convert seconds to ms
+                    val position = timeline?.time?.times(1000)?.toLong()
+                        ?: currentPosition // Convert seconds to ms
+                    val duration =
+                        timeline?.duration?.times(1000)?.toLong() ?: 0L // Convert seconds to ms
                     position to duration
                 }
                 // Only set if we have valid position and duration
