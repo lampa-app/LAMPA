@@ -118,6 +118,7 @@ import top.rootu.lampa.helpers.Prefs.wathToAdd
 import top.rootu.lampa.helpers.Prefs.wathToRemove
 import top.rootu.lampa.helpers.getAppVersion
 import top.rootu.lampa.helpers.hideSystemUI
+import top.rootu.lampa.helpers.isAmazonDev
 import top.rootu.lampa.helpers.isSafeForUse
 import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LAMPA_CARD_KEY
@@ -1619,7 +1620,10 @@ class MainActivity : BaseActivity(),
                 try {
                     dismissDropDown()
                     dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                    if (isAmazonDev)
+                        inputManager.showSoftInput(this, 0)
+                    else
+                        inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
                 } catch (_: Exception) {
                 }
             }
@@ -1632,7 +1636,10 @@ class MainActivity : BaseActivity(),
                             if (isPopupShowing) {
                                 dismissDropDown()
                             }
-                            inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                            if (isAmazonDev)
+                                inputManager.showSoftInput(this, 0)
+                            else
+                                inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
                             true
                         }
                         // Handle BACK key
@@ -1835,7 +1842,10 @@ class MainActivity : BaseActivity(),
 
             etSearch?.apply {
                 setOnClickListener {
-                    inputManager?.showSoftInput(this, 0) // SHOW_IMPLICIT
+                    if (isAmazonDev)
+                        inputManager?.showSoftInput(this, 0)
+                    else
+                        inputManager?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
                 }
                 imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }?.setOnEditorActionListener(TextView.OnEditorActionListener { _, actionId, _ ->

@@ -259,34 +259,8 @@ object Helpers {
             ).contains("huawei")
         }
 
-    private val isBrokenATV: Boolean
-        get() {
-            val bb = hashSetOf(
-                "55u730gu",
-                "ax95",
-                "b861re",
-                "b866",
-                "box q",
-                "dv8235",
-                "leap-s1",
-                "redbox mini 616",
-                "s7xx",
-                "sberbox",
-                "sbdv-00006",
-                "streaming box 8000",
-                "vidaa_tv",
-                "i-905",
-            )
-            val match = bb.any { deviceName.lowercase().contains(it, ignoreCase = true) }
-            return match
-        }
-
     val isAndroidTV: Boolean
-        get() {
-            return App.context.packageManager.hasSystemFeature("android.software.leanback") &&
-                    !isHuaweiDevice // &&
-                    // !isBrokenATV
-        }
+        get() { return App.context.packageManager.hasSystemFeature("android.software.leanback") && !isHuaweiDevice }
 
     /**
      * Checks if a JSON string is valid.
