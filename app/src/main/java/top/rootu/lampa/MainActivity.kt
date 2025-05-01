@@ -5,6 +5,7 @@ import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.DialogInterface
+import android.content.DialogInterface.BUTTON_NEGATIVE
 import android.content.DialogInterface.BUTTON_NEUTRAL
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.content.Intent
@@ -209,8 +210,8 @@ class MainActivity : BaseActivity(),
             "com.estrongs.android.pop",
             "com.estrongs.android.pop.pro",
             "com.ghisler.android.totalcommander",
-            "com.google.android.tv.frameworkpackagestubs",
             "com.google.android.apps.photos",
+            "com.google.android.tv.frameworkpackagestubs",
             "com.instantbits.cast.webvideo",
             "com.lonelycatgames.xplore",
             "com.mitv.videoplayer",
@@ -1589,41 +1590,25 @@ class MainActivity : BaseActivity(),
                 tilt?.error = msg
             }
             setAdapter(urlAdapter)
-            // Common setup for all API levels
-            setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) {
-                    try {
-                        if (!isPopupShowing) {
-                            showDropDown()
-                        }
-                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
-                    } catch (_: Exception) {
-                    }
-                } else {
-                    try {
-                        dismissDropDown()
-                        dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-
-            setOnItemClickListener { _, _, _, _ ->
+            // Handle popup and overlayed buttons visibility
+            onPopupVisibilityChanged = { isOverlay ->
                 try {
-                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
+                    dialog?.apply {
+                        if (isOverlay) {
+                            getButton(BUTTON_NEUTRAL)?.visibility = View.INVISIBLE
+                            getButton(BUTTON_NEGATIVE)?.visibility = View.INVISIBLE
+                        } else {
+                            getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
+                            getButton(BUTTON_NEGATIVE)?.visibility = View.VISIBLE
+                        }
+                    }
                 } catch (_: Exception) {
                 }
             }
-
-            setOnClickListener {
+            // Common setup for all API levels
+            setOnItemClickListener { _, _, _, _ ->
                 try {
-                    dismissDropDown()
-                    dialog?.getButton(BUTTON_NEUTRAL)?.visibility = View.VISIBLE
-                    if (isAmazonDev)
-                        inputManager.showSoftInput(this, 0)
-                    else
-                        inputManager.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                    dialog?.getButton(BUTTON_POSITIVE)?.requestFocus()
                 } catch (_: Exception) {
                 }
             }

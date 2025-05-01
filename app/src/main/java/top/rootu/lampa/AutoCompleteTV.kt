@@ -3,7 +3,9 @@ package top.rootu.lampa
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
+import android.text.InputType
 import android.util.AttributeSet
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -14,7 +16,7 @@ import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.core.view.updateLayoutParams
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Prefs.remUrlHistory
-
+import top.rootu.lampa.helpers.isAmazonDev
 
 // Extension of AppCompatAutoCompleteTextView that automatically hides the soft keyboard
 // when the autocomplete dropdown is touched.
@@ -32,15 +34,33 @@ class AutoCompleteTV @JvmOverloads constructor(
             .also { it.isAccessible = true }
     }
 
+    init {
+        // Set input type to enable action button (Done/Next/Enter)
+        setRawInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        setOnClickListener {
+            dismissDropDown()
+            showKeyboard()
+        }
+    }
+
+    var onPopupVisibilityChanged: ((Boolean) -> Unit)? = null
+
     private val popupWindow = popupWindowField.get(this) as? ListPopupWindow?
     private val fadingEdgeH = dp2px(this.context, 64.0F)
 
-    // this function actually hides the keyboard
     private fun hideKeyboard() {
         val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(rootView.windowToken, 0)
     }
 
+    private fun showKeyboard() {
+        val context = context ?: return
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        if (context.isAmazonDev)
+            imm?.showSoftInput(this, 0)  // FireTV keyboard doesn't like SHOW_IMPLICIT
+        else
+            imm?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+    }
 
     private fun setListViewBasedOnChildren(listView: ListView) {
         listView.updateLayoutParams {
@@ -52,6 +72,8 @@ class AutoCompleteTV @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     override fun showDropDown() {
         super.showDropDown()
+        val itemsCount = popupWindow?.listView?.count ?: -1
+        onPopupVisibilityChanged?.invoke(itemsCount > 0)
         // ajust vertical dropdown offset
         this.dropDownVerticalOffset = resources.getDimensionPixelSize(R.dimen.dropdown_margin_top)
         // hide scrollbar and add fading edge
@@ -79,6 +101,22 @@ class AutoCompleteTV @JvmOverloads constructor(
                 MainActivity.urlAdapter.remove(url) // update GUI
             }
             true
+        }
+    }
+
+    override fun dismissDropDown() {
+        super.dismissDropDown()
+        onPopupVisibilityChanged?.invoke(false)
+    }
+
+    override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
+        if (gainFocus) {
+            // Handle focus gained
+            showDropDown()
+        } else {
+            // Handle focus lost
+            dismissDropDown()
         }
     }
 }
