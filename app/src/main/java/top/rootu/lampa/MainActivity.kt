@@ -2260,7 +2260,7 @@ class MainActivity : BaseActivity(),
     }
 
     private fun getAvailablePlayers(intent: Intent): List<ResolveInfo> {
-        return packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
             .filterNot { info ->
                 info.activityInfo.packageName.lowercase() in PLAYERS_BLACKLIST
             }
