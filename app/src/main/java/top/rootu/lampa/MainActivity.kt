@@ -78,7 +78,7 @@ import top.rootu.lampa.channels.WatchNext
 import top.rootu.lampa.content.LampaProvider
 import top.rootu.lampa.helpers.Backup
 import top.rootu.lampa.helpers.Backup.loadFromBackup
-import top.rootu.lampa.helpers.Backup.saveSettings
+import top.rootu.lampa.helpers.Backup.backupSettings
 import top.rootu.lampa.helpers.Backup.validateStorageBackup
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.debugLogIntentData
@@ -217,6 +217,7 @@ class MainActivity : BaseActivity(),
             "com.mitv.videoplayer",
             "com.mixplorer.silver",
             "com.opera.browser",
+            "com.tcl.browser",
             "nextapp.fx",
             "org.droidtv.contentexplorer",
             "pl.solidexplorer2",
@@ -1350,8 +1351,8 @@ class MainActivity : BaseActivity(),
                         .trim()
                         .toIntOrNull() ?: 0
                     // Proceed with saving settings if dumpStorage successful
-                    if (saveSettings(Prefs.APP_PREFERENCES) &&
-                        saveSettings(Prefs.STORAGE_PREFERENCES) &&
+                    if (backupSettings(Prefs.APP_PREFERENCES) &&
+                        backupSettings(Prefs.STORAGE_PREFERENCES) &&
                         validateStorageBackup(itemsCount)
                     ) {
                         App.toast(getString(R.string.settings_saved_toast, Backup.DIR.toString()))

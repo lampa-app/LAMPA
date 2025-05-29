@@ -16,6 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.xml.parsers.DocumentBuilderFactory
+import androidx.core.content.edit
 
 object Backup {
     private val isOperationInProgress = AtomicBoolean(false)
@@ -31,7 +32,7 @@ object Backup {
         }
     }
 
-    fun Context.saveSettings(which: String? = ""): Boolean {
+    fun Context.backupSettings(which: String? = ""): Boolean {
         if (!PermHelpers.hasStoragePermissions(this)) {
             PermHelpers.verifyStoragePermissions(this)
             return false
@@ -129,52 +130,52 @@ object Backup {
             val pref = if (which.isNullOrEmpty()) defPrefs
             else getSharedPreferences(which, Context.MODE_PRIVATE)
 
-            val edit = pref.edit()
-            var child = doc.documentElement.firstChild
+            pref.edit {
+                var child = doc.documentElement.firstChild
 
-            while (child != null) {
-                if (child.nodeType == Node.ELEMENT_NODE) {
-                    val element = child as Element
-                    when (element.nodeName) {
-                        "int" -> element.getAttribute("value").toIntOrNull()?.let {
-                            edit.putInt(element.getAttribute("name"), it)
-                        }
+                while (child != null) {
+                    if (child.nodeType == Node.ELEMENT_NODE) {
+                        val element = child as Element
+                        when (element.nodeName) {
+                            "int" -> element.getAttribute("value").toIntOrNull()?.let {
+                                putInt(element.getAttribute("name"), it)
+                            }
 
-                        "long" -> element.getAttribute("value").toLongOrNull()?.let {
-                            edit.putLong(element.getAttribute("name"), it)
-                        }
+                            "long" -> element.getAttribute("value").toLongOrNull()?.let {
+                                putLong(element.getAttribute("name"), it)
+                            }
 
-                        "float" -> element.getAttribute("value").toFloatOrNull()?.let {
-                            edit.putFloat(element.getAttribute("name"), it)
-                        }
+                            "float" -> element.getAttribute("value").toFloatOrNull()?.let {
+                                putFloat(element.getAttribute("name"), it)
+                            }
 
-                        "string" -> element.textContent.takeIf { it.isNotBlank() }?.let {
-                            edit.putString(element.getAttribute("name"), it)
-                        }
+                            "string" -> element.textContent.takeIf { it.isNotBlank() }?.let {
+                                putString(element.getAttribute("name"), it)
+                            }
 
-                        "boolean" -> edit.putBoolean(
-                            element.getAttribute("name"),
-                            element.getAttribute("value") == "true"
-                        )
+                            "boolean" -> putBoolean(
+                                element.getAttribute("name"),
+                                element.getAttribute("value") == "true"
+                            )
 
-                        "set" -> {
-                            val values = mutableListOf<String>().apply {
-                                var ch = element.firstChild
-                                while (ch != null) {
-                                    if (ch.nodeType == Node.ELEMENT_NODE) {
-                                        (ch as Element).textContent.takeIf { it.isNotBlank() }
-                                            ?.let { add(it) }
+                            "set" -> {
+                                val values = mutableListOf<String>().apply {
+                                    var ch = element.firstChild
+                                    while (ch != null) {
+                                        if (ch.nodeType == Node.ELEMENT_NODE) {
+                                            (ch as Element).textContent.takeIf { it.isNotBlank() }
+                                                ?.let { add(it) }
+                                        }
+                                        ch = ch.nextSibling
                                     }
-                                    ch = ch.nextSibling
-                                }
-                            }.takeIf { it.isNotEmpty() }?.toSet()
-                            values?.let { edit.putStringSet(element.getAttribute("name"), it) }
+                                }.takeIf { it.isNotEmpty() }?.toSet()
+                                values?.let { putStringSet(element.getAttribute("name"), it) }
+                            }
                         }
                     }
+                    child = child.nextSibling
                 }
-                child = child.nextSibling
             }
-            edit.apply()
             true
         } catch (_: Exception) {
             App.toast("Failed to parse backup")
