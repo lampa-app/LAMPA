@@ -33,6 +33,7 @@ def getVersionName = { ->
 }
 
 android {
+    //noinspection GradleDependency
     compileSdk 34
     defaultConfig {
         applicationId "top.rootu.lampa"
@@ -119,7 +120,6 @@ android {
 }
 
 dependencies {
-
     // https://developer.android.com/studio/write/java8-support#library-desugaring
     //noinspection GradleDependency 2.0.4 for AGP 7.4
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
@@ -145,6 +145,7 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.recommendation:recommendation:1.0.0'
+    //noinspection GradleDependency
     implementation 'androidx.tvprovider:tvprovider:1.0.0'
     def vectordrawableVersion = '1.1.0' // 1.1.0 - last api16 compatible
     //noinspection GradleDependency
