@@ -63,7 +63,7 @@ data class LampaCard(
     var img: String?, // "https://kinopoiskapiunofficial.tech/images/posters/kp_small/1227897.jpg",
     var background_image: String?,
     val genre_ids: List<String>?, // [28,80,53],
-    var genres: List<Genre>?,
+    var genres: List<Genre?>?,
     val popularity: Double?,
     val origin_country: List<String>?, // [ "GB" ]
     val production_companies: List<ProductionCompany>?,

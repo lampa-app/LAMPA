@@ -22,6 +22,7 @@ import java.net.InetAddress
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.core.net.toUri
+import top.rootu.lampa.helpers.capitalizeFirstLetter
 
 object TMDB {
     const val APIURL = "https://api.themoviedb.org/3/"
@@ -94,7 +95,7 @@ object TMDB {
         for (genre in genreList) {
             genre?.let {
                 if (!genre.name.isNullOrEmpty()) {
-                    ret[genre.id] = genre.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                    ret[genre.id] = genre.name.capitalizeFirstLetter()
                 }
             }
         }

@@ -532,3 +532,9 @@ fun Browser?.isSafeForUse(): Boolean {
     }
     return !this.isDestroyed
 }
+
+fun String.capitalizeFirstLetter(): String {
+    return replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString() // Locale.getDefault()
+    }
+}

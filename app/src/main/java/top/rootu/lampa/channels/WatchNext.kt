@@ -3,6 +3,7 @@ package top.rootu.lampa.channels
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.tvprovider.media.tv.TvContractCompat
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9
 import androidx.tvprovider.media.tv.TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3
@@ -25,9 +26,9 @@ import top.rootu.lampa.helpers.Prefs.FAV
 import top.rootu.lampa.helpers.Prefs.isInWatchNext
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.wathToRemove
+import top.rootu.lampa.helpers.capitalizeFirstLetter
 import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
-import java.util.Locale
 
 
 object WatchNext {
@@ -252,7 +253,10 @@ object WatchNext {
         val info = mutableListOf<String>()
         val programId = /* if (resume) RESUME_ID else */ card.id
 
-        card.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
+        // Add vote average if present and > 0
+        card.vote_average?.takeIf { it > 0.0 }?.let {
+            info.add("%.1f".format(it))
+        }
 
         var title = card.title
         var type = TvContractCompat.WatchNextPrograms.TYPE_MOVIE
@@ -261,14 +265,16 @@ object WatchNext {
             if (!card.name.isNullOrEmpty()) title = card.name
             type = if (resume) TvContractCompat.WatchNextPrograms.TYPE_TV_EPISODE
             else TvContractCompat.WatchNextPrograms.TYPE_TV_SERIES
-            card.number_of_seasons?.let { info.add("S$it") }
-        }
-
-        card.genres?.mapNotNull {
-            it.name?.replaceFirstChar { ch ->
-                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            card.number_of_seasons?.takeIf { it > 0 }?.let {
+                info.add("S$it")
             }
-        }?.joinToString(", ")?.let { info.add(it) }
+        }
+        // Add genres if present
+        card.genres?.mapNotNull {
+            it?.name?.capitalizeFirstLetter()?.takeIf { genre -> genre.isNotBlank() }
+        }?.takeIf { it.isNotEmpty() }?.joinToString(", ")?.let {
+            info.add(it)
+        }
         // https://developer.android.com/codelabs/watchnext-for-movie-tv-episodes#3
         val watchType = if (resume) WATCH_NEXT_TYPE_CONTINUE else WATCH_NEXT_TYPE_WATCHLIST
 
@@ -320,12 +326,12 @@ object WatchNext {
             }
         }
 
-        val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()
+        val posterUri = card.img?.toUri() ?: getDefaultPosterUri()
         builder.setPosterArtUri(posterUri)
             .setPosterArtAspectRatio(ASPECT_RATIO_2_3)
 
         if (!card.background_image.isNullOrEmpty()) {
-            builder.setThumbnailUri(Uri.parse(card.background_image))
+            builder.setThumbnailUri(card.background_image!!.toUri())
                 .setThumbnailAspectRatio(ASPECT_RATIO_16_9)
         }
 

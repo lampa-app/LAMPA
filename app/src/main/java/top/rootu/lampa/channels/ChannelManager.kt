@@ -1,10 +1,10 @@
 package top.rootu.lampa.channels
 
 import android.annotation.SuppressLint
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.net.toUri
 import androidx.tvprovider.media.tv.Channel
 import androidx.tvprovider.media.tv.PreviewProgram
 import androidx.tvprovider.media.tv.TvContractCompat
@@ -24,10 +24,9 @@ import top.rootu.lampa.helpers.ChannelHelper
 import top.rootu.lampa.helpers.Coroutines
 import top.rootu.lampa.helpers.Helpers.buildPendingIntent
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
-import top.rootu.lampa.helpers.Prefs.appLang
+import top.rootu.lampa.helpers.capitalizeFirstLetter
 import top.rootu.lampa.helpers.data
 import top.rootu.lampa.models.LampaCard
-import java.util.Locale
 
 object ChannelManager {
     private const val TAG = "ChannelManager"
@@ -54,9 +53,7 @@ object ChannelManager {
             SCHD -> App.context.getString(R.string.ch_scheduled)
             CONT -> App.context.getString(R.string.ch_continued)
             THRW -> App.context.getString(R.string.ch_thrown)
-            else -> name.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale(App.context.appLang)) else it.toString()
-            }
+            else -> name.capitalizeFirstLetter()
         }
     }
 
@@ -108,7 +105,7 @@ object ChannelManager {
         val channelValues = Channel.Builder()
             .setDisplayName(displayName)
             .setType(TvContractCompat.Channels.TYPE_PREVIEW)
-            .setAppLinkIntentUri(Uri.parse("lampa://${BuildConfig.APPLICATION_ID}/update_channel/${channel.data}")) // channel.internalProviderId is null
+            .setAppLinkIntentUri("lampa://${BuildConfig.APPLICATION_ID}/update_channel/${channel.data}".toUri()) // channel.internalProviderId is null
             .build()
             .toContentValues()
 
@@ -226,21 +223,25 @@ object ChannelManager {
         }
         val info = mutableListOf<String>()
 
-        card.vote_average?.takeIf { it > 0.0 }?.let { info.add("%.1f".format(it)) }
+        // Add vote average if present and > 0
+        card.vote_average?.takeIf { it > 0.0 }?.let {
+            info.add("%.1f".format(it))
+        }
 
         val type = if (card.type == "tv") {
-            card.number_of_seasons?.let { info.add("S$it") }
-                ?: info.add(App.context.getString(R.string.series))
+            card.number_of_seasons?.takeIf { it > 0 }?.let {
+                info.add("S$it")
+            } ?: info.add(App.context.getString(R.string.series))
             TvContractCompat.PreviewPrograms.TYPE_TV_SERIES
         } else {
             TvContractCompat.PreviewPrograms.TYPE_MOVIE
         }
-
+        // Add genres if present
         card.genres?.mapNotNull {
-            it.name?.replaceFirstChar { ch ->
-                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
-            }
-        }?.joinToString(", ")?.let { info.add(it) }
+            it?.name?.capitalizeFirstLetter()?.takeIf { genre -> genre.isNotBlank() }
+        }?.takeIf { it.isNotEmpty() }?.joinToString(", ")?.let {
+            info.add(it)
+        }
 
         val country = card.production_countries?.mapNotNull { country ->
             when {
@@ -248,8 +249,8 @@ object ChannelManager {
                 country.name.isNotEmpty() -> country.name.trim()
                 else -> null
             }
-        }?.joinToString(", ")
-            ?: card.origin_country?.joinToString(", ")
+        }?.takeIf { it.isNotEmpty() }?.joinToString(", ")
+            ?: card.origin_country?.takeIf { it.isNotEmpty() }?.joinToString(", ")
             ?: card.original_language?.uppercase()
             ?: ""
 
@@ -281,12 +282,12 @@ object ChannelManager {
                 if (releaseYear.isNotEmpty()) setReleaseDate(releaseYear)
                 card.vote_average?.let { setReviewRating((it / 2).toString()) }
                 if (provName == RECS && !card.background_image.isNullOrEmpty()) {
-                    setPosterArtUri(Uri.parse(card.background_image))
+                    setPosterArtUri(card.background_image?.toUri())
                         .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
-                    setThumbnailUri(Uri.parse(card.background_image))
+                    setThumbnailUri(card.background_image?.toUri())
                         .setThumbnailAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9)
                 } else {
-                    val posterUri = card.img?.let { Uri.parse(it) } ?: getDefaultPosterUri()
+                    val posterUri = card.img?.toUri() ?: getDefaultPosterUri()
                     setPosterArtUri(posterUri)
                         .setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_2_3)
                 }

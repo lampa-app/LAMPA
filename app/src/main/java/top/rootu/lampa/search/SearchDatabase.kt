@@ -9,10 +9,10 @@ import androidx.annotation.RequiresApi
 import top.rootu.lampa.App
 import top.rootu.lampa.R
 import top.rootu.lampa.helpers.Helpers.getDefaultPosterUri
+import top.rootu.lampa.helpers.capitalizeFirstLetter
 import top.rootu.lampa.tmdb.TMDB
 import top.rootu.lampa.tmdb.models.entity.Entity
 import java.io.IOException
-import java.util.*
 import kotlin.concurrent.thread
 
 object SearchDatabase {
@@ -133,20 +133,21 @@ object SearchDatabase {
         // Add media type and seasons (for TV shows)
         if (ent.media_type == "tv") {
             info.add(App.context.getString(R.string.series))
-            ent.number_of_seasons?.let { info.add("S$it") }
+            ent.number_of_seasons?.takeIf { it > 0 }?.let {
+                info.add("S$it")
+            }
+        }
+        // Add genres if present
+        ent.genres?.mapNotNull {
+            it.name?.capitalizeFirstLetter()?.takeIf { genre -> genre.isNotBlank() }
+        }?.takeIf { it.isNotEmpty() }?.joinToString(", ")?.let {
+            info.add(it)
         }
 
-        // Add genres
-        ent.genres?.mapNotNull { genre -> // Filter out genres with null or empty names
-            genre.name?.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-            }?.takeIf { it.isNotBlank() } // Ensure the name is not blank
+        // Add vote average if present and > 0
+        ent.vote_average?.takeIf { it > 0.0 }?.let {
+            info.add("%.1f".format(it))
         }
-            ?.joinToString(", ") // Join non-empty genre names with a comma
-            ?.let { info.add(it) } // Add the result to the info list if it's not empty
-
-        // Add rating
-        ent.vote_average?.let { if (it > 0.0) info.add("%.1f".format(it)) }
 
         // Get poster URL
         val poster = ent.backdrop_path ?: ent.poster_path ?: getDefaultPosterUri()
