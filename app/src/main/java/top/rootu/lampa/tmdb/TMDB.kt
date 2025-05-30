@@ -21,6 +21,7 @@ import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import androidx.core.net.toUri
 
 object TMDB {
     const val APIURL = "https://api.themoviedb.org/3/"
@@ -133,21 +134,31 @@ object TMDB {
     }
 
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
+//        val apiUrl = App.context.tmdbApiUrl
+//        val authority = apiUrl.toUri().authority
+//        val scheme = apiUrl.toUri().scheme
+        val apiUri = App.context.tmdbApiUrl.toUri()
+        val basePath = apiUri.path?.removeSuffix("/") ?: "3"
+        val urlBuilder = Uri.Builder()
+            .scheme(apiUri.scheme)
+            .authority(apiUri.authority)
+            .path("$basePath/$endpoint")
+
         params["api_key"] = APIKEY
         params["language"] = getLang()
-        val apiUrl = App.context.tmdbApiUrl
-        val authority = Uri.parse(apiUrl).authority
-        val scheme = Uri.parse(apiUrl).scheme
-        val urlBuilder = Uri.Builder()
-            .scheme(scheme)
-            .authority(authority)
-            .path("/3/$endpoint")
-
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
+        // Add all original query parameters
+        apiUri.queryParameterNames.forEach { paramName ->
+            apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                urlBuilder.appendQueryParameter(paramName, paramValue)
+            }
+        }
+
         var body: String? = null
         val link = urlBuilder.build().toString()
+//        debugLog("TMDB videos($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -190,29 +201,36 @@ object TMDB {
     }
 
     private fun videoDetail(endpoint: String, lang: String = ""): Entity? {
+//        val apiUrl = App.context.tmdbApiUrl
+//        val authority = apiUrl.toUri().authority
+//        val scheme = apiUrl.toUri().scheme
+        val apiUri = App.context.tmdbApiUrl.toUri()
+        val basePath = apiUri.path?.removeSuffix("/") ?: "3"
+        val urlBuilder = Uri.Builder()
+            .scheme(apiUri.scheme)
+            .authority(apiUri.authority)
+            .path("$basePath/$endpoint")
+
         val params = mutableMapOf<String, String>()
         params["api_key"] = APIKEY
         if (lang.isBlank())
             params["language"] = getLang()
         else params["language"] = lang
-        val apiUrl = App.context.tmdbApiUrl
-        val authority = Uri.parse(apiUrl).authority
-        val scheme = Uri.parse(apiUrl).scheme
-        val urlBuilder = Uri.Builder()
-            .scheme(scheme)
-            .authority(authority)
-            .path("/3/$endpoint")
-
         params["append_to_response"] = "videos,images,alternative_titles"
         params["include_image_language"] = "${getLang()},ru,en,null"
-
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
+        }
+        // Add all original query parameters
+        apiUri.queryParameterNames.forEach { paramName ->
+            apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                urlBuilder.appendQueryParameter(paramName, paramValue)
+            }
         }
 
         var body: String? = null
         val link = urlBuilder.build().toString()
-
+//        debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -291,13 +309,24 @@ object TMDB {
             return ""
 
         // "https://image.tmdb.org/t/p/original$path"
-        val imgUrl = App.context.tmdbImgUrl
-        val authority = Uri.parse(imgUrl).authority
-        val scheme = Uri.parse(imgUrl).scheme
-        return Uri.Builder()
-            .scheme(scheme)
-            .authority(authority)
-            .path("/t/p/original$path")
-            .build().toString()
+        val imgUrl = App.context.tmdbImgUrl // http://proxy.host/tmdb/img/?account_email=mail%40gmail.com&uid=133t
+//        val authority = Uri.parse(imgUrl).authority
+//        val scheme = Uri.parse(imgUrl).scheme
+        val imgUri = imgUrl.toUri()
+        // Remove trailing slash from the original path if present
+        val basePath = imgUri.path?.removeSuffix("/") ?: ""
+        // Create Uri.Builder with base components
+        val builder = Uri.Builder()
+            .scheme(imgUri.scheme)
+            .authority(imgUri.authority)
+            .path("$basePath/t/p/original$path")
+        // Add all original query parameters
+        imgUri.queryParameterNames.forEach { paramName ->
+            imgUri.getQueryParameter(paramName)?.let { paramValue ->
+                builder.appendQueryParameter(paramName, paramValue)
+            }
+        }
+//        debugLog("TMDB imageUrl($path) imgUri[$imgUri] link[${builder.build()}]")
+        return builder.build().toString()
     }
 }

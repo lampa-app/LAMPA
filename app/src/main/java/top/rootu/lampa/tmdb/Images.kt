@@ -9,28 +9,35 @@ import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.tmdb.models.entity.Entity
 import top.rootu.lampa.tmdb.models.entity.Images
 import java.io.IOException
+import androidx.core.net.toUri
 
 object Images {
     fun get(entity: Entity) {
         if (entity.images != null)
             return
 
+        //val authority = App.context.tmdbApiUrl.toUri().authority
+        //val scheme = App.context.tmdbApiUrl.toUri().scheme
+        val apiUri = App.context.tmdbApiUrl.toUri()
+        val basePath = apiUri.path?.removeSuffix("/") ?: "3"
+        val urlBuilder = Uri.Builder()
+                .scheme(apiUri.scheme)
+                .authority(apiUri.authority)
+                .path("$basePath/${entity.media_type}/${entity.id}/images")
+        // Add all original query parameters
+        apiUri.queryParameterNames.forEach { paramName ->
+            apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                urlBuilder.appendQueryParameter(paramName, paramValue)
+            }
+        }
+
         val params = mutableMapOf<String, String>()
         params["api_key"] = TMDB.APIKEY
         params["language"] = TMDB.getLang()
         params["include_image_language"] = "${TMDB.getLang()},en,null"
-
-        val authority = Uri.parse(App.context.tmdbApiUrl).authority
-        val scheme = Uri.parse(App.context.tmdbApiUrl).scheme
-        val urlBuilder = Uri.Builder()
-                .scheme(scheme)
-                .authority(authority)
-                .path("/3/${entity.media_type}/${entity.id}/images")
-
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
-
         val link = urlBuilder.build().toString()
 
         var body: String? = null
