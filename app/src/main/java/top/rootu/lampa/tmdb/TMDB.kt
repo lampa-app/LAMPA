@@ -2,6 +2,7 @@ package top.rootu.lampa.tmdb
 
 import android.net.Uri
 import android.os.Build
+import androidx.core.net.toUri
 import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -12,6 +13,7 @@ import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
+import top.rootu.lampa.helpers.capitalizeFirstLetter
 import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.tmdb.models.entity.Entities
 import top.rootu.lampa.tmdb.models.entity.Entity
@@ -21,8 +23,6 @@ import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import androidx.core.net.toUri
-import top.rootu.lampa.helpers.capitalizeFirstLetter
 
 object TMDB {
     const val APIURL = "https://api.themoviedb.org/3/"
@@ -135,31 +135,32 @@ object TMDB {
     }
 
     fun videos(endpoint: String, params: MutableMap<String, String>): Entities? {
-//        val apiUrl = App.context.tmdbApiUrl
-//        val authority = apiUrl.toUri().authority
-//        val scheme = apiUrl.toUri().scheme
-        val apiUri = App.context.tmdbApiUrl.toUri()
+        val apiUrl = App.context.tmdbApiUrl
+        val apiUri = apiUrl.toUri()
+        // Manually handle the authority part to prevent encoding of the port colon
+        val authority = "${apiUri.host}${if (apiUri.port != -1) ":${apiUri.port}" else ""}"
         val basePath = apiUri.path?.removeSuffix("/") ?: "3"
         val urlBuilder = Uri.Builder()
             .scheme(apiUri.scheme)
-            .authority(apiUri.authority)
+            .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/$endpoint")
+        if (apiUrl != APIURL)
+        // Add all original query parameters
+            apiUri.queryParameterNames.forEach { paramName ->
+                apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                    urlBuilder.appendQueryParameter(paramName, paramValue)
+                }
+            }
 
         params["api_key"] = APIKEY
         params["language"] = getLang()
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
-        // Add all original query parameters
-        apiUri.queryParameterNames.forEach { paramName ->
-            apiUri.getQueryParameter(paramName)?.let { paramValue ->
-                urlBuilder.appendQueryParameter(paramName, paramValue)
-            }
-        }
 
         var body: String? = null
         val link = urlBuilder.build().toString()
-//        debugLog("TMDB videos($endpoint) apiUri[$apiUri] link[$link]")
+        // debugLog("TMDB videos($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -174,7 +175,7 @@ object TMDB {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
+        // debugLog("TMDB body: $body")
         if (body.isNullOrEmpty())
             return null
 
@@ -202,15 +203,22 @@ object TMDB {
     }
 
     private fun videoDetail(endpoint: String, lang: String = ""): Entity? {
-//        val apiUrl = App.context.tmdbApiUrl
-//        val authority = apiUrl.toUri().authority
-//        val scheme = apiUrl.toUri().scheme
-        val apiUri = App.context.tmdbApiUrl.toUri()
+        val apiUrl = App.context.tmdbApiUrl
+        val apiUri = apiUrl.toUri()
+        // Manually handle the authority part to prevent encoding of the port colon
+        val authority = "${apiUri.host}${if (apiUri.port != -1) ":${apiUri.port}" else ""}"
         val basePath = apiUri.path?.removeSuffix("/") ?: "3"
         val urlBuilder = Uri.Builder()
             .scheme(apiUri.scheme)
-            .authority(apiUri.authority)
+            .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/$endpoint")
+        if (apiUrl != APIURL)
+        // Add all original query parameters
+            apiUri.queryParameterNames.forEach { paramName ->
+                apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                    urlBuilder.appendQueryParameter(paramName, paramValue)
+                }
+            }
 
         val params = mutableMapOf<String, String>()
         params["api_key"] = APIKEY
@@ -222,16 +230,10 @@ object TMDB {
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
-        // Add all original query parameters
-        apiUri.queryParameterNames.forEach { paramName ->
-            apiUri.getQueryParameter(paramName)?.let { paramValue ->
-                urlBuilder.appendQueryParameter(paramName, paramValue)
-            }
-        }
 
         var body: String? = null
         val link = urlBuilder.build().toString()
-//        debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
+        // debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -246,12 +248,13 @@ object TMDB {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
+        // debugLog("TMDB body: $body")
         if (body.isNullOrEmpty())
             return null
 
         val ent = getJson(body, Entity::class.java)
         ent?.let { fixEntity(it) }
+
         return ent
     }
 
@@ -310,24 +313,26 @@ object TMDB {
             return ""
 
         // "https://image.tmdb.org/t/p/original$path"
-        val imgUrl = App.context.tmdbImgUrl // http://proxy.host/tmdb/img/?account_email=mail%40gmail.com&uid=133t
-//        val authority = Uri.parse(imgUrl).authority
-//        val scheme = Uri.parse(imgUrl).scheme
+        val imgUrl = App.context.tmdbImgUrl
+        // "http://proxy.host:1488/tmdb/img/?account_email=mail%40gmail.com&uid=133t"
         val imgUri = imgUrl.toUri()
+        // Manually handle the authority part to prevent encoding of the port colon
+        val authority = "${imgUri.host}${if (imgUri.port != -1) ":${imgUri.port}" else ""}"
         // Remove trailing slash from the original path if present
         val basePath = imgUri.path?.removeSuffix("/") ?: ""
         // Create Uri.Builder with base components
         val builder = Uri.Builder()
             .scheme(imgUri.scheme)
-            .authority(imgUri.authority)
+            .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/t/p/original$path")
+        if (imgUrl != IMGURL)
         // Add all original query parameters
-        imgUri.queryParameterNames.forEach { paramName ->
-            imgUri.getQueryParameter(paramName)?.let { paramValue ->
-                builder.appendQueryParameter(paramName, paramValue)
+            imgUri.queryParameterNames.forEach { paramName ->
+                imgUri.getQueryParameter(paramName)?.let { paramValue ->
+                    builder.appendQueryParameter(paramName, paramValue)
+                }
             }
-        }
-//        debugLog("TMDB imageUrl($path) imgUri[$imgUri] link[${builder.build()}]")
+        // debugLog("TMDB imageUrl($path) imgUri[$imgUri] link[${builder.build()}]")
         return builder.build().toString()
     }
 }

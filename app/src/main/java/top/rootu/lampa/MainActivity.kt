@@ -923,7 +923,7 @@ class MainActivity : BaseActivity(),
                     return '${JS_SUCCESS} setup TMDB URLs';
                 })()
                 """.trimIndent()
-            ) { result -> logDebug(result) }
+            ) { result -> logDebug(result.removeSurrounding("\"")) }
 
 //            runVoidJsFunc(
 //                "AndroidJS.storageChange",
