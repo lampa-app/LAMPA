@@ -234,7 +234,7 @@ object TMDB {
 
         var body: String? = null
         val link = urlBuilder.build().toString()
-        debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
+        // debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -249,7 +249,7 @@ object TMDB {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        debugLog("TMDB body: $body")
+        // debugLog("TMDB body: $body")
         if (body.isNullOrEmpty())
             return null
 
