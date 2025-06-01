@@ -25,6 +25,15 @@ object Images {
             .scheme(apiUri.scheme)
             .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/${entity.media_type}/${entity.id}/images")
+
+        val params = mutableMapOf<String, String>()
+        // key must be 1st
+        params["api_key"] = TMDB.APIKEY
+        params["language"] = TMDB.getLang()
+        params["include_image_language"] = "${TMDB.getLang()},en,null"
+        for (param in params) {
+            urlBuilder.appendQueryParameter(param.key, param.value)
+        }
         // Add all original query parameters
         if (apiUrl != TMDB.APIURL)
             apiUri.queryParameterNames.forEach { paramName ->
@@ -32,14 +41,6 @@ object Images {
                     urlBuilder.appendQueryParameter(paramName, paramValue)
                 }
             }
-
-        val params = mutableMapOf<String, String>()
-        params["api_key"] = TMDB.APIKEY
-        params["language"] = TMDB.getLang()
-        params["include_image_language"] = "${TMDB.getLang()},en,null"
-        for (param in params) {
-            urlBuilder.appendQueryParameter(param.key, param.value)
-        }
         val link = urlBuilder.build().toString()
 
         var body: String? = null

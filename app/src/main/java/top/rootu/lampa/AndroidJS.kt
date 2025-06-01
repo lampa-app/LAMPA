@@ -3,11 +3,12 @@ package top.rootu.lampa
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.annotation.RequiresApi
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -220,9 +221,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         val jsonData = if (jsonString == "\"\"") JSONObject() else JSONObject(jsonString)
         val intent = Intent(Intent.ACTION_VIEW).apply {
             data = if (url.startsWith("magnet")) {
-                Uri.parse(url)
+                url.toUri()
             } else {
-                Uri.parse(url).also {
+                url.toUri().also {
                     setDataAndType(it, "application/x-bittorrent")
                 }
             }
@@ -272,7 +273,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun openYoutube(str: String) {
         val intent = Intent(
             Intent.ACTION_VIEW,
-            Uri.parse("https://www.youtube.com/watch?v=$str")
+            "https://www.youtube.com/watch?v=$str".toUri()
         )
         mainActivity.runOnUiThread {
             try {
@@ -287,7 +288,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     fun openBrowser(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
         mainActivity.runOnUiThread {
             try {
                 mainActivity.startActivity(intent)
@@ -394,16 +395,16 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     }
                 }
 
-                override fun onPostExecute(result: String) {
+                override fun onPostExecute(result: String?) {
                     mainActivity.runOnUiThread {
                         val js = ("Lampa.Android.httpCall("
                                 + returnI.toString() + ", '"
                                 + result
-                            .replace("\\", "\\\\")
-                            .replace("'", "\\'")
-                            .replace("\n", "\\\n")
+                            ?.replace("\\", "\\\\")
+                            ?.replace("'", "\\'")
+                            ?.replace("\n", "\\\n")
                                 + "')")
-                        browser.evaluateJavascript(js) { debugLog(TAG, "$js") }
+                        browser.evaluateJavascript(js) { debugLog(TAG, js) }
                     }
                 }
             }
@@ -587,14 +588,14 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @Synchronized
     operator fun set(key: String?, value: String?) {
         check(!dumped) { "already dumped" }
-        store.edit().putString(key, value).apply()
+        store.edit { putString(key, value) }
     }
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
     @Synchronized
     fun clear() {
-        store.edit().clear().apply()
+        store.edit { clear() }
         keys = null
         values = null
         dumped = false

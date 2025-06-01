@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.dnsoverhttps.DnsOverHttps
 import top.rootu.lampa.App
+import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
@@ -130,7 +131,7 @@ object TMDB {
 
     // For KitKat
     fun permissiveOkHttp(): OkHttpClient {
-        val timeout = 30000
+        val timeout = 15000
         return HttpHelper.getOkHttpClient(timeout)
     }
 
@@ -144,6 +145,12 @@ object TMDB {
             .scheme(apiUri.scheme)
             .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/$endpoint")
+        // key must be 1st
+        params["api_key"] = APIKEY
+        params["language"] = getLang()
+        for (param in params) {
+            urlBuilder.appendQueryParameter(param.key, param.value)
+        }
         if (apiUrl != APIURL)
         // Add all original query parameters
             apiUri.queryParameterNames.forEach { paramName ->
@@ -152,15 +159,9 @@ object TMDB {
                 }
             }
 
-        params["api_key"] = APIKEY
-        params["language"] = getLang()
-        for (param in params) {
-            urlBuilder.appendQueryParameter(param.key, param.value)
-        }
-
         var body: String? = null
         val link = urlBuilder.build().toString()
-        // debugLog("TMDB videos($endpoint) apiUri[$apiUri] link[$link]")
+        debugLog("TMDB videos($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -175,7 +176,7 @@ object TMDB {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        // debugLog("TMDB body: $body")
+        debugLog("TMDB body: $body")
         if (body.isNullOrEmpty())
             return null
 
@@ -212,14 +213,7 @@ object TMDB {
             .scheme(apiUri.scheme)
             .encodedAuthority(authority)  // Use encodedAuthority instead of authority to prevent double encoding
             .path("$basePath/$endpoint")
-        if (apiUrl != APIURL)
-        // Add all original query parameters
-            apiUri.queryParameterNames.forEach { paramName ->
-                apiUri.getQueryParameter(paramName)?.let { paramValue ->
-                    urlBuilder.appendQueryParameter(paramName, paramValue)
-                }
-            }
-
+        // key must be 1st
         val params = mutableMapOf<String, String>()
         params["api_key"] = APIKEY
         if (lang.isBlank())
@@ -230,10 +224,17 @@ object TMDB {
         for (param in params) {
             urlBuilder.appendQueryParameter(param.key, param.value)
         }
+        if (apiUrl != APIURL)
+        // Add all original query parameters
+            apiUri.queryParameterNames.forEach { paramName ->
+                apiUri.getQueryParameter(paramName)?.let { paramValue ->
+                    urlBuilder.appendQueryParameter(paramName, paramValue)
+                }
+            }
 
         var body: String? = null
         val link = urlBuilder.build().toString()
-        // debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
+        debugLog("TMDB videoDetail($endpoint) apiUri[$apiUri] link[$link]")
         try {
             val request = Request.Builder()
                 .url(link)
@@ -248,7 +249,7 @@ object TMDB {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        // debugLog("TMDB body: $body")
+        debugLog("TMDB body: $body")
         if (body.isNullOrEmpty())
             return null
 
