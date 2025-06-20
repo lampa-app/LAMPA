@@ -128,6 +128,9 @@ import top.rootu.lampa.net.HttpHelper
 import top.rootu.lampa.sched.Scheduler
 import java.util.Locale
 import java.util.regex.Pattern
+import androidx.core.content.edit
+import androidx.core.view.isGone
+import androidx.core.net.toUri
 
 
 class MainActivity : BaseActivity(),
@@ -1397,9 +1400,9 @@ class MainActivity : BaseActivity(),
     // Function to handle restore default settings
     private fun restoreDefaultSettings() {
         clearStorage()
-        appPrefs.edit().clear().apply()
-        defPrefs.edit().clear().apply()
-        lastPlayedPrefs.edit().clear().apply()
+        appPrefs.edit { clear() }
+        defPrefs.edit { clear() }
+        lastPlayedPrefs.edit { clear() }
         // clearUrlHistory()
         recreate()
     }
@@ -2113,7 +2116,7 @@ class MainActivity : BaseActivity(),
     }
 
     fun runVoidJsFunc(funcName: String, params: String) {
-        if (browserInitComplete && loaderView.visibility == View.GONE) {
+        if (browserInitComplete && loaderView.isGone) {
             logDebug("runVoidJsFunc $funcName")
             val js = ("(function(){"
                     + "try {"
@@ -2247,9 +2250,9 @@ class MainActivity : BaseActivity(),
     ): Intent? {
         state.currentItem?.let { currentItem ->
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse(currentItem.url)
+                data = currentItem.url.toUri()
                 setDataAndType(
-                    Uri.parse(currentItem.url),
+                    currentItem.url.toUri(),
                     /* if (currentItem.url.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else */
                     "video/*"
                 )
@@ -2261,10 +2264,17 @@ class MainActivity : BaseActivity(),
     }
 
     private fun getAvailablePlayers(intent: Intent): List<ResolveInfo> {
-        return packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            .filterNot { info ->
-                info.activityInfo.packageName.lowercase() in PLAYERS_BLACKLIST
-            }
+        return if (VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+                .filterNot { info ->
+                    info.activityInfo.packageName.lowercase() in PLAYERS_BLACKLIST
+                }
+        } else {
+            packageManager.queryIntentActivities(intent, 0) // PackageManager.MATCH_DEFAULT_ONLY
+                .filterNot { info ->
+                    info.activityInfo.packageName.lowercase() in PLAYERS_BLACKLIST
+                }
+        }
     }
 
     private fun configurePlayerIntent(
@@ -2378,7 +2388,7 @@ class MainActivity : BaseActivity(),
                     intent.putExtra("quality_levels", qualities.keys.toTypedArray())
                     intent.putExtra(
                         "quality_urls",
-                        qualities.values.map { Uri.parse(it) }.toTypedArray()
+                        qualities.values.map { it.toUri() }.toTypedArray()
                     )
                 }
             }
@@ -2470,7 +2480,7 @@ class MainActivity : BaseActivity(),
                     if (playerPackage == "com.google.android.exoplayer2.demo") {
                         putExtra(
                             "subtitle_uris", // arrayOf("http://example.com/sub.srt"))
-                            subtitles.map { Uri.parse(it.url).toString() }.toTypedArray()
+                            subtitles.map { it.url.toUri().toString() }.toTypedArray()
                         )
                         putExtra(
                             "subtitle_labels", // arrayOf("English"))
@@ -2496,7 +2506,7 @@ class MainActivity : BaseActivity(),
                 if (playerPackage == "com.google.android.exoplayer2.demo") {
                     intent.putExtra(
                         "media_uris", // String[]
-                        state.playlist.map { Uri.parse(it.url).toString() }.toTypedArray()
+                        state.playlist.map { it.url.toUri().toString() }.toTypedArray()
                     )
                     intent.putExtra(
                         "media_titles", // String[]
@@ -2512,7 +2522,7 @@ class MainActivity : BaseActivity(),
                 } else { // v3
                     // Playlist (indexed format)
                     state.playlist.forEachIndexed { index, item ->
-                        intent.putExtra("uri_$index", Uri.parse(item.url).toString())
+                        intent.putExtra("uri_$index", item.url.toUri().toString())
                         intent.putExtra(
                             "title_$index",
                             item.title.takeIf { !it.isNullOrEmpty() } ?: "Video ${index + 1}")
@@ -2654,7 +2664,7 @@ class MainActivity : BaseActivity(),
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                 // MPV can handle multiple subtitle tracks
-                putExtra("subs", subs.map { Uri.parse(it.url) }.toTypedArray()) // Parcelable[]
+                putExtra("subs", subs.map { it.url.toUri() }.toTypedArray()) // Parcelable[]
                 // Add language information if available
                 subs.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
                     putExtra("subs_langs", langs.toTypedArray())
@@ -2681,7 +2691,7 @@ class MainActivity : BaseActivity(),
             when {
                 state.playlist.size > 1 -> {
                     state.currentItem?.url?.let { url ->
-                        setDataAndType(Uri.parse(url), "application/vnd.gtvbox.filelist")
+                        setDataAndType(url.toUri(), "application/vnd.gtvbox.filelist")
                         configureViMuPlaylist(this, state, vimuVersion)
                     }
                 }
@@ -2710,7 +2720,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         vimuVersion: Long
     ) {
-        val urls = state.playlist.map { Uri.parse(it.url).toString() }
+        val urls = state.playlist.map { it.url.toUri().toString() }
         val titles = state.playlist.mapIndexed { index, item ->
             item.title ?: "Item ${index + 1}" // Fallback to "Item 1", "Item 2", etc.
         }
@@ -2748,7 +2758,7 @@ class MainActivity : BaseActivity(),
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                     putStringArrayListExtra(
                         "asussrtlist",
-                        subtitles.map { Uri.parse(it.url).toString() }.toCollection(ArrayList())
+                        subtitles.map { it.url.toUri().toString() }.toCollection(ArrayList())
                     )
                 }
                 if (isIPTV) {
@@ -2785,7 +2795,7 @@ class MainActivity : BaseActivity(),
                 currentItem.subtitles?.takeIf { it.isNotEmpty() }?.let { subtitles ->
                     putExtra(
                         "subs",
-                        subtitles.map { Uri.parse(it.url) }.toTypedArray()
+                        subtitles.map { it.url.toUri() }.toTypedArray()
                     ) // Parcelable[]
                     putExtra("subs.name", subtitles.mapIndexed { index, item -> // String[]
                         item.label.takeIf { it.isNotEmpty() } ?: "Sub ${index + 1}"
@@ -2869,7 +2879,7 @@ class MainActivity : BaseActivity(),
             val titles = ArrayList<String>()
 
             state.playlist.forEach { item ->
-                urls.add(Uri.parse(item.url).toString())
+                urls.add(item.url.toUri().toString())
                 titles.add(item.title ?: "Item ${state.playlist.indexOf(item) + 1}")
             }
 
@@ -3111,11 +3121,11 @@ class MainActivity : BaseActivity(),
         item: PlayerStateManager.PlaylistItem,
         videoUrl: String
     ): Boolean {
-        val normalizedInputUrl = Uri.parse(videoUrl).toString()
+        val normalizedInputUrl = videoUrl.toUri().toString()
 
-        return Uri.parse(item.url).toString() == normalizedInputUrl ||
+        return item.url.toUri().toString() == normalizedInputUrl ||
                 item.quality?.values?.any { qualityUrl ->
-                    qualityUrl.isNotEmpty() && Uri.parse(qualityUrl)
+                    qualityUrl.isNotEmpty() && qualityUrl.toUri()
                         .toString() == normalizedInputUrl
                 } == true
     }
