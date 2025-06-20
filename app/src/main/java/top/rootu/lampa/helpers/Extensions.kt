@@ -203,34 +203,40 @@ fun Activity.hideSystemUI() {
     when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
             window?.insetsController?.let { controller ->
-                // Configure transient behavior (bars appear on swipe and auto-hide)
-                controller.systemBarsBehavior =
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-                // Make navigation bar translucent
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 window?.navigationBarColor = ContextCompat.getColor(this, R.color.black_80)
-
-                // Hide both status and navigation bars
                 controller.hide(WindowInsets.Type.systemBars())
             }
         }
-
-        else -> {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT -> {
             @Suppress("DEPRECATION")
             window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                @Suppress("DEPRECATION")
-                window?.decorView?.systemUiVisibility = window.decorView.systemUiVisibility or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-
-                // Make navbar translucent
-                @Suppress("DEPRECATION")
-                window?.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-            }
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+            @Suppress("DEPRECATION")
+            window?.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+        }
+        else -> {
+            // For Android 4.1 (API 16) to 4.3 (API 18)
+            @Suppress("DEPRECATION")
+            window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LOW_PROFILE
+//                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN)
+            // Set up a touch listener to hide the system UI again after interaction
+//            @Suppress("DEPRECATION")
+//            window?.decorView?.setOnSystemUiVisibilityChangeListener { visibility ->
+//                if (visibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0) {
+//                    // System UI became visible - hide it again after a delay
+//                    window?.decorView?.postDelayed({
+//                        @Suppress("DEPRECATION")
+//                        window?.decorView?.systemUiVisibility = (View.SYSTEM_UI_FLAG_LOW_PROFILE
+//                                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+//                                or View.SYSTEM_UI_FLAG_FULLSCREEN)
+//                    }, 2000) // 2 seconds delay before re-hiding
+//                }
+//            }
         }
     }
 }
