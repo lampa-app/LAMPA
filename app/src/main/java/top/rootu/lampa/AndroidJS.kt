@@ -220,13 +220,13 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun openTorrentLink(url: String, jsonString: String): Boolean {
         val jsonData = if (jsonString == "\"\"") JSONObject() else JSONObject(jsonString)
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = if (url.startsWith("magnet")) {
-                url.toUri()
+            if (url.startsWith("magnet", ignoreCase = true)) {
+                data = url.toUri()
             } else {
-                url.toUri().also {
-                    setDataAndType(it, "application/x-bittorrent")
-                }
+                setDataAndType(url.toUri(), "application/x-bittorrent")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
+            addCategory(Intent.CATEGORY_BROWSABLE)
 
             jsonData.optString("title").takeIf { it.isNotEmpty() }?.let { title ->
                 putExtra("title", title)

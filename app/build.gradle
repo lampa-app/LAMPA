@@ -172,7 +172,7 @@ dependencies {
     implementation 'org.brotli:dec:0.1.2'
     //noinspection GradleDependency
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kp_version" // or jdk7
-    def coroutinesVersion = '1.7.3' // coroutines 1.7.3 - last api16 compatible
+    def coroutinesVersion = '1.7.3' // 1.7.3 - last compatible with kp 1.8.22
     //noinspection GradleDependency
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     //noinspection GradleDependency 2.10.x thorow java.lang.VerifyError on api17
