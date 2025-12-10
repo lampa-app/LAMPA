@@ -153,7 +153,7 @@ dependencies {
     def webkitVersion = '1.8.0' // 1.8.0 - last api16 compatible
     //noinspection GradleDependency
     implementation "androidx.webkit:webkit:$webkitVersion"
-    def glideVersion = '4.16.0' // glide stable
+    def glideVersion = '5.0.5' // glide stable
     implementation "com.github.bumptech.glide:glide:${glideVersion}"
     implementation("com.github.bumptech.glide:okhttp3-integration:${glideVersion}") {
         exclude group: 'glide-parent'
@@ -183,6 +183,7 @@ dependencies {
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0' // SSL / TLS
     implementation 'junit:junit:4.13.2' // For Crosswalk compatibility
     implementation 'org.conscrypt:conscrypt-android:2.5.3' // for TLS v1.3 on API < 29
+    //noinspection GradleDependency 1.8.1 fails on build with old gradle
     implementation 'org.mozilla:rhino:1.7.15' // JavaScript to run PAC file to get correct proxies
     // crosswalk latest
     liteApi fileTree(dir: 'libs', include: ['xwalk_shared_library-23.53.589.4.aar'])
