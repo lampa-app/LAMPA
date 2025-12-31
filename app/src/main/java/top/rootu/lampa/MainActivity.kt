@@ -203,6 +203,9 @@ class MainActivity : BaseActivity(),
             "net.gtvbox.vimuhd",       // ViMu HD
             "net.gtvbox.vimu",         // Legacy
         )
+        private val DDD_PLAYER_PACKAGES = setOf(
+            "top.rootu.dddplayer"
+        )
         private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
@@ -585,12 +588,35 @@ class MainActivity : BaseActivity(),
                 // ViMu
                 "net.gtvbox.videoplayer.result", "net.gtvbox.vimuhd.result" ->
                     handleViMuPlayerResult(intent, resultCode, videoUrl)
+                "top.rootu.dddplayer.intent.result.VIEW" ->
+                    handleDddPlayerResult(intent, resultCode, videoUrl)
                 // Others
                 else -> handleGenericPlayerResult(intent, resultCode, videoUrl)
             }
         }
     }
 
+    private fun handleDddPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
+        when (resultCode) {
+            RESULT_OK -> {
+                val pos = intent.getLongExtra("position", 0L)
+                val dur = intent.getLongExtra("duration", 0L)
+                // val endBy = intent.getStringExtra("end_by") // "user" or "playback_completion"
+
+                if (pos > 0 && dur > 0) {
+                    val ended = isAfterEndCreditsPosition(pos, dur)
+                    Log.i(TAG, "Playback stopped [position=$pos, duration=$dur, ended:$ended]")
+                    resultPlayer(videoUrl, pos.toInt(), dur.toInt(), ended)
+                } else if (pos == 0L && dur == 0L) {
+                    // Возможно воспроизведение завершилось полностью
+                    Log.i(TAG, "Playback completed (DDD)")
+                    resultPlayer(videoUrl, 0, 0, true)
+                }
+            }
+            RESULT_CANCELED -> Log.i(TAG, "Playback stopped by user")
+            else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+        }
+    }
     private fun handleMxPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
         when (resultCode) {
             RESULT_OK -> {
@@ -2298,6 +2324,17 @@ class MainActivity : BaseActivity(),
                     position
                 )
             }
+            // DDD Video Player
+            in DDD_PLAYER_PACKAGES -> {
+                configureDddPlayerIntent(
+                    intent,
+                    playerPackage,
+                    state = state,
+                    videoTitle,
+                    position,
+                    headers = headers
+                )
+            }
             // MX Player
             in MX_PACKAGES -> {
                 configureMxPlayerIntent(
@@ -2526,6 +2563,89 @@ class MainActivity : BaseActivity(),
                         intent.putExtra(
                             "title_$index",
                             item.title.takeIf { !it.isNullOrEmpty() } ?: "Video ${index + 1}")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun configureDddPlayerIntent(
+        intent: Intent,
+        playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
+        videoTitle: String,
+        position: Long,
+        headers: Array<String>? = null
+    ) {
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("title", videoTitle)
+            putExtra("return_result", true)
+
+            // Headers
+            headers?.let { putExtra("headers", it) }
+
+            // Position
+            when {
+                playerTimeCode == "continue" && position > 0 ->
+                    putExtra("position", position.toInt())
+                playerTimeCode == "again" ->
+                    putExtra("position", 0)
+            }
+
+            // Playlist Logic
+            if (state.playlist.size > 1) {
+                val urls = ArrayList<Uri>()
+                val titles = ArrayList<String>()
+                val filenames = ArrayList<String>()
+                val posters = ArrayList<String>()
+                val subtitlesList = ArrayList<Bundle>()
+
+                state.playlist.forEach { item ->
+                    urls.add(item.url.toUri())
+                    titles.add(item.title ?: "")
+                    filenames.add(item.url.toUri().lastPathSegment ?: "")
+                    // todo добавить постер
+                    val poster = ""
+                    posters.add(poster)
+
+                    // Per-item subtitles
+                    val itemSubsBundle = Bundle()
+                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
+                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
+                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+                        itemSubsBundle.putParcelableArray("uris", subUris)
+                        itemSubsBundle.putStringArray("names", subNames)
+                    }
+                    subtitlesList.add(itemSubsBundle)
+                }
+
+                state.currentItem?.let { item ->
+                    setDataAndType(item.url.toUri(), "video/*")
+                }
+
+                // ВАЖНО: Передаем как TypedArray (Parcelable[]), так как IntentUtils использует getParcelableArray
+                putExtra("video_list", urls.toTypedArray())
+                putStringArrayListExtra("video_list.name", titles)
+                putStringArrayListExtra("video_list.filename", filenames)
+                putStringArrayListExtra("video_list.poster", posters)
+                // ArrayList<Bundle> передается нормально через putParcelableArrayListExtra
+                putParcelableArrayListExtra("video_list.subtitles", subtitlesList)
+
+            } else {
+                // Single Video Logic
+                state.currentItem?.let { item ->
+                    setDataAndType(item.url.toUri(), "video/*")
+                    putExtra("filename", item.url.toUri().lastPathSegment)
+                    putExtra("poster", "") // todo Lampa add image
+
+                    // Subtitles for single video
+                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
+                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
+                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+
+                        putExtra("subs", subUris)
+                        putExtra("subs.name", subNames)
                     }
                 }
             }
