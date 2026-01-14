@@ -2598,16 +2598,14 @@ class MainActivity : BaseActivity(),
                 val urls = ArrayList<Uri>()
                 val titles = ArrayList<String>()
                 val filenames = ArrayList<String>()
-                val posters = ArrayList<String>()
+                val thumbnails = ArrayList<String>()
                 val subtitlesList = ArrayList<Bundle>()
 
                 state.playlist.forEach { item ->
                     urls.add(item.url.toUri())
                     titles.add(item.title ?: "")
                     filenames.add(item.url.toUri().lastPathSegment ?: "")
-                    // todo добавить постер
-                    val poster = ""
-                    posters.add(poster)
+                    thumbnails.add(item.thumbnail ?: "")
 
                     // Per-item subtitles
                     val itemSubsBundle = Bundle()
@@ -2628,7 +2626,7 @@ class MainActivity : BaseActivity(),
                 putExtra("video_list", urls.toTypedArray())
                 putStringArrayListExtra("video_list.name", titles)
                 putStringArrayListExtra("video_list.filename", filenames)
-                putStringArrayListExtra("video_list.poster", posters)
+                putStringArrayListExtra("video_list.thumbnail", thumbnails)
                 // ArrayList<Bundle> передается нормально через putParcelableArrayListExtra
                 putParcelableArrayListExtra("video_list.subtitles", subtitlesList)
 
@@ -2637,7 +2635,7 @@ class MainActivity : BaseActivity(),
                 state.currentItem?.let { item ->
                     setDataAndType(item.url.toUri(), "video/*")
                     putExtra("filename", item.url.toUri().lastPathSegment)
-                    putExtra("poster", "") // todo Lampa add image
+                    putExtra("thumbnail", item.thumbnail ?: "")
 
                     // Subtitles for single video
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->

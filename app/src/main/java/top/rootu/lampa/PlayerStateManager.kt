@@ -93,6 +93,7 @@ class PlayerStateManager(context: Context) {
     data class PlaylistItem(
         val url: String,
         val title: String? = null,
+        val thumbnail: String? = null,
         val timeline: Timeline? = null,
         val quality: Map<String, String>? = null,
         val subtitles: List<Subtitle>? = null
@@ -702,6 +703,7 @@ class PlayerStateManager(context: Context) {
                 throw IllegalArgumentException("Invalid playlist item: URL required", e)
             },
             title = optString("title").takeIf { it.isNotEmpty() },
+            thumbnail = optString("thumbnail").takeIf { it.isNotEmpty() },
             timeline = optJSONObject("timeline")?.toTimeline(),
             quality = optJSONObject("quality")?.toQualityMap(),
             subtitles = optJSONArray("subtitles")?.toSubtitles()
