@@ -1,5 +1,6 @@
 package top.rootu.lampa.net;
 
+import android.util.Base64;
 import android.util.Log;
 
 import com.btr.proxy.selector.pac.PacProxySelector;
@@ -53,7 +54,7 @@ public class Http {
         return rb;
     }
 
-    private JSONObject getJsonFromResponse(Response response) throws Exception {
+    private JSONObject getJsonFromResponse(Response response, String dataType) throws Exception {
         if (!response.isSuccessful()) {
             this.lastErrorCode = response.code();
             throw new Exception("Invalid response from server: " + response.code() + " " + response.message());
@@ -84,6 +85,15 @@ public class Http {
             // Avoid OOM
             if (body.contentLength() > MAX_ALLOWED_BODY_SIZE) {
                 json.put("body", "[Response too large, skipped]");
+            } else if ("base64".equalsIgnoreCase(dataType)) {
+                // Binary-safe path: callers (e.g. HLS segment loaders) ask for
+                // dataType:"base64" to bypass body.string()'s UTF-8 charset
+                // decoding, which would replace every byte >= 0x80 with U+FFFD
+                // (low byte 0xfd) and destroy any binary payload like MPEG-TS,
+                // CMAF .m4s, JPEG, MP3, etc. body.bytes() reads the raw byte[]
+                // and Base64 round-trips it as pure ASCII through the JS bridge.
+                json.put("body", Base64.encodeToString(body.bytes(), Base64.NO_WRAP));
+                json.put("encoding", "base64");
             } else {
                 json.put("body", body.string());
             }
@@ -94,6 +104,10 @@ public class Http {
     }
 
     public JSONObject Get(String url, JSONObject headers, int timeout) throws Exception {
+        return Get(url, headers, timeout, null);
+    }
+
+    public JSONObject Get(String url, JSONObject headers, int timeout, String dataType) throws Exception {
         if (!url.toLowerCase().startsWith("http")) {
             this.lastErrorCode = 400;
             throw new Exception("Bad Request (Invalid protocol; use http or https)");
@@ -101,10 +115,14 @@ public class Http {
         Request.Builder rb = getReqBuilder(url, headers);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
         Response response = client.newCall(rb.build()).execute();
-        return getJsonFromResponse(response);
+        return getJsonFromResponse(response, dataType);
     }
 
     public JSONObject Post(String url, String data, JSONObject headers, int timeout) throws Exception {
+        return Post(url, data, headers, timeout, null);
+    }
+
+    public JSONObject Post(String url, String data, JSONObject headers, int timeout, String dataType) throws Exception {
         if (!url.toLowerCase().startsWith("http")) {
             this.lastErrorCode = 400;
             throw new Exception("Bad Request (Invalid protocol; use http or https)");
@@ -117,7 +135,7 @@ public class Http {
         rb.post(requestBody);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
         Response response = client.newCall(rb.build()).execute();
-        return getJsonFromResponse(response);
+        return getJsonFromResponse(response, dataType);
     }
 
     public int getLastErrorCode() {
