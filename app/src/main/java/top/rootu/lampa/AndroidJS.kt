@@ -325,6 +325,8 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 ?: throw IllegalArgumentException("URL cannot be empty")
             val data = jsonObject.opt("post_data")
             val returnHeaders = jsonObject.optBoolean("returnHeaders", false)
+             // Optional dataType: "base64" forces binary-safe response encoding.
+            val dataType = jsonObject.optString("dataType").takeIf { it.isNotEmpty() }
             val timeout = jsonObject.optInt("timeout", 15000).coerceAtLeast(1000)
             val headers = jsonObject.optJSONObject("headers")?.let {
                 JSONObject(it.toString()) // Create a copy to avoid modifying the original
@@ -373,10 +375,10 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     return try {
                         val responseJSON = if (finalRequestContent.isEmpty()) {
                             // GET
-                            http.Get(url, finalHeaders, timeout)
+                            http.Get(url, finalHeaders, timeout, dataType)
                         } else {
                             // POST
-                            http.Post(url, finalRequestContent, finalHeaders, timeout)
+                            http.Post(url, finalRequestContent, finalHeaders, timeout, dataType)
                         }
                         reqResponse[returnI.toString()] = if (returnHeaders) {
                             responseJSON.toString()
