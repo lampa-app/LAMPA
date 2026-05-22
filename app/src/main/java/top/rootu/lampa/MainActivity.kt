@@ -1104,6 +1104,25 @@ class MainActivity : BaseActivity(),
                 "open_settings" -> showMenuDialog()
             }
         }
+        // Handle an external search query (e.g. from a voice assistant or a
+        // launcher): open LAMPA's own search screen prefilled with the query
+        // via the public Lampa.Search API. If a search screen is already open
+        // (a repeated external query), close it first — Lampa.Search.open() is
+        // not idempotent and would stack a new search over the previous one.
+        // runVoidJsFunc queues the call until the web app is ready, so a cold
+        // start is fine.
+        intent.getStringExtra(SearchManager.QUERY)?.let { query ->
+            if (query.isNotBlank()) {
+                val escaped = query.replace("\\", "\\\\").replace("'", "\\'")
+                val opener = "(function(q){" +
+                        "if(!window.Lampa||!Lampa.Search)return;" +
+                        "try{if(document.body&&document.body.classList" +
+                        ".contains('search--open'))Lampa.Search.close();}catch(e){}" +
+                        "Lampa.Search.open({input:q});" +
+                        "})"
+                runVoidJsFunc(opener, "'$escaped'")
+            }
+        }
         // Fix initial focus
         browser?.setFocus()
     }
