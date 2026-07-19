@@ -206,6 +206,9 @@ class MainActivity : BaseActivity(),
         private val DDD_PLAYER_PACKAGES = setOf(
             "top.rootu.dddplayer"
         )
+        private val JUSTPLUS_PLAYER_PACKAGES = setOf(
+            "com.justplus.player"
+        )
         private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
@@ -2354,6 +2357,17 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
+            // Just+ Player
+            in JUSTPLUS_PLAYER_PACKAGES -> {
+                configureJustPlusPlayerIntent(
+                    intent,
+                    playerPackage,
+                    state = state,
+                    videoTitle,
+                    position,
+                    headers = headers
+                )
+            }
             // MX Player
             in MX_PACKAGES -> {
                 configureMxPlayerIntent(
@@ -2657,6 +2671,105 @@ class MainActivity : BaseActivity(),
                     putExtra("thumbnail", item.thumbnail ?: "")
 
                     // Subtitles for single video
+                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
+                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
+                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+
+                        putExtra("subs", subUris)
+                        putExtra("subs.name", subNames)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun configureJustPlusPlayerIntent(
+        intent: Intent,
+        playerPackage: String,
+        state: PlayerStateManager.PlaybackState,
+        videoTitle: String,
+        position: Long,
+        headers: Array<String>? = null
+    ) {
+        val cardImdbId = (state.extras[LAMPA_CARD_KEY] as? String)
+            ?.let { getJson(it, LampaCard::class.java)?.imdb_id }
+            ?.takeIf { it.isNotEmpty() }
+
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("title", videoTitle)
+            putExtra("return_result", true)
+
+            headers?.let { putExtra("headers", it) }
+
+            when {
+                playerTimeCode == "continue" && position > 0 ->
+                    putExtra("position", position.toInt())
+                playerTimeCode == "again" ->
+                    putExtra("position", 0)
+            }
+
+            if (state.playlist.size > 1) {
+                val urls = ArrayList<Uri>()
+                val titles = ArrayList<String>()
+                val filenames = ArrayList<String>()
+                val thumbnails = ArrayList<String>()
+                val segmentsList = ArrayList<String>()
+                val subtitlesList = ArrayList<Bundle>()
+
+                val seasons = ArrayList<String>()
+                val episodes = ArrayList<String>()
+                val imdbIds = ArrayList<String>()
+
+                state.playlist.forEach { item ->
+                    urls.add(item.url.toUri())
+                    titles.add(item.title ?: "")
+                    filenames.add(item.url.toUri().lastPathSegment ?: "")
+                    thumbnails.add(item.thumbnail ?: "")
+                    segmentsList.add(item.segments ?: "")
+                    seasons.add(item.season?.toString() ?: "")
+                    episodes.add(item.episode?.toString() ?: "")
+                    imdbIds.add(item.imdbId ?: cardImdbId ?: "")
+
+                    val itemSubsBundle = Bundle()
+                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
+                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
+                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+                        itemSubsBundle.putParcelableArray("uris", subUris)
+                        itemSubsBundle.putStringArray("names", subNames)
+                    }
+                    subtitlesList.add(itemSubsBundle)
+                }
+
+                state.currentItem?.let { item ->
+                    setDataAndType(item.url.toUri(), "video/*")
+
+                    item.season?.let { putExtra("season", it) }
+                    item.episode?.let { putExtra("episode", it) }
+                    (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
+                }
+
+                putExtra("video_list", urls.toTypedArray())
+                putStringArrayListExtra("video_list.name", titles)
+                putStringArrayListExtra("video_list.filename", filenames)
+                putStringArrayListExtra("video_list.thumbnail", thumbnails)
+                putStringArrayListExtra("video_list.segments", segmentsList)
+                putStringArrayListExtra("video_list.season", seasons)
+                putStringArrayListExtra("video_list.episode", episodes)
+                putStringArrayListExtra("video_list.imdb_id", imdbIds)
+
+                putParcelableArrayListExtra("video_list.subtitles", subtitlesList)
+
+            } else {
+                state.currentItem?.let { item ->
+                    setDataAndType(item.url.toUri(), "video/*")
+                    putExtra("filename", item.url.toUri().lastPathSegment)
+                    putExtra("thumbnail", item.thumbnail ?: "")
+                    item.segments?.let { putExtra("segments", it) }
+                    item.season?.let { putExtra("season", it) }
+                    item.episode?.let { putExtra("episode", it) }
+                    (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
+
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                         val subUris = subs.map { it.url.toUri() }.toTypedArray()
                         val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()

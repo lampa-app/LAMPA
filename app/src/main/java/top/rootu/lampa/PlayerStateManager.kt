@@ -89,6 +89,10 @@ class PlayerStateManager(context: Context) {
      * @property timeline Playback timeline information
      * @property quality Available quality variants
      * @property subtitles Available subtitle tracks
+     * @property segments Raw skip/ad segments JSON (as received from Lampa)
+     * @property season Season number, if the item is a TV episode (may be absent)
+     * @property episode Episode number, if the item is a TV episode (may be absent)
+     * @property imdbId IMDb id from the card (may be absent)
      */
     data class PlaylistItem(
         val url: String,
@@ -96,7 +100,11 @@ class PlayerStateManager(context: Context) {
         val thumbnail: String? = null,
         val timeline: Timeline? = null,
         val quality: Map<String, String>? = null,
-        val subtitles: List<Subtitle>? = null
+        val subtitles: List<Subtitle>? = null,
+        val segments: String? = null,
+        val season: Int? = null,
+        val episode: Int? = null,
+        val imdbId: String? = null
     ) {
         /**
          * Data class representing playback timeline information.
@@ -706,7 +714,16 @@ class PlayerStateManager(context: Context) {
             thumbnail = optString("thumbnail").takeIf { it.isNotEmpty() },
             timeline = optJSONObject("timeline")?.toTimeline(),
             quality = optJSONObject("quality")?.toQualityMap(),
-            subtitles = optJSONArray("subtitles")?.toSubtitles()
+            subtitles = optJSONArray("subtitles")?.toSubtitles(),
+            segments = optJSONObject("segments")?.toString(),
+
+            // Optional TV episode info — absent for movies / single files.
+            season = if (has("season") && !isNull("season")) optInt("season") else null,
+            episode = if (has("episode") && !isNull("episode")) optInt("episode") else null,
+
+            // IMDb id: a persisted flat field, else from the card (data.card.imdb_id) if present.
+            imdbId = optString("imdb_id").takeIf { it.isNotEmpty() }
+                ?: optJSONObject("card")?.optString("imdb_id")?.takeIf { it.isNotEmpty() }
         )
     }
 
@@ -779,6 +796,9 @@ class PlayerStateManager(context: Context) {
                     subs.forEach { put(it.toJson()) }
                 })
             }
+            season?.let { put("season", it) }
+            episode?.let { put("episode", it) }
+            imdbId?.let { put("imdb_id", it) }
         }
     }
 
