@@ -207,7 +207,8 @@ class MainActivity : BaseActivity(),
             "top.rootu.dddplayer"
         )
         private val JUSTPLUS_PLAYER_PACKAGES = setOf(
-            "com.justplus.player"
+            "com.justplus.player",
+            "com.lampaua.player"
         )
         private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
