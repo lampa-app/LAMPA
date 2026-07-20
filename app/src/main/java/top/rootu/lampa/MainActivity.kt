@@ -2691,9 +2691,10 @@ class MainActivity : BaseActivity(),
         position: Long,
         headers: Array<String>? = null
     ) {
-        val cardImdbId = (state.extras[LAMPA_CARD_KEY] as? String)
-            ?.let { getJson(it, LampaCard::class.java)?.imdb_id }
-            ?.takeIf { it.isNotEmpty() }
+        val card = (state.extras[LAMPA_CARD_KEY] as? String)
+            ?.let { getJson(it, LampaCard::class.java) }
+        val cardImdbId = card?.imdb_id?.takeIf { it.isNotEmpty() }
+        val cardId = card?.id?.takeIf { it.isNotEmpty() }
 
         intent.apply {
             setPackage(playerPackage)
@@ -2720,6 +2721,7 @@ class MainActivity : BaseActivity(),
                 val seasons = ArrayList<String>()
                 val episodes = ArrayList<String>()
                 val imdbIds = ArrayList<String>()
+                val ids = ArrayList<String>()
 
                 state.playlist.forEach { item ->
                     urls.add(item.url.toUri())
@@ -2730,6 +2732,7 @@ class MainActivity : BaseActivity(),
                     seasons.add(item.season?.toString() ?: "")
                     episodes.add(item.episode?.toString() ?: "")
                     imdbIds.add(item.imdbId ?: cardImdbId ?: "")
+                    ids.add(cardId ?: "")
 
                     val itemSubsBundle = Bundle()
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
@@ -2747,6 +2750,7 @@ class MainActivity : BaseActivity(),
                     item.season?.let { putExtra("season", it) }
                     item.episode?.let { putExtra("episode", it) }
                     (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
+                    cardId?.let { putExtra("id", it) }
                 }
 
                 putExtra("video_list", urls.toTypedArray())
@@ -2757,6 +2761,7 @@ class MainActivity : BaseActivity(),
                 putStringArrayListExtra("video_list.season", seasons)
                 putStringArrayListExtra("video_list.episode", episodes)
                 putStringArrayListExtra("video_list.imdb_id", imdbIds)
+                putStringArrayListExtra("video_list.id", ids)
 
                 putParcelableArrayListExtra("video_list.subtitles", subtitlesList)
 
@@ -2769,6 +2774,7 @@ class MainActivity : BaseActivity(),
                     item.season?.let { putExtra("season", it) }
                     item.episode?.let { putExtra("episode", it) }
                     (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
+                    cardId?.let { putExtra("id", it) }
 
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                         val subUris = subs.map { it.url.toUri() }.toTypedArray()
