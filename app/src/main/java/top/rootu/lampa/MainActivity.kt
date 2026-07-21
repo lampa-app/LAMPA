@@ -2684,6 +2684,15 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    // Number of scan lines a quality label denotes (e.g. "1080p" -> 1080, "4K"/"UHD" -> 2160),
+    // used to sort quality variants from highest to lowest before they are sent to the player.
+    private fun qualityLines(label: String?): Int {
+        if (label == null) return 0
+        val normalized = label.lowercase(Locale.getDefault())
+        if (normalized.contains("4k") || normalized.contains("uhd")) return 2160
+        return label.filter { it.isDigit() }.toIntOrNull() ?: 0
+    }
+
     private fun configureJustPlusPlayerIntent(
         intent: Intent,
         playerPackage: String,
@@ -2711,6 +2720,15 @@ class MainActivity : BaseActivity(),
                     putExtra("position", 0)
             }
 
+            // Quality variants for the current item (JAPP quality-switching contract): parallel
+            // String[] arrays aligned by index, sorted from highest resolution to lowest. Absent
+            // when the item carries no quality map.
+            state.currentItem?.quality?.takeIf { it.isNotEmpty() }?.let { qualities ->
+                val labels = qualities.keys.sortedByDescending { qualityLines(it) }
+                putExtra("quality_levels", labels.toTypedArray())
+                putExtra("quality_urls", labels.map { qualities.getValue(it).toUri() }.toTypedArray())
+            }
+
             if (state.playlist.size > 1) {
                 val urls = ArrayList<Uri>()
                 val titles = ArrayList<String>()
@@ -2724,7 +2742,7 @@ class MainActivity : BaseActivity(),
                 val imdbIds = ArrayList<String>()
                 val ids = ArrayList<String>()
 
-                state.playlist.forEach { item ->
+                state.playlist.forEachIndexed { index, item ->
                     urls.add(item.url.toUri())
                     titles.add(item.title ?: "")
                     filenames.add(item.url.toUri().lastPathSegment ?: "")
@@ -2734,6 +2752,17 @@ class MainActivity : BaseActivity(),
                     episodes.add(item.episode?.toString() ?: "")
                     imdbIds.add(item.imdbId ?: cardImdbId ?: "")
                     ids.add(cardId ?: "")
+
+                    // Per-episode quality variants, keyed by index (mirrors the uri_$index pattern).
+                    // Episodes without a quality map simply get no extras; the player falls back to url.
+                    item.quality?.takeIf { it.isNotEmpty() }?.let { q ->
+                        val labels = q.keys.sortedByDescending { qualityLines(it) }
+                        putExtra("video_list.quality_levels.$index", labels.toTypedArray())
+                        putExtra(
+                            "video_list.quality_urls.$index",
+                            labels.map { q.getValue(it).toUri() }.toTypedArray()
+                        )
+                    }
 
                     val itemSubsBundle = Bundle()
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
