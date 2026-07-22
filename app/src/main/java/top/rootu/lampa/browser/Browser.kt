@@ -164,15 +164,6 @@ interface Browser {
      * methods may be called on this WebView after destroy.
      */
     fun destroy()
-
-    /**
-     * Keep the web engine reporting the page as "visible" even while the host Activity is
-     * backgrounded (e.g. an external player is in front). This prevents the DOM
-     * `visibilitychange` -> hidden event, so the web app (Lampa) does not pause its own
-     * timers / RCH socket heartbeat during playback. No-op on engines that don't support it.
-     */
-    fun setKeepVisible(keep: Boolean) {}
-
     fun setBackgroundColor(color: Int)
     fun canGoBack(): Boolean
     fun goBack()

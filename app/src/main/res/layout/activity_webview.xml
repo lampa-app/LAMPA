@@ -43,7 +43,7 @@
         app:lottie_loop="true"
         app:lottie_rawRes="@raw/loader" />
 
-    <top.rootu.lampa.browser.LampaWebView
+    <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

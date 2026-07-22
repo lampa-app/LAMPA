@@ -292,10 +292,6 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
         browser?.clearCache(includeDiskFiles)
     }
 
-    override fun setKeepVisible(keep: Boolean) {
-        (browser as? LampaWebView)?.keepVisible = keep
-    }
-
     override fun destroy() {
         browser?.let {
             // Remove from parent if attached
