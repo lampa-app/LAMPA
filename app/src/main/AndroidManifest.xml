@@ -5,6 +5,8 @@
     <uses-sdk tools:overrideLibrary="org.xwalk.core, net.gotev.speech, androidx.recommendation, androidx.tvprovider" /> <!-- use older sdk -->
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission
         android:name="android.permission.ACCESS_WIFI_STATE"
         tools:ignore="LeanbackUsesWifi" />
@@ -190,6 +192,11 @@
         <service
             android:name=".sched.ContentAlarmManager"
             android:enabled="true" />
+        <service
+            android:name=".PlaybackService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>
