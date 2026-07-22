@@ -1,6 +1,10 @@
 <resources>
     <string name="no_activity_found">Немає додатка для відкриття цього типу посилань.</string>
     <string name="no_player_activity_found">Не знайдено відповідного мультимедійного програвача. Встановіть плеєр з Google Play або будь-якого іншого джерела. Ми рекомендуємо Just Player, Vimu Media Player, VLC.</string>
+    <string name="keep_connection_channel">Фонове зʼєднання</string>
+    <string name="keep_connection_notification">Зʼєднання підтримується під час перегляду</string>
+    <string name="keep_connection_enable">Увімкнути утримання сокета</string>
+    <string name="keep_connection_disable">Вимкнути утримання сокета</string>
     <string name="no_torrent_activity_found">Немає додатка для відкриття торрент-посилань. Встановіть TorrServe або будь-який інший додаток, що працює з торрентами.</string>
     <string name="no_youtube_activity_found">Немає додатка для відкриття посилань YouTube. Встановіть додаток YouTube.</string>
     <string name="no_launch_player">Обраний плеєр не підтримує відтворення цього відео</string>
