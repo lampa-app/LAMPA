@@ -212,6 +212,13 @@ class MainActivity : BaseActivity(),
             "com.justplus.player",
             "com.lampaua.player"
         )
+		private val KODI_PACKAGES = setOf(
+			"org.xbmc.kodi",
+			"net.kodinerds.maven.kodi",
+		)
+		fun isKodiPackage(packageName: String): Boolean {
+			return KODI_PACKAGES.any { packageName == it || packageName.startsWith(it) }
+		}
         private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
@@ -2409,6 +2416,14 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
+			// Kodi
+			in KODI_PACKAGES -> {
+				configureKodiIntent(
+					intent,
+					playerPackage,
+					state
+				)
+		    }
             // MPV
             "is.xyz.mpv" -> {
                 configureMpvIntent(
@@ -2846,6 +2861,42 @@ class MainActivity : BaseActivity(),
             }
         }
     }
+	
+	private fun configureKodiIntent(
+		intent: Intent,
+		playerPackage: String,
+		state: PlayerStateManager.PlaybackState
+	) {
+		val item = state.currentItem ?: return
+		val uri = item.url.toUri()
+		
+		val hasSubtitles = state.playlist.any { item ->
+		    !item.subtitles.isNullOrEmpty()
+		}
+
+		intent.apply {
+			setPackage(playerPackage)
+			action = Intent.ACTION_VIEW
+			
+			if (state.playlist.size > 1 || hasSubtitles) {
+				val hash = uri.getQueryParameter("link") ?: return
+				val index = uri.getQueryParameter("index") ?: "0"
+				
+				val playlistUrl =
+					"${uri.scheme}://${uri.authority}/playlist/${Uri.encode(uri.lastPathSegment)}.m3u?hash=$hash&index=$index"
+				
+				setDataAndType(
+					playlistUrl.toUri(),
+					"video/*"
+				)
+			} else {
+				setDataAndType(
+					uri,
+					"video/*"
+				)
+			}
+		}
+	}
 
     private fun configureMxPlayerIntent(
         intent: Intent,
