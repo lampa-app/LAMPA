@@ -16,6 +16,7 @@ import top.rootu.lampa.models.LampaRec
 import top.rootu.lampa.models.WatchNextToAdd
 import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
+import androidx.core.content.edit
 
 object Prefs {
 
@@ -65,48 +66,48 @@ object Prefs {
     // Extension properties for app settings
     var Context.appUrl: String
         get() = appPrefs.getString(APP_URL, BuildConfig.defaultAppUrl) ?: ""
-        set(url) = appPrefs.edit().putString(APP_URL, url).apply()
+        set(url) = appPrefs.edit { putString(APP_URL, url) }
 
     var Context.appPlayer: String?
         get() = appPrefs.getString(APP_PLAYER, "")
-        set(player) = appPrefs.edit().putString(APP_PLAYER, player).apply()
+        set(player) = appPrefs.edit { putString(APP_PLAYER, player) }
 
     var Context.tvPlayer: String?
         get() = appPrefs.getString(IPTV_PLAYER, "")
-        set(player) = appPrefs.edit().putString(IPTV_PLAYER, player).apply()
+        set(player) = appPrefs.edit { putString(IPTV_PLAYER, player) }
 
-    // Keep the RCH socket alive while an external player is in front (default on)
+    // Keep the RCH socket alive while an external player is in front (default off)
     var Context.playerKeepConnection: Boolean
-        get() = appPrefs.getBoolean(PLAYER_KEEP_CONN_KEY, true)
-        set(value) = appPrefs.edit().putBoolean(PLAYER_KEEP_CONN_KEY, value).apply()
+        get() = appPrefs.getBoolean(PLAYER_KEEP_CONN_KEY, false)
+        set(value) = appPrefs.edit { putBoolean(PLAYER_KEEP_CONN_KEY, value) }
 
     var Context.lampaSource: String
         get() = appPrefs.getString(LAMPA_SOURCE, "tmdb") ?: "tmdb"
-        set(source) = appPrefs.edit().putString(LAMPA_SOURCE, source).apply()
+        set(source) = appPrefs.edit {putString(LAMPA_SOURCE, source) }
 
     var Context.appBrowser: String?
         get() = appPrefs.getString(APP_BROWSER, MainActivity.SELECTED_BROWSER)
-        set(browser) = appPrefs.edit().putString(APP_BROWSER, browser).apply()
+        set(browser) = appPrefs.edit { putString(APP_BROWSER, browser) }
 
     var Context.appLang: String
         get() = appPrefs.getString(APP_LANG, Locale.getDefault().language)
             ?: Locale.getDefault().language
-        set(lang) = appPrefs.edit().putString(APP_LANG, lang).apply()
+        set(lang) = appPrefs.edit { putString(APP_LANG, lang) }
 
     var Context.tmdbApiUrl: String
         get() = appPrefs.getString(TMDB_API_KEY, TMDB.APIURL) ?: TMDB.APIURL
-        set(url) = appPrefs.edit().putString(TMDB_API_KEY, url).apply()
+        set(url) = appPrefs.edit {putString(TMDB_API_KEY, url) }
 
     var Context.tmdbImgUrl: String
         get() = appPrefs.getString(TMDB_IMG_KEY, TMDB.IMGURL) ?: TMDB.IMGURL
-        set(url) = appPrefs.edit().putString(TMDB_IMG_KEY, url).apply()
+        set(url) = appPrefs.edit {putString(TMDB_IMG_KEY, url) }
 
     val Context.firstRun: Boolean
         get() {
             val lastRunVersion = defPrefs.getString("last_run_version", "")
             val isFirstRun = BuildConfig.VERSION_NAME != lastRunVersion
-            if (isFirstRun) defPrefs.edit().putString("last_run_version", BuildConfig.VERSION_NAME)
-                .apply()
+            if (isFirstRun) defPrefs.edit {putString("last_run_version", BuildConfig.VERSION_NAME)
+            }
             return isFirstRun
         }
 
@@ -130,7 +131,7 @@ object Prefs {
 
     var Context.syncEnabled: Boolean
         get() = appPrefs.getBoolean(SYNC_KEY, false)
-        set(enabled) = appPrefs.edit().putBoolean(SYNC_KEY, enabled).apply()
+        set(enabled) = appPrefs.edit { putBoolean(SYNC_KEY, enabled) }
 
     /**
      * A property to get or set the migration status in SharedPreferences.
@@ -151,12 +152,12 @@ object Prefs {
         }
 
     // Helper functions for store lampa json to app prefs
-    fun Context.saveFavorite(json: String) = defPrefs.edit().putString(FAV_KEY, json).apply()
+    fun Context.saveFavorite(json: String) = defPrefs.edit { putString(FAV_KEY, json) }
 
     fun Context.saveAccountBookmarks(json: String) =
-        defPrefs.edit().putString(CUB_KEY, json).apply()
+        defPrefs.edit { putString(CUB_KEY, json) }
 
-    fun Context.saveRecs(json: String) = defPrefs.edit().putString(REC_KEY, json).apply()
+    fun Context.saveRecs(json: String) = defPrefs.edit { putString(REC_KEY, json) }
 
     // Helper functions for managing watch next and bookmarks
     private fun Context.getCubBookmarkCardIds(which: String? = null): List<String?> {
@@ -272,7 +273,7 @@ object Prefs {
         newItems: List<T>
     ) {
         val updatedList = (currentList + newItems).distinct()
-        defPrefs.edit().putString(key, Gson().toJson(updatedList)).apply()
+        defPrefs.edit { putString(key, Gson().toJson(updatedList)) }
     }
 
     // Extension functions for adding items to specific preference lists
@@ -317,18 +318,18 @@ object Prefs {
     }
 
     fun Context.clearPending() {
-        defPrefs.edit()
-            .putString(WNA_KEY, "[]")
-            .putString(WNR_KEY, "[]")
-            .putString(BMR_KEY, "[]")
-            .putString(LKR_KEY, "[]")
-            .putString(HSR_KEY, "[]")
-            .putString(LOR_KEY, "[]")
-            .putString(VIR_KEY, "[]")
-            .putString(SCR_KEY, "[]")
-            .putString(COR_KEY, "[]")
-            .putString(THR_KEY, "[]")
-            .apply()
+        defPrefs.edit {
+            putString(WNA_KEY, "[]")
+                .putString(WNR_KEY, "[]")
+                .putString(BMR_KEY, "[]")
+                .putString(LKR_KEY, "[]")
+                .putString(HSR_KEY, "[]")
+                .putString(LOR_KEY, "[]")
+                .putString(VIR_KEY, "[]")
+                .putString(SCR_KEY, "[]")
+                .putString(COR_KEY, "[]")
+                .putString(THR_KEY, "[]")
+        }
     }
 
     // Data class to represent URL history entries
@@ -379,9 +380,9 @@ object Prefs {
     // Helper function to save URL history to SharedPreferences
     private fun Context.saveUrlHistory(history: List<InputHistory>) {
         val json = Gson().toJson(history)
-        defPrefs.edit()
-            .putString(APP_URL_HISTORY, json)
-            .apply()
+        defPrefs.edit {
+            putString(APP_URL_HISTORY, json)
+        }
     }
 
     // Generic function to get preferences
