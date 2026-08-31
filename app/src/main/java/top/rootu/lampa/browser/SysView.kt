@@ -93,8 +93,8 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 debugLog("shouldOverrideUrlLoading(view, url) view $view url $url")
                 url?.let {
+                    // tg:// — Handle Telegram link
                     if (it.startsWith("tg://")) {
-                        // Handle Telegram link
                         if (isTelegramInstalled(mainActivity)) {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             mainActivity.startActivity(intent)
@@ -103,6 +103,31 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                             redirectToTelegramPlayStore()
                         }
                         return true // Indicate that the URL has been handled
+                    }
+                    // market:// — open system store chooser (Play/F-Droid/…)
+                    if (it.startsWith("market://")) {
+                        try {
+                            mainActivity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        } catch (_: ActivityNotFoundException) {
+                            // fallback: web version of Play Store
+                            mainActivity.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
+                                )
+                            )
+                        }
+                        return true
+                    }
+                    // intent:// — standard intent-URI parsing (Play Store pages redirect to them)
+                    if (it.startsWith("intent://")) {
+                        try {
+                            val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                            mainActivity.startActivity(intent)
+                        } catch (_: Exception) {
+                            // ignore — WebView will continue as it can
+                        }
+                        return true
                     }
                 }
                 return false // Load the URL in the WebView for other links
@@ -117,7 +142,9 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                 request: WebResourceRequest
             ): Boolean {
                 debugLog("shouldOverrideUrlLoading(view, request) view $view request $request")
-                if (request.url.scheme.equals("tg", true)) {
+                val url = request.url.toString()
+                // tg:// — Handle Telegram link
+                if (url.startsWith("tg://")) {
                     if (isTelegramInstalled(mainActivity)) {
                         val intent = Intent(Intent.ACTION_VIEW, request.url)
                         mainActivity.startActivity(intent)
@@ -126,6 +153,31 @@ class SysView(override val mainActivity: MainActivity, override val viewResId: I
                         redirectToTelegramPlayStore()
                     }
                     return true // Indicate that the URL has been handled
+                }
+                // market:// — open system store chooser (Play/F-Droid/…)
+                if (url.startsWith("market://")) {
+                    try {
+                        mainActivity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    } catch (_: ActivityNotFoundException) {
+                        // fallback: web version of Play Store
+                        mainActivity.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger")
+                            )
+                        )
+                    }
+                    return true
+                }
+                // intent:// — standard intent-URI parsing (Play Store pages redirect to them)
+                if (url.startsWith("intent://")) {
+                    try {
+                        val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                        mainActivity.startActivity(intent)
+                    } catch (_: Exception) {
+                        // ignore — WebView will continue as it can
+                    }
+                    return true
                 }
                 return false // Load the URL in the WebView for other links
                 // this will fail for non-http(s) links like lampa:// intent:// etc

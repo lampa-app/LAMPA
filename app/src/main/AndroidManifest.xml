@@ -28,11 +28,6 @@
         <package android:name="com.google.android.katniss" />
         <package android:name="net.gtvbox.videoplayer" />
         <package android:name="net.gtvbox.vimuhd" />
-        <package android:name="org.telegram.messenger" />
-        <package android:name="org.telegram.plus" />
-        <package android:name="org.telegram.messenger.web" />
-        <package android:name="nekox.messenger" />
-        <package android:name="uz.dilijan.messenger" />
 
         <intent>
             <action android:name="android.speech.RecognitionService" />
@@ -56,6 +51,11 @@
             <action android:name="android.intent.action.VIEW" />
 
             <data android:mimeType="audio/x-mpegurl" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="tg" />
         </intent>
     </queries>
 
