@@ -34,6 +34,7 @@ import top.rootu.lampa.helpers.Prefs.storagePrefs
 import top.rootu.lampa.helpers.Prefs.syncEnabled
 import top.rootu.lampa.helpers.Prefs.tmdbApiUrl
 import top.rootu.lampa.helpers.Prefs.tmdbImgUrl
+import top.rootu.lampa.helpers.AppAttestation
 import top.rootu.lampa.net.Http
 import top.rootu.lampa.recs.RecsService
 import top.rootu.lampa.tmdb.TMDB
@@ -363,9 +364,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     headers.putSafe("Content-Type", contentType)
                 }
             }
-            if (url.contains("jacred.", ignoreCase = true)) {
-                headers.putSafe("Referer", MainActivity.LAMPA_URL)
-            }
+            injectLampaClientHeaders(headers)
             val finalRequestContent = requestContent
             val finalHeaders = headers
 
@@ -606,6 +605,26 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     @Synchronized
     override fun toString(): String {
         return store.all.toString()
+    }
+
+    private fun injectLampaClientHeaders(headers: JSONObject) {
+        AppAttestation.buildClientHeaders(mainActivity).forEach { (key, value) ->
+            headers.putSafe(key, value)
+        }
+
+        val referer = MainActivity.LAMPA_URL.trim().trimEnd('/')
+        if (referer.isNotEmpty()) {
+            headers.putSafe("Referer", referer)
+        }
+
+        debugLog(
+            TAG,
+            "httpReq injected client headers: " +
+                "${AppAttestation.HEADER_CLIENT}=${AppAttestation.clientId()}, " +
+                "${AppAttestation.HEADER_REPO}=${BuildConfig.REPO_ID}, " +
+                "Referer=$referer, " +
+                "${AppAttestation.HEADER_CERT_SHA256}=${AppAttestation.signingCertSha256(mainActivity)}"
+        )
     }
 
     private fun JSONObject.putSafe(key: String, value: Any) = try {

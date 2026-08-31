@@ -32,6 +32,25 @@ def getVersionName = { ->
     }
 }
 
+def getRepoId = { ->
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'remote', 'get-url', 'origin'
+            standardOutput = stdout
+        }
+        def url = stdout.toString().trim()
+        def matcher = url =~ /github\.com[:/]([^/]+\/[^/.]+)/
+        if (matcher.find()) {
+            return matcher.group(1)
+        }
+    }
+    catch (ignored) {
+        // fall through to default
+    }
+    return 'lampa-app/LAMPA'
+}
+
 android {
     //noinspection GradleDependency
     compileSdk 34
@@ -42,6 +61,7 @@ android {
         targetSdkVersion 28
         versionCode getVersionCode()
         versionName getVersionName()
+        buildConfigField "String", "REPO_ID", "\"${getRepoId()}\""
         multiDexEnabled = true // required when setting minSdkVersion to 20 or lower
         // Use SupportLibrary for vectors
         vectorDrawables.useSupportLibrary = true
