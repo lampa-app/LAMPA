@@ -299,9 +299,7 @@ class MainActivity : BaseActivity(),
 
     override fun onResume() {
         super.onResume()
-        isPlayerLaunching = false // returned to foreground; player (if any) is closed
-        browser?.setKeepVisible(false) // restore normal visibility handling
-        PlaybackService.stop(this) // no longer need to hold the process foreground
+        endPlayerSession() // returned to foreground; player (if any) is closed
         hideSystemUI()
         if (!isTvBox) setupFab()
         // Try to initialize again when the user completed updating and
@@ -570,9 +568,7 @@ class MainActivity : BaseActivity(),
     // mpv http://mpv-android.github.io/mpv-android/intent.html
     // vimu https://www.vimu.tv/player-api
     private fun handlePlayerResult(result: androidx.activity.result.ActivityResult) {
-        isPlayerLaunching = false // player closed, returning result
-        browser?.setKeepVisible(false)
-        PlaybackService.stop(this)
+        endPlayerSession() // player closed, returning result
         val data: Intent? = result.data
         val videoUrl: String = data?.data?.toString() ?: "null"
         val resultCode = result.resultCode
@@ -2193,6 +2189,21 @@ class MainActivity : BaseActivity(),
         )
     }
 
+    /**
+     * Toggle Lampa's own screensaver. We deliberately keep the page's JS timers running while
+     * an external player is in front (RCH socket heartbeat), so Lampa's inactivity timer also
+     * survives and fires its screensaver behind the player — burning CPU/network (the default
+     * "aerial" type streams 4K clips).
+     *
+     * This is a runtime-only flag inside Lampa's Screensaver instance; nothing is written to
+     * Lampa.Storage. If the process is killed during playback, the reloaded page enables the
+     * screensaver by itself, and the user's own screensaver setting is a separate flag we never
+     * touch.
+     */
+    private fun setLampaScreensaver(enabled: Boolean) {
+        runVoidJsFunc("Lampa.Screensaver." + if (enabled) "enable" else "disable", "")
+    }
+
     fun runVoidJsFunc(funcName: String, params: String) {
         if (browserInitComplete && loaderView.isGone) {
             logDebug("runVoidJsFunc $funcName")
@@ -3206,6 +3217,20 @@ class MainActivity : BaseActivity(),
         }
     }
 
+    /**
+     * The external player is gone (closed, or it never launched) — drop everything we were
+     * holding for its sake. Idempotent: both onResume() and handlePlayerResult() get here.
+     */
+    private fun endPlayerSession() {
+        if (!isPlayerLaunching) return
+        isPlayerLaunching = false
+        browser?.setKeepVisible(false) // restore normal visibility handling
+        PlaybackService.stop(this) // no longer need to hold the process foreground
+        // Unconditional: enable() is the page's own default state, so this also heals the case
+        // where keepPlayerConnection got toggled off while the player was in front.
+        setLampaScreensaver(true)
+    }
+
     private fun launchPlayer(intent: Intent) {
         try {
             debugLogIntentData(TAG, intent)
@@ -3219,12 +3244,12 @@ class MainActivity : BaseActivity(),
                 // Foreground service keeps the process out of the OEM/Android background
                 // freezer so the WebView RCH socket survives while the player is on top.
                 PlaybackService.start(this)
+                // ...and with the timers alive, Lampa would start its screensaver mid-playback.
+                setLampaScreensaver(false)
             }
             resultLauncher.launch(intent)
         } catch (e: Exception) {
-            isPlayerLaunching = false // no player launched -> onPause won't be a player launch
-            browser?.setKeepVisible(false)
-            PlaybackService.stop(this)
+            endPlayerSession() // no player launched -> onPause won't be a player launch
             logDebug("Failed to launch player: ${e.message}")
             App.toast(R.string.no_launch_player, true)
         }
