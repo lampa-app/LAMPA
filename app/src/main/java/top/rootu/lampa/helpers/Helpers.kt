@@ -405,29 +405,21 @@ object Helpers {
     }
 
     /**
-     * Checks if Telegram (official or unofficial) is installed on the device.
-     * Supports checking multiple package names for unofficial clients.
+     * Checks if any Telegram client (official or fork) is installed on the device
+     * by querying activities registered for the tg:// scheme.
+     * Detects unofficial forks automatically without maintaining a package list.
      *
-     * @param context The application context
-     * @return true if any Telegram client is installed, false otherwise
+     * Note: on Android 11+ (API 30) apps are subject to package visibility filtering;
+     * the manifest must declare a <queries> element for the tg:// scheme
+     * (see AndroidManifest.xml).
      */
     fun isTelegramInstalled(context: Context): Boolean {
-        val telegramPackages = listOf(
-            "org.telegram.messenger",     // Official Telegram
-            "org.telegram.plus",         // Telegram Plus
-            "org.telegram.messenger.web", // Telegram Web
-            "nekox.messenger",           // Nekogram
-            "org.thunderdog.challegram",  // Challegram
-            "uz.dilijan.messenger"       // Other unofficial clients
-        )
-
-        return telegramPackages.any { packageName ->
-            try {
-                context.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
-                true
-            } catch (_: PackageManager.NameNotFoundException) {
-                false
-            }
+        val pm = context.packageManager
+        val tgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve"))
+        return try {
+            pm.queryIntentActivities(tgIntent, 0).isNotEmpty()
+        } catch (_: Exception) {
+            false
         }
     }
 

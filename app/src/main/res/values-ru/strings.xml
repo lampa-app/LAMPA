@@ -5,6 +5,8 @@
     <string name="keep_connection_notification">Соединение поддерживается во время просмотра</string>
     <string name="keep_connection_enable">Включить удержание сокета</string>
     <string name="keep_connection_disable">Выключить удержание сокета</string>
+    <string name="kodi_playlist_enable">Включить поддержку плейлистов Kodi 22+</string>
+    <string name="kodi_playlist_disable">Отключить поддержку плейлистов Kodi 22+</string>
     <string name="no_torrent_activity_found">Нет приложения для открытия торрент-ссылок. Пожалуйста, установите TorrServe или любое другое приложение, работающее с торрентами.</string>
     <string name="no_youtube_activity_found">Нет приложения для открытия ссылок YouTube. Пожалуйста, установите приложение YouTube.</string>
     <string name="no_launch_player">Lampa: Выбранный плеер не поддерживает воспроизведение этого видео</string>
