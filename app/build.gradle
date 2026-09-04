@@ -40,7 +40,7 @@ def getRepoId = { ->
             standardOutput = stdout
         }
         def url = stdout.toString().trim()
-        def matcher = url =~ /github\.com[:/]([^/]+\/[^/.]+)/
+        def matcher = (url =~ 'github\\.com[:/]([^/]+/[^/.]+)')
         if (matcher.find()) {
             return matcher.group(1)
         }
