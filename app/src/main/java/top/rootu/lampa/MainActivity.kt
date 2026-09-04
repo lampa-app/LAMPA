@@ -98,6 +98,7 @@ import top.rootu.lampa.helpers.Prefs.appBrowser
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Prefs.appPlayer
 import top.rootu.lampa.helpers.Prefs.playerKeepConnection
+import top.rootu.lampa.helpers.Prefs.kodiPlaylistEnabled
 import top.rootu.lampa.helpers.Prefs.appPrefs
 import top.rootu.lampa.helpers.Prefs.appUrl
 import top.rootu.lampa.helpers.Prefs.bookToRemove
@@ -212,6 +213,12 @@ class MainActivity : BaseActivity(),
             "com.justplus.player",
             "com.lampaua.player"
         )
+		private val KODI_PACKAGES = setOf(
+			"org.xbmc.kodi",
+			"net.kodinerds.maven.kodi22",
+            "net.kodinerds.maven.kodi23",
+            "org.xbmc.fandangos",
+		)
         private val EXO_PLAYER_PACKAGES = setOf(
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
@@ -247,6 +254,7 @@ class MainActivity : BaseActivity(),
         var playerTimeCode: String = "continue"
         var playerAutoNext: Boolean = true
         var keepPlayerConnection: Boolean = true
+		var useKodiPlaylist: Boolean = true
         var proxyTmdbEnabled: Boolean = false
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
@@ -270,6 +278,7 @@ class MainActivity : BaseActivity(),
         LAMPA_URL = appUrl
         SELECTED_PLAYER = appPlayer
         keepPlayerConnection = playerKeepConnection
+		useKodiPlaylist = kodiPlaylistEnabled
         logDebug("onCreate SELECTED_BROWSER: $SELECTED_BROWSER")
         logDebug("onCreate LAMPA_URL: $LAMPA_URL")
         logDebug("onCreate SELECTED_PLAYER: $SELECTED_PLAYER")
@@ -1358,6 +1367,14 @@ class MainActivity : BaseActivity(),
                 action = "toggleKeepConnection",
                 icon = R.drawable.round_link_24
             ),
+			MenuItem(
+                title = getString(
+                    if (useKodiPlaylist) R.string.kodi_playlist_disable
+                    else R.string.kodi_playlist_enable
+                ),
+                action = "toggleKodiPlaylist",
+                icon = R.drawable.round_link_24
+            ),
             MenuItem(
                 title = getString(R.string.exit),
                 action = "appExit",
@@ -1403,6 +1420,12 @@ class MainActivity : BaseActivity(),
                         keepPlayerConnection = !keepPlayerConnection
                         playerKeepConnection = keepPlayerConnection // persist to prefs
                         showMenuDialog() // reopen so the item reflects the new state
+                    }
+
+					"toggleKodiPlaylist" -> {
+                        useKodiPlaylist = !useKodiPlaylist
+                        kodiPlaylistEnabled = useKodiPlaylist
+                        showMenuDialog()
                     }
                     "appExit" -> appExit()
                 }
@@ -2420,6 +2443,14 @@ class MainActivity : BaseActivity(),
                     headers = headers
                 )
             }
+			// Kodi
+			in KODI_PACKAGES.takeIf { useKodiPlaylist } ?: emptySet() -> {
+				configureKodiIntent(
+					intent,
+					playerPackage,
+					state = state
+				)
+		    }
             // MPV
             "is.xyz.mpv" -> {
                 configureMpvIntent(
@@ -2857,6 +2888,42 @@ class MainActivity : BaseActivity(),
             }
         }
     }
+	
+	private fun configureKodiIntent(
+		intent: Intent,
+		playerPackage: String,
+		state: PlayerStateManager.PlaybackState
+	) {
+		val item = state.currentItem ?: return
+		val uri = item.url.toUri()
+		
+		val hasSubtitles = state.playlist.any { item ->
+		    !item.subtitles.isNullOrEmpty()
+		}
+
+		intent.apply {
+			setPackage(playerPackage)
+			action = Intent.ACTION_VIEW
+			
+			if (state.playlist.size > 1 || hasSubtitles) {
+				val hash = uri.getQueryParameter("link") ?: return
+				val index = uri.getQueryParameter("index") ?: "0"
+				
+				val playlistUrl =
+					"${uri.scheme}://${uri.authority}/playlist/${Uri.encode(uri.lastPathSegment)}.m3u?hash=$hash&index=$index"
+				
+				setDataAndType(
+					playlistUrl.toUri(),
+					"audio/x-mpegurl"
+				)
+			} else {
+				setDataAndType(
+					uri,
+					"video/*"
+				)
+			}
+		}
+	}
 
     private fun configureMxPlayerIntent(
         intent: Intent,

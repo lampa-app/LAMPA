@@ -5,6 +5,8 @@
     <string name="keep_connection_notification">播放期间保持连接</string>
     <string name="keep_connection_enable">开启保持 socket 打开</string>
     <string name="keep_connection_disable">关闭保持 socket 打开</string>
+    <string name="kodi_playlist_enable">启用 Kodi 22+ 播放列表支持</string>
+    <string name="kodi_playlist_disable">禁用 Kodi 22+ 播放列表支持</string>
     <string name="no_torrent_activity_found">​​没有应用程序可以打开 torrent 链接。请安装 TorrServe 或任何其他支持 torrent 的应用程序。</string>
     <string name="no_youtube_activity_found">​​没有应用程序可以打开 YouTube 链接。请安装 YouTube 应用。</string>
     <string name="no_launch_player">所选播放器不支持该视频</string>

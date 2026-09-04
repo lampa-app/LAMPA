@@ -5,6 +5,8 @@
     <string name="keep_connection_notification">Mentinerea conexiunii active în timpul redării</string>
     <string name="keep_connection_enable">Activează menținerea socket-ului deschis</string>
     <string name="keep_connection_disable">Dezactivează menținerea socket-ului deschis</string>
+    <string name="kodi_playlist_enable">Activează suportul pentru playlisturi Kodi 22+</string>
+    <string name="kodi_playlist_disable">Dezactivează suportul pentru playlisturi Kodi 22+</string>
     <string name="no_torrent_activity_found">Nu există nicio aplicație pentru a deschide link-uri torrent. Te rugăm să instalezi TorrServe sau o altă aplicație compatibilă cu torrentele.</string>
     <string name="no_youtube_activity_found">Nu există nicio aplicație pentru a deschide link-uri YouTube. Te rugăm să instalezi aplicația YouTube.</string>
     <string name="no_launch_player">Playerul selectat nu suportă redarea acestui video</string>
