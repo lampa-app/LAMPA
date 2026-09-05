@@ -57,27 +57,7 @@ object Updater {
             releases = getJson(body, Releases::class.java)
             releases?.let {
                 it.forEach { rel ->
-                    val majorVersionDouble: Double = try {
-                        rel.tag_name.replace("v", "").substringBefore(".").toDouble()
-                    } catch (npe: NumberFormatException) {
-                        0.0
-                    }
-                    val lastVersionDouble: Double = try {
-                        rel.tag_name.replace("v", "").substringAfter(".").toDouble()
-                    } catch (npe: NumberFormatException) {
-                        0.0
-                    }
-                    val majorCurrVersionDouble: Double = try {
-                        BuildConfig.VERSION_NAME.substringBefore(".").toDouble()
-                    } catch (npe: NumberFormatException) {
-                        0.0
-                    }
-                    val currVersionDouble: Double = try {
-                        BuildConfig.VERSION_NAME.substringAfter(".").toDouble()
-                    } catch (npe: NumberFormatException) {
-                        0.0
-                    }
-                    if (majorVersionDouble >= majorCurrVersionDouble && majorVersionDouble < 2 && lastVersionDouble > currVersionDouble) {
+                    if (isNewerVersion(rel.tag_name)) {
                         newVersion = rel
                         connection.disconnect()
                         return true
@@ -104,27 +84,7 @@ object Updater {
         var ret = ""
 
         releases?.forEach { rel ->
-            val majorVersionDouble: Double = try {
-                rel.tag_name.replace("v", "").substringBefore(".").toDouble()
-            } catch (npe: NumberFormatException) {
-                0.0
-            }
-            val lastVersionDouble: Double = try {
-                rel.tag_name.replace("v", "").substringAfter(".").toDouble()
-            } catch (npe: NumberFormatException) {
-                0.0
-            }
-            val majorCurrVersionDouble: Double = try {
-                BuildConfig.VERSION_NAME.substringBefore(".").toDouble()
-            } catch (npe: NumberFormatException) {
-                0.0
-            }
-            val currVersionDouble: Double = try {
-                BuildConfig.VERSION_NAME.substringAfter(".").toDouble()
-            } catch (npe: NumberFormatException) {
-                0.0
-            }
-            if (majorVersionDouble >= majorCurrVersionDouble && majorVersionDouble < 2 && lastVersionDouble > currVersionDouble) {
+            if (isNewerVersion(rel.tag_name)) {
                 ret += "<font color='white'><b>${rel.tag_name}</b></font> <br>"
                 ret += "<i>${rel.body.replace("\r\n", "<br/>")}</i><br/><br/>"
             } else {
@@ -133,6 +93,39 @@ object Updater {
             }
         }
         return HtmlCompat.fromHtml(ret.trim(), HtmlCompat.FROM_HTML_MODE_LEGACY)
+    }
+
+    // Integer segments: "12.10".toDouble() == 12.1, so 1.12.9 looked newer than 1.12.10.
+    private fun parseVersion(version: String): List<Int> {
+        val numeric = version.trim()
+            .removePrefix("v")
+            .removePrefix("V")
+            .substringBefore("-") // git describe: 1.12.10-5-gabcdef
+            .substringBefore("+")
+        return numeric.split('.')
+            .map { part -> part.filter { it.isDigit() }.toIntOrNull() ?: 0 }
+    }
+
+    private fun compareVersions(remote: String, local: String): Int {
+        val remoteParts = parseVersion(remote)
+        val localParts = parseVersion(local)
+        val size = maxOf(remoteParts.size, localParts.size)
+        for (i in 0 until size) {
+            val remoteSeg = remoteParts.getOrElse(i) { 0 }
+            val localSeg = localParts.getOrElse(i) { 0 }
+            if (remoteSeg != localSeg) return remoteSeg.compareTo(localSeg)
+        }
+        return 0
+    }
+
+    // Offer only a 1.x release that is actually newer than the installed build.
+    private fun isNewerVersion(
+        remote: String,
+        local: String = BuildConfig.VERSION_NAME
+    ): Boolean {
+        val remoteMajor = parseVersion(remote).firstOrNull() ?: 0
+        if (remoteMajor >= 2) return false
+        return compareVersions(remote, local) > 0
     }
 
     private val download = Any()
