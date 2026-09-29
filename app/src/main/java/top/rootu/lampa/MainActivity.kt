@@ -17,6 +17,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
@@ -542,6 +544,18 @@ class MainActivity : BaseActivity(),
         try {
             browser = XWalk(this, R.id.xWalkView)
             browser?.initialize()
+            // Fix: On legacy Android versions (5-7) / Amlogic SoC, dynamically adding SurfaceView
+            // after onCreate/onResume leaves the display surface unattached (window.innerWidth == 0).
+            // A delayed REORDER_TO_FRONT pulse forces WindowManager to bind the surface.
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    }
+                    startActivity(intent)
+                } catch (ignored: Throwable) {
+                }
+            }, 1200)
         } catch (e: Exception) {
             Log.e("XWalk", "Init failed. Fallback to WebView.", e)
             useSystemWebView()
