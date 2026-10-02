@@ -144,6 +144,9 @@
             android:required="false" />
 
         <receiver
+            android:name=".receivers.PlayerReportReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
             android:exported="false">

@@ -88,6 +88,8 @@ data class LampaCard(
     val runtime: Int?, // 0,
     val adult: Boolean?, // false
     // "seasons": [{...}],
+    val tmdb_id: String? = null, // separate TMDB id when id is not one (e.g. "KP_1227897")
+    val images: top.rootu.lampa.tmdb.models.entity.Images? = null, // TMDB images, logos used by Just+ Player
 ) {
     /**
      * Normalizes and fixes data inconsistencies in the LampaCard.

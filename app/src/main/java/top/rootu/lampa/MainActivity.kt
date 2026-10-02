@@ -1,6 +1,7 @@
 package top.rootu.lampa
 
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.Context
@@ -66,6 +67,7 @@ import net.gotev.speech.SpeechDelegate
 import net.gotev.speech.SpeechRecognitionNotAvailable
 import net.gotev.speech.SpeechUtil
 import net.gotev.speech.ui.SpeechProgressView
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.xwalk.core.MyXWalkEnvironment
@@ -129,7 +131,9 @@ import top.rootu.lampa.helpers.isTvBox
 import top.rootu.lampa.models.LAMPA_CARD_KEY
 import top.rootu.lampa.models.LampaCard
 import top.rootu.lampa.net.HttpHelper
+import top.rootu.lampa.receivers.PlayerReportReceiver
 import top.rootu.lampa.sched.Scheduler
+import top.rootu.lampa.tmdb.TMDB
 import java.util.Locale
 import java.util.regex.Pattern
 import androidx.core.content.edit
@@ -212,10 +216,10 @@ class MainActivity : BaseActivity(),
         private val DDD_PLAYER_PACKAGES = setOf(
             "top.rootu.dddplayer"
         )
-        private val JUSTPLUS_PLAYER_PACKAGES = setOf(
-            "com.justplus.player",
-            "com.lampaua.player"
-        )
+        // Players on the Just+ nested playlist contract; beta builds add a suffix to the package
+        private val JUSTPLUS_PLAYER_PREFIXES = listOf("com.justplus.player", "com.lampaua.player")
+
+        private fun isJustPlusPlayer(name: String) = JUSTPLUS_PLAYER_PREFIXES.any { name.startsWith(it) }
 		private val KODI_PACKAGES = setOf(
 			"org.xbmc.kodi",
 			"net.kodinerds.maven.kodi22",
@@ -267,6 +271,46 @@ class MainActivity : BaseActivity(),
         var proxyTmdbEnabled: Boolean = false
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
+
+        // Just+ Player reports: the activity a report belongs to rides in the callback itself, so a
+        // report of an older launch is told apart from the activity on screen.
+        private const val REPORT_ACTIVITY_EXTRA = "lampa_activity"
+        private var instance: java.lang.ref.WeakReference<MainActivity>? = null
+
+        /**
+         * Handled only by a live activity. A report reaching a process started just for it is dropped,
+         * never kept for the next start: applied then, it could write over progress the cloud sync has
+         * brought in meanwhile.
+         */
+        fun onPlayerReport(context: Context, intent: Intent) {
+            instance?.get()?.takeIf { !it.isFinishing }?.handleJustPlusReport(justPlusReport(intent))
+        }
+
+        /** com.justplus.player.result as JSON: everything handleJustPlusReport needs, nothing else. */
+        private fun justPlusReport(intent: Intent): JSONObject {
+            val positions = intent.getIntArrayExtra("positions_sec") ?: IntArray(0)
+            // Durations come per visit in history; the last known one of each item wins.
+            val durations = IntArray(positions.size) { -1 }
+            @Suppress("DEPRECATION")
+            intent.getParcelableArrayExtra("history")?.forEach { visit ->
+                val v = visit as? Bundle ?: return@forEach
+                val i = v.getInt("index", -1)
+                val d = v.getInt("duration_sec", -1)
+                if (i in durations.indices && d > 0) durations[i] = d
+            }
+            val index = intent.getIntExtra("index", -1)
+            val duration = intent.getIntExtra("duration_sec", -1)
+            if (index in durations.indices && duration > 0) durations[index] = duration
+            return JSONObject().apply {
+                put("key", intent.getStringExtra(REPORT_ACTIVITY_EXTRA) ?: lampaActivity)
+                put("uri", intent.getStringExtra("uri") ?: intent.dataString)
+                put("index", index)
+                put("end_by", intent.getStringExtra("end_by"))
+                put("error", intent.getStringExtra("error_message"))
+                put("positions", JSONArray(positions.toList()))
+                put("durations", JSONArray(durations.toList()))
+            }
+        }
     }
 
     inline fun <reified T> T.logDebug(message: String) {
@@ -294,6 +338,7 @@ class MainActivity : BaseActivity(),
         playerStateManager = PlayerStateManager(this).apply {
             purgeOldStates()
         }
+        instance = java.lang.ref.WeakReference(this)
 
         setupActivity()
         setupBrowser()
@@ -345,6 +390,9 @@ class MainActivity : BaseActivity(),
     }
 
     override fun onDestroy() {
+        // A destroyed activity may linger before GC, so the weak reference alone would still hand it
+        // reports. Only our own: a newer activity may already have registered itself.
+        if (instance?.get() === this) instance = null
         PlaybackService.stop(this)
         if (browserInitComplete) {
             browser?.apply {
@@ -618,6 +666,12 @@ class MainActivity : BaseActivity(),
         debugLogIntentData(TAG, data)
 
         data?.let { intent ->
+            // Just+ Player nested playlist API: <player prefix>...result
+            val action = intent.action
+            if (action != null && isJustPlusPlayer(action) && action.endsWith(".result")) {
+                handleJustPlusPlayerResult(intent, resultCode)
+                return
+            }
             when (intent.action) {
                 // MX & Just Player
                 "com.mxtech.intent.result.VIEW" ->
@@ -698,6 +752,116 @@ class MainActivity : BaseActivity(),
             RESULT_FIRST_USER -> Log.e(TAG, "Playback stopped by unknown error")
             else -> Log.e(TAG, "Invalid state [resultCode=$resultCode]")
         }
+    }
+
+    private fun handleJustPlusPlayerResult(intent: Intent, resultCode: Int) {
+        if (resultCode != RESULT_OK) {
+            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+            return
+        }
+        handleJustPlusReport(justPlusReport(intent), final = true)
+    }
+
+    /**
+     * A Just+ Player report, from setResult or from the result_callback — the same snapshot either
+     * way, so handling it twice (Back sends both) writes the same thing twice. Every item gets the
+     * position it was left at (positions_sec, seconds; -1 = never opened), not just the last one, so
+     * nothing is marked watched that was only skipped past.
+     *
+     * @param final the player is gone (setResult). A callback report may come mid-session — the screen
+     * went off at 97 % of an episode — and clearing the state on it would lose every report after.
+     */
+    fun handleJustPlusReport(report: JSONObject, final: Boolean = false) {
+        val endBy = report.optString("end_by")
+        if (endBy != "completion" && endBy != "user") {
+            when (endBy) {
+                "cancelled" -> Log.i(TAG, "Playback cancelled before start")
+                "error" -> Log.e(TAG, "Playback error: ${report.optString("error")}")
+                else -> Log.e(TAG, "Invalid state [endBy=$endBy]")
+            }
+            return
+        }
+        val key = report.optString("key", lampaActivity)
+        val positions = report.optJSONArray("positions") ?: return
+        val durations = report.optJSONArray("durations") ?: return
+        // Lampa's side — its timeline, the plugins that sync it, the viewed eyes, Watch Next — belongs to
+        // the activity on screen; a report of another (the old session's final one, sent as a new
+        // launch replaces it) would land there under the wrong card. Its progress went out when the
+        // viewer left that player, so only its saved state is brought up to date.
+        val onScreen = key == lampaActivity
+        lifecycleScope.launch {
+            val state = playerStateManager.getState(key)
+            val playlist = state.playlist.toMutableList()
+            if (playlist.isEmpty() || positions.length() != playlist.size) {
+                logDebug("Player report does not fit the playlist [${positions.length()} / ${playlist.size}]")
+                return@launch
+            }
+            for (i in playlist.indices) {
+                val pos = positions.optInt(i, -1)
+                val dur = durations.optInt(i, -1)
+                if (pos < 0 || dur <= 0) continue // never opened, or no length to measure it by
+                val ended = pos >= dur || isAfterEndCreditsPosition(pos * 1000L, dur * 1000L)
+                playlist[i] = createUpdatedPlaylistItem(playlist[i], pos * 1000, dur * 1000, ended)
+                if (onScreen) playlist[i].timeline?.takeIf { it.hash != "0" }?.let { timeline ->
+                    runVoidJsFunc(
+                        "Lampa.Timeline.update",
+                        playerStateManager.convertTimelineToJsonString(timeline)
+                    )
+                }
+            }
+            val index = report.optInt("index", -1).takeIf { it in playlist.indices } ?: state.currentIndex
+            if (onScreen) markOpened(playlist, positions, index)
+            val ended = playlist[index].timeline?.percent == 100
+            Log.i(TAG, "Player report [index=$index, ended=$ended]")
+            playerStateManager.saveState(
+                activityJson = key,
+                playlist = playlist,
+                currentIndex = index,
+                currentUrl = report.optString("uri").takeIf { it.isNotEmpty() } ?: playlist[index].url,
+                currentPosition = positions.optInt(index, 0).coerceAtLeast(0) * 1000L,
+                startIndex = state.startIndex,
+                extras = state.extras
+            )
+            if (ended) {
+                if (onScreen) launch(Dispatchers.Default) { updatePlayNext(true) }.join()
+                if (final || endBy == "completion") playerStateManager.clearState(key)
+            } else if (onScreen) {
+                launch(Dispatchers.Default) { updatePlayNext(false) }
+            }
+        }
+    }
+
+    /**
+     * The "viewed" eye of the online plugin (online.js): its playlist items carry `callback: file.mark`,
+     * which Lampa's own player calls as each episode starts. An external player gets the playlist as
+     * JSON, functions dropped, so only the episode clicked was ever marked. The playlist itself stays in
+     * Lampa.PlayerPlaylist after the hand-over: call the mark of every item opened in this session,
+     * the current one last so it is the one the plugin resumes. By url only: Lampa rewrites the urls on
+     * those very objects before the hand-over, so they are the strings this playlist holds, and a
+     * season / episode fallback would mark another show's episode once its playlist has replaced this
+     * one. Nothing to call once the page has been reloaded — the list is gone then.
+     */
+    private fun markOpened(
+        playlist: List<PlayerStateManager.PlaylistItem>,
+        positions: JSONArray,
+        current: Int
+    ) {
+        val opened = JSONArray()
+        (playlist.indices.filter { it != current } + current).forEach { i ->
+            if (positions.optInt(i, -1) < 0) return@forEach
+            opened.put(playlist[i].url)
+        }
+        if (opened.length() == 0) return
+        runVoidJsFunc(
+            "(function (opened) {" +
+                    "var list = (window.Lampa && Lampa.PlayerPlaylist && Lampa.PlayerPlaylist.get()) || [];" +
+                    "opened.forEach(function (url) {" +
+                    "var item = list.find(function (p) { return p.url == url; });" +
+                    "if (item && typeof item.callback == 'function') item.callback();" +
+                    "});" +
+                    "})",
+            opened.toString()
+        )
     }
 
     private fun handleVlcPlayerResult(intent: Intent, resultCode: Int, videoUrl: String) {
@@ -2297,7 +2461,9 @@ class MainActivity : BaseActivity(),
                 ?: if (isIPTV || isLIVE) tvPlayer else appPlayer
             val videoTitle =
                 jsonObject.optString("title", if (isIPTV) "LAMPA TV" else "LAMPA video")
-            val card = getCardFromActivity(playActivity)
+            // The card sent with the play request names this video; the stored activity is only as
+            // fresh as the last storage event and can still be the page before.
+            val card = getCard(jsonObject.optJSONObject("card")) ?: getCardFromActivity(playActivity)
 
             // Headers handling
             var headers = prepareHeaders(jsonObject)
@@ -2424,6 +2590,11 @@ class MainActivity : BaseActivity(),
     ) {
         val position = getPlaybackPosition(state)
 
+        // Just+ Player: nested playlist API, any build of it (beta builds add a suffix to the package)
+        if (isJustPlusPlayer(playerPackage.lowercase())) {
+            configureJustPlusPlaylistIntent(intent, playerPackage, state, videoTitle, position, headers)
+            return
+        }
         when (playerPackage.lowercase()) {
             // UPlayer
             in UPLAYER_PACKAGES -> {
@@ -2438,17 +2609,6 @@ class MainActivity : BaseActivity(),
             // DDD Video Player
             in DDD_PLAYER_PACKAGES -> {
                 configureDddPlayerIntent(
-                    intent,
-                    playerPackage,
-                    state = state,
-                    videoTitle,
-                    position,
-                    headers = headers
-                )
-            }
-            // Just+ Player
-            in JUSTPLUS_PLAYER_PACKAGES -> {
-                configureJustPlusPlayerIntent(
                     intent,
                     playerPackage,
                     state = state,
@@ -2790,7 +2950,9 @@ class MainActivity : BaseActivity(),
         return label.filter { it.isDigit() }.toIntOrNull() ?: 0
     }
 
-    private fun configureJustPlusPlayerIntent(
+    // Just+ Player nested `playlist` contract: one Bundle with an item Bundle per episode.
+    // The player answers with <its package prefix>.result (see handleJustPlusPlayerResult).
+    private fun configureJustPlusPlaylistIntent(
         intent: Intent,
         playerPackage: String,
         state: PlayerStateManager.PlaybackState,
@@ -2801,119 +2963,102 @@ class MainActivity : BaseActivity(),
         val card = (state.extras[LAMPA_CARD_KEY] as? String)
             ?.let { getJson(it, LampaCard::class.java) }
         val cardImdbId = card?.imdb_id?.takeIf { it.isNotEmpty() }
-        val cardId = card?.id?.takeIf { it.isNotEmpty() }
+        val cardId = card?.tmdb_id?.takeIf { it.isNotEmpty() }
+            ?: card?.id?.takeIf { it.isNotEmpty() }
+        // A series: the root title is the show, each item's own name goes under it as episode_title
+        val isSeries = card?.type == "tv" ||
+                state.playlist.any { it.season != null || it.episode != null }
+        // The root title is the card's name (a show's is `name`, a film's `title`), else what LAMPA sent
+        val cardTitle = (if (isSeries) listOf(card?.name, card?.title) else listOf(card?.title, card?.name))
+            .firstOrNull { !it.isNullOrEmpty() }
+        val title = cardTitle ?: videoTitle
+        // The widest logo in the app language, else in English, else none
+        // Read as nullable: Gson leaves a missing file_path null whatever the model declares
+        val logos = card?.images?.logos.orEmpty().filter { val path: String? = it.file_path; !path.isNullOrEmpty() }
+        val logo = (logos.filter { it.iso_639_1 == appLang.substringBefore('-') }.takeIf { it.isNotEmpty() }
+            ?: logos.filter { it.iso_639_1 == "en" })
+            .maxByOrNull { it.aspect_ratio }
+            ?.let { TMDB.imageUrl(it.file_path).replace("original", "w500") }
+        // The best-voted backdrop without lettering, else the card's own backdrop
+        val backdrop = card?.images?.backdrops.orEmpty()
+            .filter { val path: String? = it.file_path; val lang: String? = it.iso_639_1; !path.isNullOrEmpty() && lang.isNullOrEmpty() }
+            .maxByOrNull { it.vote_average }?.file_path
+        val background = (backdrop ?: card?.backdrop_path)?.takeIf { it.isNotEmpty() }
+            ?.let { TMDB.imageUrl(it).replace("original", "w1280") }
+            ?: card?.background_image?.takeIf { it.isNotEmpty() }
 
-        intent.apply {
-            setPackage(playerPackage)
-            putExtra("title", videoTitle)
-            putExtra("return_result", true)
-
-            headers?.let { putExtra("headers", it) }
-
-            when {
-                playerTimeCode == "continue" && position > 0 ->
-                    putExtra("position", position.toInt())
-                playerTimeCode == "again" ->
-                    putExtra("position", 0)
-            }
-
-            // Quality variants for the current item (JAPP quality-switching contract): parallel
-            // String[] arrays aligned by index, sorted from highest resolution to lowest. Absent
-            // when the item carries no quality map.
-            state.currentItem?.quality?.takeIf { it.isNotEmpty() }?.let { qualities ->
-                val labels = qualities.keys.sortedByDescending { qualityLines(it) }
-                putExtra("quality_levels", labels.toTypedArray())
-                putExtra("quality_urls", labels.map { qualities.getValue(it).toUri() }.toTypedArray())
-            }
-
-            if (state.playlist.size > 1) {
-                val urls = ArrayList<Uri>()
-                val titles = ArrayList<String>()
-                val filenames = ArrayList<String>()
-                val thumbnails = ArrayList<String>()
-                val segmentsList = ArrayList<String>()
-                val subtitlesList = ArrayList<Bundle>()
-
-                val seasons = ArrayList<String>()
-                val episodes = ArrayList<String>()
-                val imdbIds = ArrayList<String>()
-                val ids = ArrayList<String>()
-
-                state.playlist.forEachIndexed { index, item ->
-                    urls.add(item.url.toUri())
-                    titles.add(item.title ?: "")
-                    filenames.add(item.url.toUri().lastPathSegment ?: "")
-                    thumbnails.add(item.thumbnail ?: "")
-                    segmentsList.add(item.segments ?: "")
-                    seasons.add(item.season?.toString() ?: "")
-                    episodes.add(item.episode?.toString() ?: "")
-                    imdbIds.add(item.imdbId ?: cardImdbId ?: "")
-                    ids.add(cardId ?: "")
-
-                    // Per-episode quality variants, keyed by index (mirrors the uri_$index pattern).
-                    // Episodes without a quality map simply get no extras; the player falls back to url.
-                    item.quality?.takeIf { it.isNotEmpty() }?.let { q ->
-                        val labels = q.keys.sortedByDescending { qualityLines(it) }
-                        putExtra("video_list.quality_levels.$index", labels.toTypedArray())
-                        putExtra(
-                            "video_list.quality_urls.$index",
-                            labels.map { q.getValue(it).toUri() }.toTypedArray()
-                        )
-                    }
-
-                    val itemSubsBundle = Bundle()
-                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
-                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
-                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
-                        itemSubsBundle.putParcelableArray("uris", subUris)
-                        itemSubsBundle.putStringArray("names", subNames)
-                    }
-                    subtitlesList.add(itemSubsBundle)
+        val items = state.playlist.mapIndexed { index, item ->
+            Bundle().apply {
+                // Encoded as the launch's data is (createBaseIntent): spaces, Cyrillic, brackets
+                putString("uri", encodeUrlIfNeeded(item.url))
+                item.title?.takeIf { it.isNotEmpty() && (isSeries || it != videoTitle) }
+                    ?.let { putString("episode_title", it) }
+                item.thumbnail?.takeIf { it.isNotEmpty() }?.let { putString("thumbnail", it) }
+                (item.imdbId ?: cardImdbId)?.let { putString("imdb_id", it) }
+                cardId?.let { putString("tmdb_id", it) }
+                item.season?.let { putInt("season", it) }
+                item.episode?.let { putInt("episode", it) }
+                item.segments?.takeIf { it.isNotEmpty() }?.let { putString("segments", it) }
+                // The start item from the resolved position; the others from their own timeline, so a
+                // jump from the player's playlist resumes a half-watched episode (a finished one starts over)
+                if (index == state.currentIndex) {
+                    if (playerTimeCode == "continue" && position > 0)
+                        putInt("position_sec", (position / 1000).toInt())
+                } else if (playerTimeCode == "continue") {
+                    item.timeline?.takeIf {
+                        it.time > 0 && it.percent < VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
+                    }?.let { putInt("position_sec", it.time.toInt()) }
                 }
-
-                state.currentItem?.let { item ->
-                    setDataAndType(item.url.toUri(), "video/*")
-
-                    item.season?.let { putExtra("season", it) }
-                    item.episode?.let { putExtra("episode", it) }
-                    (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
-                    cardId?.let { putExtra("id", it) }
+                item.quality?.takeIf { it.isNotEmpty() }?.let { q ->
+                    putParcelableArray("qualities", q.keys.sortedByDescending { qualityLines(it) }
+                        .map { label ->
+                            Bundle().apply {
+                                putString("label", label)
+                                putString("uri", encodeUrlIfNeeded(q.getValue(label)))
+                            }
+                        }.toTypedArray())
                 }
-
-                putExtra("video_list", urls.toTypedArray())
-                putStringArrayListExtra("video_list.name", titles)
-                putStringArrayListExtra("video_list.filename", filenames)
-                putStringArrayListExtra("video_list.thumbnail", thumbnails)
-                putStringArrayListExtra("video_list.segments", segmentsList)
-                putStringArrayListExtra("video_list.season", seasons)
-                putStringArrayListExtra("video_list.episode", episodes)
-                putStringArrayListExtra("video_list.imdb_id", imdbIds)
-                putStringArrayListExtra("video_list.id", ids)
-
-                putParcelableArrayListExtra("video_list.subtitles", subtitlesList)
-
-            } else {
-                state.currentItem?.let { item ->
-                    setDataAndType(item.url.toUri(), "video/*")
-                    putExtra("filename", item.url.toUri().lastPathSegment)
-                    putExtra("thumbnail", item.thumbnail ?: "")
-                    item.segments?.let { putExtra("segments", it) }
-                    item.season?.let { putExtra("season", it) }
-                    item.episode?.let { putExtra("episode", it) }
-                    (item.imdbId ?: cardImdbId)?.let { putExtra("imdb_id", it) }
-                    cardId?.let { putExtra("id", it) }
-
-                    item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
-                        val subUris = subs.map { it.url.toUri() }.toTypedArray()
-                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
-
-                        putExtra("subs", subUris)
-                        putExtra("subs.name", subNames)
-                    }
+                item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
+                    putParcelableArray("subtitles", subs.map { sub ->
+                        Bundle().apply {
+                            putString("uri", encodeUrlIfNeeded(sub.url))
+                            putString("label", sub.label.ifEmpty { "Sub" })
+                            sub.language?.let { putString("language", it) }
+                        }
+                    }.toTypedArray())
                 }
             }
         }
+
+        intent.apply {
+            setPackage(playerPackage)
+            putExtra("playlist", Bundle().apply {
+                putString("title", title)
+                logo?.let { putString("logo", it) }
+                background?.let { putString("background", it) }
+                putInt("start_index", state.currentIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0)))
+                headers?.let { putStringArray("headers", it) }
+                putParcelableArray("items", items.toTypedArray())
+                // A report every 2 minutes while playing, the cadence of Lampa's own player: the one on
+                // leaving can come too late to be kept (a task swiped from recents dies a second after it)
+                putInt("report_interval_sec", 120)
+                // Reports on every leave (Home included). Mutable, or the player's extras are dropped:
+                // the default below Android 12 and for targetSdk < 31, explicit from 31 on. One per
+                // activity: a new launch into the running player first reports the old session to the
+                // old callback, and a shared one would by then carry the new activity's key.
+                putParcelable(
+                    "result_callback", PendingIntent.getBroadcast(
+                        this@MainActivity, lampaActivity.hashCode(),
+                        Intent(this@MainActivity, PlayerReportReceiver::class.java)
+                            .putExtra(REPORT_ACTIVITY_EXTRA, lampaActivity),
+                        PendingIntent.FLAG_UPDATE_CURRENT or
+                                (if (VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
+                    )
+                )
+            })
+        }
     }
+
 	
 	private fun configureKodiIntent(
 		intent: Intent,
@@ -3594,16 +3739,16 @@ class MainActivity : BaseActivity(),
 
     private fun getCardFromActivity(activityJson: String?): LampaCard? {
         return try {
-            JSONObject(activityJson ?: return null)
-                .optJSONObject("movie")
-                ?.let { movieObj ->
-                    getJson(movieObj.toString(), LampaCard::class.java)?.apply {
-                        fixCard()
-                    }
-                }
+            getCard(JSONObject(activityJson ?: return null).optJSONObject("movie"))
         } catch (e: JSONException) {
             logDebug("Invalid activity JSON: ${e.message}")
             null
+        }
+    }
+
+    private fun getCard(cardJson: JSONObject?): LampaCard? {
+        return getJson(cardJson?.toString() ?: return null, LampaCard::class.java)?.apply {
+            fixCard()
         }
     }
 
@@ -3613,7 +3758,11 @@ class MainActivity : BaseActivity(),
     private suspend fun updatePlayNext(ended: Boolean) = withContext(Dispatchers.Default) {
         if (!isTvContentProviderAvailable) return@withContext
         try {
-            val card = getCardFromActivity(lampaActivity) ?: return@withContext
+            // The card runPlayer stored with this state came with the play request; the activity can be
+            // the page before.
+            val card = (playerStateManager.getState(lampaActivity).extras[LAMPA_CARD_KEY] as? String)
+                ?.let { getJson(it, LampaCard::class.java) }
+                ?: getCardFromActivity(lampaActivity) ?: return@withContext
             // Get current playback state
             // val state = playerStateManager.getState(lampaActivity)
             // Get state by matching card (must be added with saveState!)
