@@ -3062,13 +3062,12 @@ class MainActivity : BaseActivity(),
                     .joinToString("\r\n") { (k, v) -> "$k: $v" }
                 putExtra("headers", headerString)
             }
-            // Handle playback position
-            when {
-                playerTimeCode == "continue" && position > 0 ->
-                    putExtra("position", position.toInt())
-
-                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
-                    putExtra("position", 1)
+            // Handle playback position:
+            // Crucial: Only pass position when resuming at > 0 ms.
+            // Do NOT send position = 1 when starting from 0: MPV interprets this as --start=0.001
+            // which forces seeking on unbuffered/live streams (e.g. TorrServer) and breaks playback.
+            if (playerTimeCode == "continue" && position > 0) {
+                putExtra("position", position.toInt())
             }
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
