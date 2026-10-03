@@ -85,6 +85,7 @@ import top.rootu.lampa.helpers.Backup.validateStorageBackup
 import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
+import top.rootu.lampa.helpers.Helpers.encodeUrlIfNeeded
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
@@ -2375,10 +2376,11 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
     ): Intent? {
         state.currentItem?.let { currentItem ->
+            val safeUri = encodeUrlIfNeeded(currentItem.url).toUri()
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = currentItem.url.toUri()
+                data = safeUri
                 setDataAndType(
-                    currentItem.url.toUri(),
+                    safeUri,
                     /* if (currentItem.url.endsWith(".m3u8")) "application/vnd.apple.mpegurl" else */
                     "video/*"
                 )
@@ -3070,8 +3072,9 @@ class MainActivity : BaseActivity(),
             }
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
-                // MPV can handle multiple subtitle tracks
-                putExtra("subs", subs.map { it.url.toUri() }.toTypedArray()) // Parcelable[]
+                // MPV can handle multiple subtitle tracks, ensure URLs are properly encoded
+                val subUris = subs.map { encodeUrlIfNeeded(it.url).toUri() }.toTypedArray()
+                putExtra("subs", subUris) // Parcelable[]
                 // Add language information if available
                 subs.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
                     putExtra("subs_langs", langs.toTypedArray())
