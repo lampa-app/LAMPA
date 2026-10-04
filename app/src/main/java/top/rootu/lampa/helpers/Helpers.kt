@@ -531,4 +531,15 @@ object Helpers {
             }
         }
     }
+
+    /**
+     * Safely encodes URLs containing spaces, Cyrillic, brackets, or other non-ASCII characters
+     * without modifying valid URI structure (: / ? & = # + etc.).
+     * Crucial for players like mpv which pass the raw URL to FFmpeg's HTTP client without auto-encoding.
+     */
+    @JvmStatic
+    fun encodeUrlIfNeeded(url: String?): String {
+        if (url.isNullOrEmpty()) return ""
+        return Uri.encode(url, "@#%&+=/?;:$") ?: url
+    }
 }
