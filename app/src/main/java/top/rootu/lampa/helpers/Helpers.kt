@@ -21,6 +21,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
+import top.rootu.lampa.AndroidJS
 import top.rootu.lampa.App
 import top.rootu.lampa.BuildConfig
 import top.rootu.lampa.MainActivity
@@ -541,5 +542,79 @@ object Helpers {
     fun encodeUrlIfNeeded(url: String?): String {
         if (url.isNullOrEmpty()) return ""
         return Uri.encode(url, "@#%&+=/?;:$") ?: url
+    }
+
+    /**
+     * Checks whether the given media URL belongs to TorrServer.
+     * Compares host against configured torrserver_url (with scheme normalization) or local fallbacks.
+     * Never matches arbitrary external URLs just by path.
+     */
+    @JvmStatic
+    fun isTorrServerUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val uri = try { Uri.parse(encodeUrlIfNeeded(url)) } catch (_: Exception) { return false }
+        val host = uri.host ?: return false
+
+        val configuredHost = AndroidJS.torrserverUrl.takeIf { it.isNotBlank() }?.let { raw ->
+            val withScheme = if (!raw.contains("://")) "http://$raw" else raw
+            try { Uri.parse(withScheme)?.host } catch (_: Exception) { null }
+        }
+
+        return when {
+            configuredHost != null && host.equals(configuredHost, ignoreCase = true) -> true
+            host.equals("127.0.0.1", ignoreCase = true) || host.equals("localhost", ignoreCase = true) -> true
+            else -> false
+        }
+    }
+
+
+    /**
+     * Injects TorrServer Basic Authentication credentials directly into the URL authority
+     * (e.g. https://user:pass@host/stream/...) when torrserver_auth is enabled.
+     * External players like mpv do not receive or forward HTTP headers from Android Intents,
+     * but native FFmpeg / libmpv automatically parses HTTP Basic Auth from the URL userInfo.
+     */
+    @JvmStatic
+    fun injectTorrServerAuth(url: String?): String {
+        if (url.isNullOrEmpty()) return ""
+        val login = AndroidJS.torrserverLogin
+        val password = AndroidJS.torrserverPassword
+        if (!AndroidJS.torrserverAuth || login.isEmpty()) return url
+
+        return try {
+            val uri = Uri.parse(url) ?: return url
+            if (!uri.userInfo.isNullOrEmpty()) return url // already has credentials
+            if (!isTorrServerUrl(url)) return url
+
+            val user = Uri.encode(login)
+            val pass = Uri.encode(password)
+            val portStr = if (uri.port != -1) ":${uri.port}" else ""
+            val newAuthority = "$user:$pass@${uri.host}$portStr"
+            uri.buildUpon().encodedAuthority(newAuthority).build().toString()
+        } catch (_: Exception) {
+            url
+        }
+    }
+
+    /**
+     * Compares two media URLs ignoring differences in embedded credentials (userInfo)
+     * and percent-encoding.
+     */
+    @JvmStatic
+    fun isSameMediaUrl(url1: String?, url2: String?): Boolean {
+        if (url1.isNullOrBlank() || url2.isNullOrBlank()) return false
+        if (url1 == url2) return true
+
+        return try {
+            val u1 = Uri.parse(encodeUrlIfNeeded(url1))
+            val u2 = Uri.parse(encodeUrlIfNeeded(url2))
+            u1.scheme.equals(u2.scheme, ignoreCase = true) &&
+                    u1.host.equals(u2.host, ignoreCase = true) &&
+                    u1.port == u2.port &&
+                    (u1.path ?: "") == (u2.path ?: "") &&
+                    (u1.query ?: "") == (u2.query ?: "")
+        } catch (_: Exception) {
+            false
+        }
     }
 }

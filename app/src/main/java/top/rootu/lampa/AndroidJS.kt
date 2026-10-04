@@ -56,6 +56,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         // Constants
         private const val TAG = "AndroidJS"
         private const val UPDATE_DELAY = 5000L // in ms, wait before update TV channel
+
+        @Volatile var torrserverAuth: Boolean = false
+        @Volatile var torrserverLogin: String = ""
+        @Volatile var torrserverPassword: String = ""
+        @Volatile var torrserverUrl: String = ""
     }
 
     @JavascriptInterface
@@ -89,6 +94,23 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 "playlist_next" -> {
                     MainActivity.playerAutoNext = eo.optString("value", "true") == "true"
                     debugLog(TAG, "playerAutoNext stored: ${MainActivity.playerAutoNext}")
+                }
+
+                "torrserver_auth" -> {
+                    val raw = eo.opt("value")
+                    torrserverAuth = raw == true || raw?.toString() == "true"
+                }
+
+                "torrserver_login" -> {
+                    torrserverLogin = eo.optString("value", "")
+                }
+
+                "torrserver_password" -> {
+                    torrserverPassword = eo.optString("value", "")
+                }
+
+                "torrserver_url" -> {
+                    torrserverUrl = eo.optString("value", "")
                 }
 
                 "language" -> {

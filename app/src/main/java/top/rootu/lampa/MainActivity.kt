@@ -86,6 +86,9 @@ import top.rootu.lampa.helpers.Helpers
 import top.rootu.lampa.helpers.Helpers.debugLogIntentData
 import top.rootu.lampa.helpers.Helpers.dp2px
 import top.rootu.lampa.helpers.Helpers.encodeUrlIfNeeded
+import top.rootu.lampa.helpers.Helpers.injectTorrServerAuth
+import top.rootu.lampa.helpers.Helpers.isSameMediaUrl
+import top.rootu.lampa.helpers.Helpers.isTorrServerUrl
 import top.rootu.lampa.helpers.Helpers.getJson
 import top.rootu.lampa.helpers.Helpers.isAndroidTV
 import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
@@ -978,6 +981,10 @@ class MainActivity : BaseActivity(),
         runJsStorageChangeField("account_use") // get bookmarks sync state
         runJsStorageChangeField("recomends_list", "[]") // force update recs
         runJsStorageChangeField("proxy_tmdb") // to get current baseUrlApiTMDB and baseUrlImageTMDB
+        runJsStorageChangeField("torrserver_auth")
+        runJsStorageChangeField("torrserver_login")
+        runJsStorageChangeField("torrserver_password")
+        runJsStorageChangeField("torrserver_url")
     }
 
     fun getLampaTmdbUrls() {
@@ -2385,7 +2392,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
     ): Intent? {
         state.currentItem?.let { currentItem ->
-            val safeUri = encodeUrlIfNeeded(currentItem.url).toUri()
+            val safeUri = encodeUrlIfNeeded(injectTorrServerAuth(currentItem.url)).toUri()
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = safeUri
                 setDataAndType(
@@ -2601,6 +2608,17 @@ class MainActivity : BaseActivity(),
             headers.add("User-Agent")
             headers.add(it)
             hasHeaders = true
+        }
+
+        if (AndroidJS.torrserverAuth && AndroidJS.torrserverLogin.isNotEmpty()) {
+            val url = jsonObject.optString("url")
+            if (isTorrServerUrl(url) && !headers.any { it.equals("Authorization", ignoreCase = true) }) {
+                val creds = "${AndroidJS.torrserverLogin}:${AndroidJS.torrserverPassword}"
+                val authHeader = "Basic " + android.util.Base64.encodeToString(creds.toByteArray(), android.util.Base64.NO_WRAP)
+                headers.add("Authorization")
+                headers.add(authHeader)
+                hasHeaders = true
+            }
         }
 
         return if (hasHeaders) headers.toTypedArray() else null
@@ -3097,7 +3115,7 @@ class MainActivity : BaseActivity(),
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                 // MPV can handle multiple subtitle tracks, ensure URLs are properly encoded
-                val subUris = subs.map { encodeUrlIfNeeded(it.url).toUri() }.toTypedArray()
+                val subUris = subs.map { encodeUrlIfNeeded(injectTorrServerAuth(it.url)).toUri() }.toTypedArray()
                 putExtra("subs", subUris) // Parcelable[]
                 // Add language information if available
                 subs.mapNotNull { it.language }.takeIf { it.isNotEmpty() }?.let { langs ->
@@ -3434,14 +3452,15 @@ class MainActivity : BaseActivity(),
                 videoUrl,
                 positionMillis,
                 durationMillis,
-                ended
+                ended,
+                currentState.currentIndex
             ) ?: return@launch  // Exit if current item not found
             // Persist the updated state
             playerStateManager.saveState(
                 activityJson = lampaActivity,
                 playlist = updatedPlaylist,
                 currentIndex = foundIndex,
-                currentUrl = videoUrl,
+                currentUrl = updatedPlaylist[foundIndex].url,
                 currentPosition = positionMillis.toLong(),
                 startIndex = currentState.startIndex, // Maintain original starting point
                 extras = currentState.extras // Don't loose extras
@@ -3485,11 +3504,15 @@ class MainActivity : BaseActivity(),
         videoUrl: String,
         positionMillis: Int,
         durationMillis: Int,
-        ended: Boolean
+        ended: Boolean,
+        fallbackIndex: Int = -1
     ): Pair<MutableList<PlayerStateManager.PlaylistItem>, Int>? {
+        if (playlist.isEmpty()) return null
         val updatedPlaylist = playlist.toMutableList()
         val foundIndex =
             updatedPlaylist.indexOfFirst { isCurrentPlaybackItem(it, videoUrl) }.takeIf { it >= 0 }
+                ?: fallbackIndex.takeIf { it in updatedPlaylist.indices }
+                ?: (if (updatedPlaylist.size == 1) 0 else null)
                 ?: return null
 
         updatedPlaylist[foundIndex] = createUpdatedPlaylistItem(
@@ -3583,13 +3606,11 @@ class MainActivity : BaseActivity(),
         item: PlayerStateManager.PlaylistItem,
         videoUrl: String
     ): Boolean {
-        val normalizedInputUrl = videoUrl.toUri().toString()
+        if (isSameMediaUrl(item.url, videoUrl)) return true
 
-        return item.url.toUri().toString() == normalizedInputUrl ||
-                item.quality?.values?.any { qualityUrl ->
-                    qualityUrl.isNotEmpty() && qualityUrl.toUri()
-                        .toString() == normalizedInputUrl
-                } == true
+        return item.quality?.values?.any { qualityUrl ->
+            qualityUrl.isNotEmpty() && isSameMediaUrl(qualityUrl, videoUrl)
+        } == true
     }
 
     private fun getCardFromActivity(activityJson: String?): LampaCard? {
