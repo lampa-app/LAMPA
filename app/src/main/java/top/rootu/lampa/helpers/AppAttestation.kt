@@ -52,9 +52,6 @@ object AppAttestation {
     private var cachedCertSha256: String? = null
     private var certComputed = false
 
-    init {
-        if (BuildConfig.DEBUG) assertMatchers()
-    }
 
     fun clientId(): String =
         "lampa-android/${BuildConfig.VERSION_NAME}/${BuildConfig.VERSION_CODE}/${BuildConfig.FLAVOR}"
@@ -178,5 +175,9 @@ object AppAttestation {
         no("https://kinopoiskapiunofficial.tech/api/v2.1/films")
         no("http://127.0.0.1:8090/echo")
         no("https://jac.red/health")
+    }
+
+    init {
+        if (BuildConfig.DEBUG) assertMatchers()
     }
 }

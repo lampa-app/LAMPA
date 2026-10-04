@@ -68,6 +68,15 @@ android {
     }
 
     signingConfigs {
+        debug {
+            def localDebugKeystore = file("keystore/debug.keystore")
+            if (localDebugKeystore.exists()) {
+                storeFile localDebugKeystore
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
+            }
+        }
         release {
             def keystoreProperties = new Properties()
             def keystorePropsFile = file("keystore/keystore_config")
@@ -78,7 +87,7 @@ android {
                 storePassword "$keystoreProperties.storePassword"
                 keyAlias "$keystoreProperties.keyAlias"
                 keyPassword "$keystoreProperties.keyPassword"
-            } else {
+            } else if (System.getenv('KEYSTORE_FILE') != null) {
                 storeFile file(System.getenv('KEYSTORE_FILE'))
                 storePassword System.getenv('KEYSTORE_PASSWORD')
                 keyAlias System.getenv('RELEASE_SIGN_KEY_ALIAS')
