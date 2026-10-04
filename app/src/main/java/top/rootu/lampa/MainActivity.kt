@@ -225,6 +225,12 @@ class MainActivity : BaseActivity(),
             "com.google.android.exoplayer2.demo", // v2, Legacy
             "androidx.media3.demo.main", // v3, current
         )
+        private val MPV_PACKAGES = setOf(
+            "is.xyz.mpv",
+            "is.xyz.mpv.nightly",
+            "is.xyz.mpv.debug",
+            "live.mehiz.mpvkt",
+        )
         private val PLAYERS_BLACKLIST = setOf(
             "com.android.gallery3d",
             "com.android.tv.frameworkpackagestubs",
@@ -619,7 +625,10 @@ class MainActivity : BaseActivity(),
                 "org.videolan.vlc.player.result" ->
                     handleVlcPlayerResult(intent, resultCode, videoUrl)
                 // MPV
-                "is.xyz.mpv.MPVActivity.result" ->
+                "is.xyz.mpv.MPVActivity.result",
+                "is.xyz.mpv.nightly.MPVActivity.result",
+                "is.xyz.mpv.debug.MPVActivity.result",
+                "live.mehiz.mpvkt.MPVActivity.result" ->
                     handleMpvPlayerResult(intent, resultCode, videoUrl)
                 // UPlayer
                 "com.uapplication.uplayer.result", "com.uapplication.uplayer.beta.result" ->
@@ -736,7 +745,7 @@ class MainActivity : BaseActivity(),
                 }
             }
         } else {
-            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
+            Log.e(TAG, "MPV playback stopped or canceled [resultCode=$resultCode]")
         }
     }
 
@@ -2466,11 +2475,12 @@ class MainActivity : BaseActivity(),
 				)
 		    }
             // MPV
-            "is.xyz.mpv" -> {
+            in MPV_PACKAGES -> {
                 configureMpvIntent(
                     intent,
                     playerPackage,
                     state = state,
+                    videoTitle = videoTitle,
                     position,
                     headers = headers
 
@@ -3048,25 +3058,39 @@ class MainActivity : BaseActivity(),
         intent: Intent,
         playerPackage: String,
         state: PlayerStateManager.PlaybackState,
+        videoTitle: String = "",
         position: Long,
         headers: Array<String>? = null
     ) {
         intent.apply {
             setPackage(playerPackage)
+            // Resolve exact component for standard MPV packages to avoid launcher ambiguity
+            try {
+                if (playerPackage.startsWith("is.xyz.mpv")) {
+                    component = ComponentName(playerPackage, "is.xyz.mpv.MPVActivity")
+                }
+            } catch (_: Exception) {
+            }
+            // Set media title
+            if (videoTitle.isNotBlank()) {
+                putExtra("title", videoTitle)
+                putExtra(Intent.EXTRA_TITLE, videoTitle)
+            }
             // Handle headers with MPV's required format
             headers?.let {
                 val headerString = it.toList()
                     .chunked(2)
                     .joinToString("\r\n") { (k, v) -> "$k: $v" }
                 putExtra("headers", headerString)
+                putExtra("http-header-fields", headerString)
             }
             // Handle playback position
+            // Crucial: Only pass position when resuming at > 0 ms.
+            // Do NOT send position = 1 when starting from 0: MPV interprets this as --start=0.001
+            // which forces seeking on unbuffered/live streams (e.g. TorrServer) and breaks playback.
             when {
                 playerTimeCode == "continue" && position > 0 ->
                     putExtra("position", position.toInt())
-
-                playerTimeCode == "again" || (playerTimeCode == "continue" && position == 0L) ->
-                    putExtra("position", 1)
             }
             // Handle subtitles from state
             state.currentItem?.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
