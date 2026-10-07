@@ -19,6 +19,7 @@ import org.json.JSONObject
 import java.util.Locale
 import top.rootu.lampa.browser.Browser
 import top.rootu.lampa.channels.LampaChannels
+import top.rootu.lampa.channels.PluginChannels
 import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
@@ -535,6 +536,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
         }
     }
+
+    /** Returns queue acceptance, not completion of the TV provider write. */
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun publishPluginChannel(json: String?): Boolean = PluginChannels.publish(json)
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun clearPluginChannel(id: String?): Boolean = PluginChannels.clear(id)
 
     // https://stackoverflow.com/a/41560207
     // https://copyprogramming.com/howto/android-webview-savestate
