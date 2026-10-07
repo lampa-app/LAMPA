@@ -13,6 +13,8 @@ import java.util.concurrent.Executor
 internal data class PluginChannelRequest(val name: String, val title: String?, val items: List<LampaCard>) {
     companion object {
         private val idPattern = Regex("[a-z0-9._-]{1,64}")
+        private val cardIdPattern = Regex("[A-Za-z0-9._:-]{1,256}")
+        private val sourcePattern = Regex("[A-Za-z0-9._-]{1,64}")
         private val gson = Gson()
         private val stringFields = listOf("source", "type", "name", "title", "original_name", "original_title",
             "overview", "img", "poster_path", "backdrop_path", "background_image", "original_language",
@@ -23,7 +25,7 @@ internal data class PluginChannelRequest(val name: String, val title: String?, v
             ?.let { PluginChannelRequest("plugin:$it", null, emptyList()) }
 
         fun parse(json: String?): PluginChannelRequest? {
-            if (json == null || json.length > 1_048_576) return null
+            if (json == null || json.length > 1_048_576 || !hasSafeDepth(json)) return null
             return try {
                 val reader = JsonReader(StringReader(json)).apply { isLenient = false }
                 val root = reader.use {
@@ -67,6 +69,8 @@ internal data class PluginChannelRequest(val name: String, val title: String?, v
                     }
                     if (cardId.isNullOrBlank() || (string(source, "name").isNullOrBlank() &&
                             string(source, "title").isNullOrBlank())) return@mapNotNull null
+                    require(cardIdPattern.matches(cardId))
+                    string(source, "source")?.let { require(sourcePattern.matches(it)) }
                     safe.addProperty("id", cardId)
                     if (string(source, "name").isNullOrBlank()) safe.remove("name")
                     gson.fromJson(safe, LampaCard::class.java)
@@ -76,6 +80,25 @@ internal data class PluginChannelRequest(val name: String, val title: String?, v
             } catch (_: Exception) {
                 null
             }
+        }
+
+        // Bound recursion before Gson reads even unknown extension fields.
+        private fun hasSafeDepth(json: String): Boolean {
+            var depth = 0
+            var quoted = false
+            var escaped = false
+            json.forEach { char ->
+                if (quoted) {
+                    if (escaped) escaped = false
+                    else if (char == '\\') escaped = true
+                    else if (char == '"') quoted = false
+                } else when (char) {
+                    '"' -> quoted = true
+                    '{', '[' -> if (++depth > 64) return false
+                    '}', ']' -> if (--depth < 0) return false
+                }
+            }
+            return depth == 0 && !quoted
         }
 
         private fun string(obj: JsonObject, field: String): String? {
@@ -90,7 +113,7 @@ internal class PluginChannelPublisher(
     private val executor: Executor,
     private val available: () -> Boolean,
     private val write: (PluginChannelRequest) -> Unit,
-    private val onFailure: () -> Unit
+    private val onFailure: (Exception) -> Unit
 ) {
     @Synchronized
     fun publish(json: String?): Boolean = PluginChannelRequest.parse(json)?.let(::submit) ?: false
@@ -105,13 +128,13 @@ internal class PluginChannelPublisher(
                 try {
                     check(available())
                     write(request)
-                } catch (_: Exception) {
-                    onFailure()
+                } catch (error: Exception) {
+                    onFailure(error)
                 }
             }
             true
-        } catch (_: Exception) {
-            onFailure()
+        } catch (error: Exception) {
+            onFailure(error)
             false
         }
     }

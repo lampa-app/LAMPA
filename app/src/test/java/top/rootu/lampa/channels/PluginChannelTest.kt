@@ -56,6 +56,21 @@ class PluginChannelTest {
         assertFalse(publisher.clear("book"))
     }
 
+    @Test fun rejectsDeeplyNestedJsonWithoutCrashingBridge() {
+        val nested = "[".repeat(10000) + "0" + "]".repeat(10000)
+        assertNull(PluginChannelRequest.parse("""{"id":"x","title":"X","items":[],"extra":$nested}"""))
+    }
+
+    @Test fun rejectsCardIdentifiersThatCouldEscapeLampaNavigation() {
+        listOf("x'evil()", "x\\\\evil", "x\\n", "x\\u0000", "x\"evil").forEach { unsafe ->
+            val encoded = com.google.gson.Gson().toJson(unsafe)
+            assertNull(PluginChannelRequest.parse(payload.replace("1399", encoded)))
+            assertNull(PluginChannelRequest.parse(payload.replace("\"tmdb\"", encoded)))
+        }
+        assertNotNull(PluginChannelRequest.parse(payload.replace("1399", "\"KP_1227897\"")))
+        assertNotNull(PluginChannelRequest.parse(payload.replace("1399", "\"0a88d69f-6f33-49aa-91db-ee6e0c3fdff1\"")))
+    }
+
     @Test fun providerDisappearingDoesNotWriteButQueueRecovers() {
         val executor = DeferredExecutor()
         var available = true
