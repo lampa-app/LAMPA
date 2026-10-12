@@ -645,6 +645,7 @@ class MainActivity : BaseActivity(),
     // Some external video player api specs:
     // vlc https://wiki.videolan.org/Android_Player_Intents/
     // justplayer https://github.com/moneytoo/Player/issues/203
+    // just+ player https://github.com/just-plus-player/just-plus-player/blob/master/docs/PLAYLIST_API.md
     // mxplayer https://mx.j2inter.com/api
     // mpv http://mpv-android.github.io/mpv-android/intent.html
     // vimu https://www.vimu.tv/player-api
@@ -1520,7 +1521,9 @@ class MainActivity : BaseActivity(),
     private suspend fun openLampaContent(json: String, delay: Long = 0) {
         runVoidJsFunc("window.start_deep_link = ", json)
         delay(delay)
-        runVoidJsFunc("Lampa.Controller.toContent", "")
+        // runVoidJsFunc("Lampa.Controller.toContent", "")
+        // force close all menus and dialogs (fix for keepPlayerConnection = true)
+        runVoidJsFunc("(function(){if(Lampa.Select.opened())Lampa.Select.close();if($('.modal').length)Lampa.Modal.close();Lampa.Controller.toContent()})", "")
         runVoidJsFunc("Lampa.Activity.push", json)
         // TODO: Clear back stack after deep link
         // browser?.clearHistory()
