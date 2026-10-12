@@ -9,6 +9,6 @@ import top.rootu.lampa.MainActivity
 // included), which setResult alone never delivers.
 class PlayerReportReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        MainActivity.onPlayerReport(context, intent)
+        MainActivity.onPlayerReport(intent)
     }
 }

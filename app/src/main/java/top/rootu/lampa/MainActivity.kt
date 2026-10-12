@@ -141,6 +141,7 @@ import androidx.core.content.edit
 import androidx.core.view.isGone
 import androidx.core.net.toUri
 import top.rootu.lampa.helpers.Helpers.encodeUrlIfNeeded
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class MainActivity : BaseActivity(),
@@ -283,7 +284,7 @@ class MainActivity : BaseActivity(),
          * never kept for the next start: applied then, it could write over progress the cloud sync has
          * brought in meanwhile.
          */
-        fun onPlayerReport(context: Context, intent: Intent) {
+        fun onPlayerReport(intent: Intent) {
             instance?.get()?.takeIf { !it.isFinishing }?.takeJustPlusReport(justPlusReport(intent))
         }
 
@@ -431,7 +432,7 @@ class MainActivity : BaseActivity(),
         logDebug("onConfigurationChanged()")
         super.onConfigurationChanged(newConfig)
         lifecycleScope.launch {
-            delay(300) // Small delay for configuration to settle
+            delay(300.milliseconds) // Small delay for configuration to settle
             hideSystemUI()
             showFab(true)
         }
@@ -501,7 +502,7 @@ class MainActivity : BaseActivity(),
             processIntent(intent, waitDelay)
             lifecycleScope.launch {
                 listenerCleanupAndSetup()
-                delay(waitDelay)
+                delay(waitDelay.milliseconds)
                 syncStorage() // Sync with Lampa settings
                 syncBookmarks() // Sync Android TV Home user changes
                 // Process delayed functions with safe iteration
@@ -512,7 +513,7 @@ class MainActivity : BaseActivity(),
                 }
                 // Background update Android TV channels and recommendations
                 withContext(Dispatchers.Default) {
-                    delay(waitDelay)
+                    delay(waitDelay.milliseconds)
                     Scheduler.scheduleUpdate(false) // false for one shot, true is onBoot
                 }
             }
@@ -1060,7 +1061,7 @@ class MainActivity : BaseActivity(),
         listenerMutex.withLock {
             cleanupListener()
             // Wait for cleanup to complete
-            delay(1000) // Ensure cleanup completes
+            delay(1000.milliseconds) // Ensure cleanup completes
             // Verify cleanup
             browser?.evaluateJavascript(
                 """
@@ -1212,7 +1213,7 @@ class MainActivity : BaseActivity(),
                     }
                 }
             }
-            delay(500) // don't do it too fast
+            delay(500.milliseconds) // don't do it too fast
         }
         // Remove items from various categories
         listOf(
@@ -1231,7 +1232,7 @@ class MainActivity : BaseActivity(),
                 withContext(Dispatchers.Main) {
                     runVoidJsFunc("Lampa.Favorite.remove", "'$category', {id: $id}")
                 }
-                delay(500) // don't do it too fast
+                delay(500.milliseconds) // don't do it too fast
             }
         }
         // don't do it again
@@ -1444,7 +1445,7 @@ class MainActivity : BaseActivity(),
             val activityJson = intent.getStringExtra("lampaActivity") ?: return@launch
             if (isValidJson(activityJson)) {
                 openLampaContent(activityJson, delay) // needed to match state
-                delay(delay) // need to sure content loaded and activity stored
+                delay(delay.milliseconds) // need to sure content loaded and activity stored
                 if (intent.getBooleanExtra("android.intent.extra.START_PLAYBACK", false)) {
                     val card = getCardFromActivity(activityJson) ?: return@launch
                     val state = playerStateManager.findStateByCard(card) ?: return@launch
@@ -1520,7 +1521,7 @@ class MainActivity : BaseActivity(),
 
     private suspend fun openLampaContent(json: String, delay: Long = 0) {
         runVoidJsFunc("window.start_deep_link = ", json)
-        delay(delay)
+        delay(delay.milliseconds)
         // runVoidJsFunc("Lampa.Controller.toContent", "")
         // force close all menus and dialogs (fix for keepPlayerConnection = true)
         runVoidJsFunc("(function(){if(Lampa.Select.opened())Lampa.Select.close();if($('.modal').length)Lampa.Modal.close();Lampa.Controller.toContent()})", "")
@@ -2357,7 +2358,7 @@ class MainActivity : BaseActivity(),
         if (show && !isTvBox) {
             fab?.show()
             lifecycleScope.launch {
-                delay(15000)
+                delay(15000.milliseconds)
                 fab?.hide()
             }
         } else
@@ -2666,7 +2667,7 @@ class MainActivity : BaseActivity(),
                 configureVlcIntent(
                     intent,
                     playerPackage,
-                    state = state,
+                    // state = state,
                     videoTitle,
                     position,
                     // headers = headers
@@ -2703,7 +2704,7 @@ class MainActivity : BaseActivity(),
                     state = state,
                     videoTitle,
                     position,
-                    headers = headers
+                    // headers = headers
                 )
             }
             // All others
@@ -2800,7 +2801,7 @@ class MainActivity : BaseActivity(),
         state: PlayerStateManager.PlaybackState,
         videoTitle: String,
         position: Long,
-        headers: Array<String>? = null
+        // headers: Array<String>? = null
     ) {
         intent.apply {
             setPackage(playerPackage)
@@ -2916,7 +2917,7 @@ class MainActivity : BaseActivity(),
                     val itemSubsBundle = Bundle()
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                         val subUris = subs.map { it.url.toUri() }.toTypedArray()
-                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+                        val subNames = subs.map { it.label.ifEmpty { "Sub" } }.toTypedArray()
                         itemSubsBundle.putParcelableArray("uris", subUris)
                         itemSubsBundle.putStringArray("names", subNames)
                     }
@@ -2945,7 +2946,7 @@ class MainActivity : BaseActivity(),
                     // Subtitles for single video
                     item.subtitles?.takeIf { it.isNotEmpty() }?.let { subs ->
                         val subUris = subs.map { it.url.toUri() }.toTypedArray()
-                        val subNames = subs.map { it.label ?: "Sub" }.toTypedArray()
+                        val subNames = subs.map { it.label.ifEmpty { "Sub" } }.toTypedArray()
 
                         putExtra("subs", subUris)
                         putExtra("subs.name", subNames)
@@ -2977,7 +2978,7 @@ class MainActivity : BaseActivity(),
     ) {
         val card = (state.extras[LAMPA_CARD_KEY] as? String)
             ?.let { getJson(it, LampaCard::class.java) }
-        val cardImdbId = card?.imdb_id?.takeIf { it.isNotEmpty() }
+        val cardImdbId: String? = card?.imdb_id?.takeIf { it.isNotEmpty() }
         val cardId = card?.tmdb_id?.takeIf { it.isNotEmpty() }
             ?: card?.id?.takeIf { it.isNotEmpty() }
         // A series: the root title is the show, each item's own name goes under it as episode_title
@@ -2989,14 +2990,14 @@ class MainActivity : BaseActivity(),
         val title = cardTitle ?: videoTitle
         // The widest logo in the app language, else in English, else none
         // Read as nullable: Gson leaves a missing file_path null whatever the model declares
-        val logos = card?.images?.logos.orEmpty().filter { val path: String? = it.file_path; !path.isNullOrEmpty() }
+        val logos = card?.images?.logos.orEmpty().filter { val path = it.file_path; path.isNotEmpty() }
         val logo = (logos.filter { it.iso_639_1 == appLang.substringBefore('-') }.takeIf { it.isNotEmpty() }
             ?: logos.filter { it.iso_639_1 == "en" })
             .maxByOrNull { it.aspect_ratio }
             ?.let { TMDB.imageUrl(it.file_path).replace("original", "w500") }
         // The best-voted backdrop without lettering, else the card's own backdrop
         val backdrop = card?.images?.backdrops.orEmpty()
-            .filter { val path: String? = it.file_path; val lang: String? = it.iso_639_1; !path.isNullOrEmpty() && lang.isNullOrEmpty() }
+            .filter { val path = it.file_path; val lang = it.iso_639_1; path.isNotEmpty() && lang.isEmpty() }
             .maxByOrNull { it.vote_average }?.file_path
         val background = (backdrop ?: card?.backdrop_path)?.takeIf { it.isNotEmpty() }
             ?.let { TMDB.imageUrl(it).replace("original", "w1280") }
@@ -3172,7 +3173,7 @@ class MainActivity : BaseActivity(),
     private fun configureVlcIntent(
         intent: Intent,
         playerPackage: String,
-        state: PlayerStateManager.PlaybackState,
+        // state: PlayerStateManager.PlaybackState,
         videoTitle: String,
         position: Long,
         // headers: Array<String>? = null
