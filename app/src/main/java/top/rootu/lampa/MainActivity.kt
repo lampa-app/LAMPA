@@ -48,6 +48,7 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -272,9 +273,9 @@ class MainActivity : BaseActivity(),
         var lampaActivity: String = "{}" // JSON
         lateinit var urlAdapter: ArrayAdapter<String>
 
-        // Just+ Player reports: the activity a report belongs to rides in the callback itself, so a
-        // report of an older launch is told apart from the activity on screen.
+        // Just+ Player report callback extras: the launch's activity and card
         private const val REPORT_ACTIVITY_EXTRA = "lampa_activity"
+        private const val REPORT_CARD_EXTRA = "lampa_card"
         private var instance: java.lang.ref.WeakReference<MainActivity>? = null
 
         /**
@@ -283,7 +284,7 @@ class MainActivity : BaseActivity(),
          * brought in meanwhile.
          */
         fun onPlayerReport(context: Context, intent: Intent) {
-            instance?.get()?.takeIf { !it.isFinishing }?.handleJustPlusReport(justPlusReport(intent))
+            instance?.get()?.takeIf { !it.isFinishing }?.takeJustPlusReport(justPlusReport(intent))
         }
 
         /** com.justplus.player.result as JSON: everything handleJustPlusReport needs, nothing else. */
@@ -303,6 +304,7 @@ class MainActivity : BaseActivity(),
             if (index in durations.indices && duration > 0) durations[index] = duration
             return JSONObject().apply {
                 put("key", intent.getStringExtra(REPORT_ACTIVITY_EXTRA) ?: lampaActivity)
+                put("card", intent.getStringExtra(REPORT_CARD_EXTRA))
                 put("uri", intent.getStringExtra("uri") ?: intent.dataString)
                 put("index", index)
                 put("end_by", intent.getStringExtra("end_by"))
@@ -379,6 +381,7 @@ class MainActivity : BaseActivity(),
                 syncBookmarks()
             }
         }
+        keptReports.values.toList().also { keptReports.clear() }.forEach(::handleJustPlusReport)
     }
 
     override fun onPause() {
@@ -667,12 +670,9 @@ class MainActivity : BaseActivity(),
         debugLogIntentData(TAG, data)
 
         data?.let { intent ->
-            // Just+ Player nested playlist API: <player prefix>...result
+            // Just+ Player: reports come through the result_callback only
             val action = intent.action
-            if (action != null && isJustPlusPlayer(action) && action.endsWith(".result")) {
-                handleJustPlusPlayerResult(intent, resultCode)
-                return
-            }
+            if (action != null && isJustPlusPlayer(action) && action.endsWith(".result")) return
             when (intent.action) {
                 // MX & Just Player
                 "com.mxtech.intent.result.VIEW" ->
@@ -755,26 +755,21 @@ class MainActivity : BaseActivity(),
         }
     }
 
-    private fun handleJustPlusPlayerResult(intent: Intent, resultCode: Int) {
-        if (resultCode != RESULT_OK) {
-            Log.e(TAG, "Invalid state [resultCode=$resultCode]")
-            return
-        }
-        handleJustPlusReport(justPlusReport(intent), final = true)
+    /** Just+ reports received in the background, the latest per launch. */
+    private val keptReports = LinkedHashMap<String, JSONObject>()
+
+    // Applied in the foreground, so sync plugins send from a visible page; interval reports at once
+    fun takeJustPlusReport(report: JSONObject) {
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
+            report.optString("end_by") == "interval" && keepPlayerConnection
+        ) handleJustPlusReport(report)
+        else keptReports[report.optString("key") + report.optString("card")] = report
     }
 
-    /**
-     * A Just+ Player report, from setResult or from the result_callback — the same snapshot either
-     * way, so handling it twice (Back sends both) writes the same thing twice. Every item gets the
-     * position it was left at (positions_sec, seconds; -1 = never opened), not just the last one, so
-     * nothing is marked watched that was only skipped past.
-     *
-     * @param final the player is gone (setResult). A callback report may come mid-session — the screen
-     * went off at 97 % of an episode — and clearing the state on it would lose every report after.
-     */
-    private fun handleJustPlusReport(report: JSONObject, final: Boolean = false) {
+    // Just+ Player report: a position per item, -1 = never opened. The state stays: reports come mid-session
+    fun handleJustPlusReport(report: JSONObject) {
         val endBy = report.optString("end_by")
-        if (endBy != "completion" && endBy != "user") {
+        if (endBy != "completion" && endBy != "user" && endBy != "interval") {
             when (endBy) {
                 "cancelled" -> Log.i(TAG, "Playback cancelled before start")
                 "error" -> Log.e(TAG, "Playback error: ${report.optString("error")}")
@@ -783,15 +778,19 @@ class MainActivity : BaseActivity(),
             return
         }
         val key = report.optString("key", lampaActivity)
+        val cardId = report.optString("card").takeIf { it.isNotEmpty() }
         val positions = report.optJSONArray("positions") ?: return
         val durations = report.optJSONArray("durations") ?: return
-        // Lampa's side — its timeline, the plugins that sync it, the viewed eyes, Watch Next — belongs to
-        // the activity on screen; a report of another (the old session's final one, sent as a new
-        // launch replaces it) would land there under the wrong card. Its progress went out when the
-        // viewer left that player, so only its saved state is brought up to date.
-        val onScreen = key == lampaActivity
+        // The report's own activity, not lampaActivity: that one may be stale or changed since
         lifecycleScope.launch {
             val state = playerStateManager.getState(key)
+            val card = (state.extras[LAMPA_CARD_KEY] as? String)
+                ?.let { getJson(it, LampaCard::class.java) } ?: getCardFromActivity(key)
+            // Another card's state under the same key
+            if (cardId != null && card?.id != null && cardId != card.id) {
+                logDebug("Player report of another card [$cardId / ${card.id}]")
+                return@launch
+            }
             val playlist = state.playlist.toMutableList()
             if (playlist.isEmpty() || positions.length() != playlist.size) {
                 logDebug("Player report does not fit the playlist [${positions.length()} / ${playlist.size}]")
@@ -803,18 +802,22 @@ class MainActivity : BaseActivity(),
                 if (pos < 0 || dur <= 0) continue // never opened, or no length to measure it by
                 val ended = pos >= dur || isAfterEndCreditsPosition(pos * 1000L, dur * 1000L)
                 playlist[i] = createUpdatedPlaylistItem(playlist[i], pos * 1000, dur * 1000, ended)
-                if (onScreen) playlist[i].timeline?.takeIf { it.hash != "0" }?.let { timeline ->
-                    runVoidJsFunc(
-                        "Lampa.Timeline.update",
-                        playerStateManager.convertTimelineToJsonString(timeline)
-                    )
-                }
             }
             val index = report.optInt("index", -1).takeIf { it in playlist.indices } ?: state.currentIndex
-            if (onScreen) markOpened(playlist, positions, index)
+            // Auto-next: the start item to the current one count as watched, as for the other players
+            if (playerAutoNext) getCompletionRange(state.startIndex, index, playlist.lastIndex).forEach {
+                playlist[it] = createCompletedPlaylistItem(playlist[it])
+            }
+            // Only changed items: Lampa stamps every write as new progress
+            playlist.forEachIndexed { i, item ->
+                item.timeline?.takeIf { it.hash != "0" && it != state.playlist[i].timeline }?.let {
+                    runVoidJsFunc("Lampa.Timeline.update", playerStateManager.convertTimelineToJsonString(it))
+                }
+            }
+            markOpened(playlist, positions, index)
             val ended = playlist[index].timeline?.percent == 100
             Log.i(TAG, "Player report [index=$index, ended=$ended]")
-            playerStateManager.saveState(
+            val saved = playerStateManager.saveState(
                 activityJson = key,
                 playlist = playlist,
                 currentIndex = index,
@@ -823,11 +826,16 @@ class MainActivity : BaseActivity(),
                 startIndex = state.startIndex,
                 extras = state.extras
             )
-            if (ended) {
-                if (onScreen) launch(Dispatchers.Default) { updatePlayNext(true) }.join()
-                if (final || endBy == "completion") playerStateManager.clearState(key)
-            } else if (onScreen) {
-                launch(Dispatchers.Default) { updatePlayNext(false) }
+            // Watch Next by this launch's card and activity
+            if (isTvContentProviderAvailable && card != null) launch(Dispatchers.Default) {
+                try {
+                    when {
+                        ended -> WatchNext.removeContinueWatch(card)
+                        saved.currentItem != null && !saved.isEnded -> WatchNext.addLastPlayed(card, key)
+                    }
+                } catch (e: Exception) {
+                    logDebug("Error in Watch Next: ${e.javaClass.simpleName} - ${e.message}")
+                }
             }
         }
     }
@@ -836,7 +844,7 @@ class MainActivity : BaseActivity(),
      * The "viewed" eye of the online plugin (online.js): its playlist items carry `callback: file.mark`,
      * which Lampa's own player calls as each episode starts. An external player gets the playlist as
      * JSON, functions dropped, so only the episode clicked was ever marked. The playlist itself stays in
-     * Lampa.PlayerPlaylist after the hand-over: call the mark of every item opened in this session,
+     * Lampa.PlayerPlaylist after the hand-over: call the mark of every item played in this session,
      * the current one last so it is the one the plugin resumes. By url only: Lampa rewrites the urls on
      * those very objects before the hand-over, so they are the strings this playlist holds, and a
      * season / episode fallback would mark another show's episode once its playlist has replaced this
@@ -849,7 +857,7 @@ class MainActivity : BaseActivity(),
     ) {
         val opened = JSONArray()
         (playlist.indices.filter { it != current } + current).forEach { i ->
-            if (positions.optInt(i, -1) < 0) return@forEach
+            if (positions.optInt(i, -1) <= 0) return@forEach // never opened, or opened and not played
             opened.put(playlist[i].url)
         }
         if (opened.length() == 0) return
@@ -2530,7 +2538,8 @@ class MainActivity : BaseActivity(),
                             videoTitle,
                             isIPTV,
                             state,
-                            headers
+                            headers,
+                            playActivity
                         )
                         // Launch Player
                         launchPlayer(it)
@@ -2590,12 +2599,13 @@ class MainActivity : BaseActivity(),
         isIPTV: Boolean,
         state: PlayerStateManager.PlaybackState,
         headers: Array<String>? = null,
+        activity: String = lampaActivity, // the one the state is saved under
     ) {
         val position = getPlaybackPosition(state)
 
         // Just+ Player: nested playlist API, any build of it (beta builds add a suffix to the package)
         if (isJustPlusPlayer(playerPackage.lowercase())) {
-            configureJustPlusPlaylistIntent(intent, playerPackage, state, videoTitle, position, headers)
+            configureJustPlusPlaylistIntent(intent, playerPackage, state, videoTitle, position, headers, activity)
             return
         }
         when (playerPackage.lowercase()) {
@@ -2772,7 +2782,8 @@ class MainActivity : BaseActivity(),
 
 
     private fun getPlaybackPosition(state: PlayerStateManager.PlaybackState): Long {
-        return if (playerTimeCode == "continue") {
+        // "ask" needs the position too; every caller checks the mode
+        return if (playerTimeCode != "again") {
             state.currentItem?.timeline?.let { timeline ->
                 (timeline.time * 1000).toLong()
             } ?: state.currentPosition
@@ -2954,14 +2965,15 @@ class MainActivity : BaseActivity(),
     }
 
     // Just+ Player nested `playlist` contract: one Bundle with an item Bundle per episode.
-    // The player answers with <its package prefix>.result (see handleJustPlusPlayerResult).
+    // The player answers through the result_callback (see handleJustPlusReport).
     private fun configureJustPlusPlaylistIntent(
         intent: Intent,
         playerPackage: String,
         state: PlayerStateManager.PlaybackState,
         videoTitle: String,
         position: Long,
-        headers: Array<String>? = null
+        headers: Array<String>?,
+        activity: String
     ) {
         val card = (state.extras[LAMPA_CARD_KEY] as? String)
             ?.let { getJson(it, LampaCard::class.java) }
@@ -3004,10 +3016,13 @@ class MainActivity : BaseActivity(),
                 item.segments?.takeIf { it.isNotEmpty() }?.let { putString("segments", it) }
                 // The start item from the resolved position; the others from their own timeline, so a
                 // jump from the player's playlist resumes a half-watched episode (a finished one starts over)
+                // "again": explicit 0, else the player resumes from its own saved position
                 if (index == state.currentIndex) {
-                    if (playerTimeCode == "continue" && position > 0)
+                    if (playerTimeCode == "again")
+                        putInt("position_sec", 0)
+                    else if (position > 0)
                         putInt("position_sec", (position / 1000).toInt())
-                } else if (playerTimeCode == "continue") {
+                } else if (playerTimeCode != "again") {
                     item.timeline?.takeIf {
                         it.time > 0 && it.percent < VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
                     }?.let { putInt("position_sec", it.time.toInt()) }
@@ -3041,19 +3056,22 @@ class MainActivity : BaseActivity(),
                 background?.let { putString("background", it) }
                 putInt("start_index", state.currentIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0)))
                 headers?.let { putStringArray("headers", it) }
+                // Lampa's "ask": the player asks Resume / Start over
+                if (playerTimeCode == "ask") putBoolean("ask_resume", true)
                 putParcelableArray("items", items.toTypedArray())
                 // A report every 2 minutes while playing, the cadence of Lampa's own player: the one on
                 // leaving can come too late to be kept (a task swiped from recents dies a second after it)
-                putInt("report_interval_sec", 120)
+                if (keepPlayerConnection) putInt("report_interval_sec", 120)
                 // Reports on every leave (Home included). Mutable, or the player's extras are dropped:
-                // the default below Android 12 and for targetSdk < 31, explicit from 31 on. One per
-                // activity: a new launch into the running player first reports the old session to the
+                // the default below Android 12 and for targetSdk < 31, explicit from 31 on. One per activity
+                // and card: a new launch into the running player first reports the old session to the
                 // old callback, and a shared one would by then carry the new activity's key.
                 putParcelable(
                     "result_callback", PendingIntent.getBroadcast(
-                        this@MainActivity, lampaActivity.hashCode(),
+                        this@MainActivity, (activity + card?.id).hashCode(),
                         Intent(this@MainActivity, PlayerReportReceiver::class.java)
-                            .putExtra(REPORT_ACTIVITY_EXTRA, lampaActivity),
+                            .putExtra(REPORT_ACTIVITY_EXTRA, activity)
+                            .putExtra(REPORT_CARD_EXTRA, card?.id),
                         PendingIntent.FLAG_UPDATE_CURRENT or
                                 (if (VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                     )
