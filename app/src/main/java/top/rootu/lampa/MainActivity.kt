@@ -2989,15 +2989,14 @@ class MainActivity : BaseActivity(),
             .firstOrNull { !it.isNullOrEmpty() }
         val title = cardTitle ?: videoTitle
         // The widest logo in the app language, else in English, else none
-        // Read as nullable: Gson leaves a missing file_path null whatever the model declares
-        val logos = card?.images?.logos.orEmpty().filter { val path = it.file_path; path.isNotEmpty() }
+        val logos = card?.images?.logos.orEmpty().filter { !it.file_path.isNullOrEmpty() }
         val logo = (logos.filter { it.iso_639_1 == appLang.substringBefore('-') }.takeIf { it.isNotEmpty() }
             ?: logos.filter { it.iso_639_1 == "en" })
             .maxByOrNull { it.aspect_ratio }
             ?.let { TMDB.imageUrl(it.file_path).replace("original", "w500") }
         // The best-voted backdrop without lettering, else the card's own backdrop
         val backdrop = card?.images?.backdrops.orEmpty()
-            .filter { val path = it.file_path; val lang = it.iso_639_1; path.isNotEmpty() && lang.isEmpty() }
+            .filter { !it.file_path.isNullOrEmpty() && it.iso_639_1.isNullOrEmpty() }
             .maxByOrNull { it.vote_average }?.file_path
         val background = (backdrop ?: card?.backdrop_path)?.takeIf { it.isNotEmpty() }
             ?.let { TMDB.imageUrl(it).replace("original", "w1280") }
