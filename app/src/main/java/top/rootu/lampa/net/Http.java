@@ -31,8 +31,8 @@ public class Http {
     public Http() {
     }
 
-    private Request.Builder getReqBuilder(String url, JSONObject headers) {
-        Log.d("LampaHttp.RB", url);
+    private Request.Builder getReqBuilder(String method, String url, JSONObject headers) {
+        Log.d("LampaHttp.RB", method + " " + url);
         String ua = HttpHelper.userAgent;
         Request.Builder rb = new Request.Builder().url(url);
         if (headers != null) {
@@ -103,36 +103,24 @@ public class Http {
         return json;
     }
 
-    public JSONObject Get(String url, JSONObject headers, int timeout) throws Exception {
-        return Get(url, headers, timeout, null);
-    }
-
-    public JSONObject Get(String url, JSONObject headers, int timeout, String dataType) throws Exception {
+    public JSONObject Send(String method, String url, String data, JSONObject headers, int timeout, String dataType) throws Exception {
         if (!url.toLowerCase().startsWith("http")) {
             this.lastErrorCode = 400;
             throw new Exception("Bad Request (Invalid protocol; use http or https)");
         }
-        Request.Builder rb = getReqBuilder(url, headers);
-        OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
-        Response response = client.newCall(rb.build()).execute();
-        return getJsonFromResponse(response, dataType);
-    }
-
-    public JSONObject Post(String url, String data, JSONObject headers, int timeout) throws Exception {
-        return Post(url, data, headers, timeout, null);
-    }
-
-    public JSONObject Post(String url, String data, JSONObject headers, int timeout, String dataType) throws Exception {
-        if (!url.toLowerCase().startsWith("http")) {
-            this.lastErrorCode = 400;
-            throw new Exception("Bad Request (Invalid protocol; use http or https)");
+        Request.Builder rb = getReqBuilder(method, url, headers);
+        RequestBody requestBody = null;
+        // OkHttp rejects a body on GET/HEAD and requires one on POST/PUT/PATCH,
+        // so a bodyless POST/PUT/PATCH is sent with an empty body. The empty body
+        // has no media type of its own, which leaves any Content-Type header as given.
+        if (!method.equals("GET") && !method.equals("HEAD")
+                && (!data.isEmpty() || method.equals("POST") || method.equals("PUT") || method.equals("PATCH"))) {
+            MediaType mediaType = data.isEmpty()
+                    ? null
+                    : MediaType.parse(headers.optString("Content-Type", "application/x-www-form-urlencoded"));
+            requestBody = RequestBody.create(mediaType, data);
         }
-        Request.Builder rb = getReqBuilder(url, headers);
-        RequestBody requestBody = RequestBody.create(
-                MediaType.parse(headers.optString("Content-Type", "application/x-www-form-urlencoded")),
-                data
-        );
-        rb.post(requestBody);
+        rb.method(method, requestBody);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
         Response response = client.newCall(rb.build()).execute();
         return getJsonFromResponse(response, dataType);
