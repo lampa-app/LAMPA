@@ -57,6 +57,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
         // Constants
         private const val TAG = "AndroidJS"
         private const val UPDATE_DELAY = 5000L // in ms, wait before update TV channel
+        private val HTTP_METHODS = setOf("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
     }
 
     @JavascriptInterface
@@ -331,6 +332,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
              // Optional dataType: "base64" forces binary-safe response encoding.
             val dataType = jsonObject.optString("dataType").takeIf { it.isNotEmpty() }
             val timeout = jsonObject.optInt("timeout", 15000).coerceAtLeast(1000)
+            // "method" is the common name for the verb; "type" is the older jQuery-style one Lampa sends.
+            val requestedMethod = listOf("method", "type")
+                .map { jsonObject.optString(it).trim().uppercase() }
+                .firstOrNull { it in HTTP_METHODS }
+                .orEmpty()
             val headers = jsonObject.optJSONObject("headers")?.let {
                 JSONObject(it.toString()) // Create a copy to avoid modifying the original
             } ?: JSONObject()
@@ -352,6 +358,9 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                     requestContent = data.toString()
                 }
             }
+            if (requestedMethod == "GET" || requestedMethod == "HEAD") {
+                requestContent = ""
+            }
             // Ensure Content-Type header is properly set
             if (requestContent.isNotEmpty()) {
                 if (!headers.has("Content-Type")) {
@@ -368,19 +377,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             }
             injectLampaClientHeaders(url, headers)
             val finalRequestContent = requestContent
+            // Without an explicit verb, the body decides between GET and POST.
+            val method = requestedMethod.ifEmpty { if (requestContent.isEmpty()) "GET" else "POST" }
             val finalHeaders = headers
 
             class LampaAsyncTask : AsyncTask<Void?, Int?, String>("LampaAsyncTask") {
                 override fun doInBackground(vararg params: Void?): String {
                     val http = Http()
                     return try {
-                        val responseJSON = if (finalRequestContent.isEmpty()) {
-                            // GET
-                            http.Get(url, finalHeaders, timeout, dataType)
-                        } else {
-                            // POST
-                            http.Post(url, finalRequestContent, finalHeaders, timeout, dataType)
-                        }
+                        val responseJSON = http.Send(method, url, finalRequestContent, finalHeaders, timeout, dataType)
                         reqResponse[returnI.toString()] = if (returnHeaders) {
                             responseJSON.toString()
                         } else {
