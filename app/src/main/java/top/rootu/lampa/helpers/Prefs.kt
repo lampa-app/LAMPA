@@ -77,9 +77,14 @@ object Prefs {
         get() = appPrefs.getString(IPTV_PLAYER, "")
         set(player) = appPrefs.edit { putString(IPTV_PLAYER, player) }
 
-    // Keep the RCH socket alive while an external player is in front (default off)
+    // Keep the RCH socket alive while an external player is in front.
+    // Default on for TV: vendor background cleaners (TCL/Realtek com.tcl.framework.custom
+    // and friends) force-stop every user app with importance == IMPORTANCE_CACHED,
+    // which takes the whole task down together with the external player. The FGS
+    // keeps the process above the cleaner's threshold for the duration of playback.
+    // Explicit "disable" from the menu is stored and takes precedence.
     var Context.playerKeepConnection: Boolean
-        get() = appPrefs.getBoolean(PLAYER_KEEP_CONN_KEY, false)
+        get() = appPrefs.getBoolean(PLAYER_KEEP_CONN_KEY, Helpers.isAndroidTV)
         set(value) = appPrefs.edit { putBoolean(PLAYER_KEEP_CONN_KEY, value) }
 
     var Context.kodiPlaylistEnabled: Boolean
