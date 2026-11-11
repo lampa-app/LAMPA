@@ -209,6 +209,8 @@ dependencies {
     def lottieVersion = '6.4.1' // lottie loaders
     //noinspection GradleDependency 6.6.2+ throw NullPointerException on build
     implementation "com.airbnb.android:lottie:$lottieVersion"
+    // Google Advertising ID (GAID) for VAST IFA; adds com.google.android.gms.permission.AD_ID
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1'
     implementation 'info.guardianproject.netcipher:netcipher:2.1.0' // SSL / TLS
     implementation 'junit:junit:4.13.2' // For Crosswalk compatibility
     implementation 'org.conscrypt:conscrypt-android:2.5.3' // for TLS v1.3 on API < 29
