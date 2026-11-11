@@ -1,0 +1,124 @@
+name: Build (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "pr = debug APKs without secrets; release = signed APKs + AABs"
+        type: string
+        default: pr
+      artifact-name:
+        description: "Name of the uploaded artifact"
+        type: string
+        default: build-binaries
+      retention-days:
+        description: "Artifact retention in days"
+        type: number
+        default: 7
+    secrets:
+      KEYSTORE_GIT_REPOSITORY:
+        required: false
+      KEYSTORE_ACCESS_TOKEN:
+        required: false
+      KEYSTORE_FILE:
+        required: false
+      KEYSTORE_PASSWORD:
+        required: false
+      RELEASE_SIGN_KEY_ALIAS:
+        required: false
+      RELEASE_SIGN_KEY_PASSWORD:
+        required: false
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Validate mode
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          case "$MODE" in
+            pr|release) ;;
+            *) echo "::error::Unknown mode '$MODE' (expected pr or release)"; exit 1 ;;
+          esac
+
+      - name: Require signing secrets
+        if: inputs.mode == 'release'
+        env:
+          KEYSTORE_GIT_REPOSITORY: ${{ secrets.KEYSTORE_GIT_REPOSITORY }}
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RELEASE_SIGN_KEY_ALIAS: ${{ secrets.RELEASE_SIGN_KEY_ALIAS }}
+          RELEASE_SIGN_KEY_PASSWORD: ${{ secrets.RELEASE_SIGN_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for v in KEYSTORE_GIT_REPOSITORY KEYSTORE_FILE KEYSTORE_PASSWORD \
+                   RELEASE_SIGN_KEY_ALIAS RELEASE_SIGN_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v is not set"; missing=1; fi
+          done
+          exit "$missing"
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Android build
+        uses: ./.github/actions/setup-android
+
+      - name: Checkout keystore repo
+        if: inputs.mode == 'release'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ secrets.KEYSTORE_GIT_REPOSITORY }}
+          token: ${{ secrets.KEYSTORE_ACCESS_TOKEN || github.token }}
+          path: app/keystore
+          persist-credentials: false
+
+      - name: Build release APKs
+        if: inputs.mode == 'release'
+        env:
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RELEASE_SIGN_KEY_ALIAS: ${{ secrets.RELEASE_SIGN_KEY_ALIAS }}
+          RELEASE_SIGN_KEY_PASSWORD: ${{ secrets.RELEASE_SIGN_KEY_PASSWORD }}
+        run: ./gradlew assembleLiteRelease assembleRuStoreRelease --stacktrace
+
+      - name: Build debug APKs
+        if: inputs.mode == 'pr'
+        run: ./gradlew assembleLiteDebug assembleRuStoreDebug --stacktrace
+
+      - name: Stage artifacts
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [ "$MODE" = release ]; then variant=release; else variant=debug; fi
+          mkdir -p release-artifacts
+          for flavor in lite ruStore; do
+            src="app/build/outputs/apk/${flavor}/${variant}/app-${flavor}-${variant}.apk"
+            [ -f "$src" ] || { echo "::error::Missing APK: $src"; exit 1; }
+            cp "$src" "release-artifacts/lampa-${flavor}-${variant}.apk"
+          done
+          cd release-artifacts
+          sha256sum -- *.apk > checksums.txt
+          cat checksums.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: release-artifacts/
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+      - name: Remove keystore
+        if: always() && inputs.mode == 'release'
+        run: rm -rf app/keystore

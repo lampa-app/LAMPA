@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "!*-RuStore"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  build-artifacts:
+    name: Build & sign artifacts
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      mode: release
+      artifact-name: release-binaries
+      retention-days: 7
+    secrets:
+      KEYSTORE_GIT_REPOSITORY: ${{ secrets.KEYSTORE_GIT_REPOSITORY }}
+      KEYSTORE_ACCESS_TOKEN: ${{ secrets.KEYSTORE_ACCESS_TOKEN }}
+      KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      RELEASE_SIGN_KEY_ALIAS: ${{ secrets.RELEASE_SIGN_KEY_ALIAS }}
+      RELEASE_SIGN_KEY_PASSWORD: ${{ secrets.RELEASE_SIGN_KEY_PASSWORD }}
+
+  publish-github-release:
+    name: Publish GitHub Release
+    needs: [build-artifacts]
+    if: needs.build-artifacts.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-binaries
+          path: release-artifacts
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          cp release-artifacts/lampa-lite-release.apk release-assets/app-lite-release.apk
+          {
+            echo '**SHA-256**'
+            echo
+            echo '```'
+            (cd release-assets && sha256sum app-lite-release.apk)
+            echo '```'
+          } > release-assets/body.md
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body_path: release-assets/body.md
+          files: release-assets/app-lite-release.apk
+
+  publish-rustore:
+    name: Publish to RuStore
+    needs: [build-artifacts]
+    if: needs.build-artifacts.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: {}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-binaries
+          path: release-artifacts
+
+      - name: Release to RuStore
+        env:
+          KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
+          PRIVATE_KEY_BASE64: ${{ secrets.RUSTORE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f private_key.pem "${RESP:-}"' EXIT
+
+          APP_PACKAGE_NAME="top.rootu.lampa"
+          APK_PATH="release-artifacts/lampa-ruStore-release.apk"
+          API_BASE="https://public-api.rustore.ru/public"
+          API_VERSION="${API_BASE}/v1/application/${APP_PACKAGE_NAME}/version"
+
+          [ -f "$APK_PATH" ] || { echo "::error::Missing $APK_PATH"; exit 1; }
+          [ -n "${KEY_ID:-}" ] && [ -n "${PRIVATE_KEY_BASE64:-}" ] || {
+            echo "::error::RUSTORE_KEY_ID / RUSTORE_KEY secrets are not set"; exit 1; }
+
+          call() {
+            local out="$1"; shift
+            curl -sS --connect-timeout 20 --max-time 600 -o "$out" "$@" || {
+              echo "::error::curl request failed"; return 1; }
+            local code
+            code=$(jq -r '.code // "UNKNOWN"' "$out")
+            if [ "$code" != "OK" ]; then
+              echo "::error::RuStore API error: code=${code} message=$(jq -r '.message // "n/a"' "$out")"
+              return 1
+            fi
+          }
+
+          printf '%s' "$PRIVATE_KEY_BASE64" | base64 --decode > private_key.pem
+          chmod 600 private_key.pem
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+          SIGNATURE=$(printf '%s' "${KEY_ID}${TIMESTAMP}" \
+            | openssl dgst -sha512 -sign private_key.pem | base64 -w 0)
+          echo "::add-mask::${SIGNATURE}"
+
+          echo "Authenticating"
+          RESP="$(mktemp)"
+          jq -n --arg k "$KEY_ID" --arg t "$TIMESTAMP" --arg s "$SIGNATURE" \
+            '{keyId:$k, timestamp:$t, signature:$s}' \
+            | call "$RESP" -X POST "${API_BASE}/auth" \
+                -H 'Content-Type: application/json' --data-binary @-
+          JWT_TOKEN=$(jq -r '.body.jwe' "$RESP")
+          echo "::add-mask::${JWT_TOKEN}"
+          rm -f private_key.pem
+
+          echo "Creating draft version"
+          call "$RESP" -X POST "$API_VERSION" \
+            -H "Public-Token: ${JWT_TOKEN}" \
+            -H 'Content-Type: application/json' --data '{}'
+          VERSION_CODE=$(jq -r '.body' "$RESP")
+          echo "Draft version: ${VERSION_CODE}"
+
+          rollback() {
+            echo "Rolling back draft ${VERSION_CODE}"
+            call "$RESP" -X DELETE "${API_VERSION}/${VERSION_CODE}" \
+              -H "Public-Token: ${JWT_TOKEN}" \
+              -H 'Content-Type: application/json' --data '{}' || true
+          }
+
+          echo "Uploading APK"
+          if ! call "$RESP" -X POST \
+              "${API_VERSION}/${VERSION_CODE}/apk?servicesType=Unknown&isMainApk=true" \
+              -H "Public-Token: ${JWT_TOKEN}" \
+              --form "file=@${APK_PATH}"; then
+            rollback
+            exit 1
+          fi
+
+          echo "Committing version"
+          if ! call "$RESP" -X POST "${API_VERSION}/${VERSION_CODE}/commit" \
+              -H "Public-Token: ${JWT_TOKEN}"; then
+            rollback
+            exit 1
+          fi
+          echo "Published version ${VERSION_CODE}"
