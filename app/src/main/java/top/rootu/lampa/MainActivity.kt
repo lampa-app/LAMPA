@@ -3058,8 +3058,8 @@ class MainActivity : BaseActivity(),
                 background?.let { putString("background", it) }
                 putInt("start_index", state.currentIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0)))
                 headers?.let { putStringArray("headers", it) }
-                // Lampa's "ask": the player asks Resume / Start over
-                if (playerTimeCode == "ask") putBoolean("ask_resume", true)
+                // Lampa's "ask": the player asks Resume / Start over, only when there is something to resume
+                putBoolean("ask_resume", playerTimeCode == "ask" && position > 0)
                 putParcelableArray("items", items.toTypedArray())
                 // A report every 2 minutes while playing, the cadence of Lampa's own player: the one on
                 // leaving can come too late to be kept (a task swiped from recents dies a second after it)
