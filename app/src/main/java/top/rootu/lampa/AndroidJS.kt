@@ -23,6 +23,7 @@ import top.rootu.lampa.channels.PluginChannels
 import top.rootu.lampa.channels.LampaChannels.updateChanByName
 import top.rootu.lampa.channels.WatchNext.updateWatchNext
 import top.rootu.lampa.content.LampaProvider
+import top.rootu.lampa.helpers.AdId
 import top.rootu.lampa.helpers.Helpers.debugLog
 import top.rootu.lampa.helpers.Helpers.filterValidCubBookmarks
 import top.rootu.lampa.helpers.Helpers.isTvContentProviderAvailable
@@ -206,6 +207,15 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
     fun appVersion(): String {
         return BuildConfig.VERSION_NAME + "-" + BuildConfig.VERSION_CODE
     }
+
+    /**
+     * Google Advertising ID (GAID) for the IFA macro in VAST tags.
+     * Empty string when there is no GAID (no Play services, ad tracking limited, ID deleted) -
+     * Lampa then uses its own vast_device_guid.
+     */
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
+    fun getAdvertisingId(): String = AdId.gaid
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface

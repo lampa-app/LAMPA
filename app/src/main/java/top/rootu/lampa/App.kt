@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import top.rootu.lampa.helpers.AdId
 import top.rootu.lampa.helpers.Helpers.isConnected
 import top.rootu.lampa.helpers.Prefs.appLang
 import top.rootu.lampa.helpers.Updater
@@ -120,6 +121,9 @@ class App : MultiDexApplication() {
         applicationScope.launch {
             TMDB.initGenres()
         }
+
+        // Google Advertising ID for VAST IFA (blocking call - background only)
+        Thread { AdId.load(this) }.start()
 
     }
 
