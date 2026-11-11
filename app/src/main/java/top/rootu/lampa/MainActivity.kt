@@ -219,7 +219,7 @@ class MainActivity : BaseActivity(),
             "top.rootu.dddplayer"
         )
         // Players on the Just+ nested playlist contract; beta builds add a suffix to the package
-        private val JUSTPLUS_PLAYER_PREFIXES = listOf("com.justplus.player", "com.lampaua.player")
+        private val JUSTPLUS_PLAYER_PREFIXES = listOf("com.justplus.player", "com.lampaua.player", "com.syntex.player")
 
         private fun isJustPlusPlayer(name: String) = JUSTPLUS_PLAYER_PREFIXES.any { name.startsWith(it) }
 		private val KODI_PACKAGES = setOf(
