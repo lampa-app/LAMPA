@@ -20,6 +20,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okio.ByteString;
 
 public class Http {
     private int lastErrorCode = 0;
@@ -104,9 +105,52 @@ public class Http {
     }
 
     public JSONObject Send(String method, String url, String data, JSONObject headers, int timeout, String dataType) throws Exception {
+        return Send(method, url, data, headers, timeout, dataType, null);
+    }
+
+    static String prepareRequestData(Object data, String bodyEncoding) {
+        if (bodyEncoding != null && !bodyEncoding.isEmpty()) {
+            if (!"base64".equalsIgnoreCase(bodyEncoding)) {
+                throw new IllegalArgumentException("Unsupported HTTP body encoding");
+            }
+            if (!(data instanceof String)) {
+                throw new IllegalArgumentException("An encoded HTTP body must be a string");
+            }
+        }
+        return data == null ? "" : data.toString();
+    }
+
+    static MediaType requestMediaType(Headers headers, boolean hasData, String bodyEncoding) {
+        if (!hasData) return null;
+        String contentType = headers.get("Content-Type");
+        if (contentType == null) {
+            contentType = bodyEncoding == null || bodyEncoding.isEmpty()
+                    ? "application/x-www-form-urlencoded" : "application/octet-stream";
+        }
+        return MediaType.parse(contentType);
+    }
+
+    static RequestBody createRequestBody(MediaType mediaType, String data, String bodyEncoding) {
+        String content = prepareRequestData(data, bodyEncoding);
+        if (bodyEncoding == null || bodyEncoding.isEmpty()) {
+            return RequestBody.create(mediaType, content);
+        }
+        ByteString decoded = ByteString.decodeBase64(content);
+        if (decoded == null) throw new IllegalArgumentException("Invalid Base64 HTTP body");
+        return RequestBody.create(mediaType, decoded.toByteArray());
+    }
+
+    public JSONObject Send(String method, String url, Object data, JSONObject headers, int timeout, String dataType, String bodyEncoding) throws Exception {
         if (!url.toLowerCase().startsWith("http")) {
             this.lastErrorCode = 400;
             throw new Exception("Bad Request (Invalid protocol; use http or https)");
+        }
+        String requestData;
+        try {
+            requestData = prepareRequestData(data, bodyEncoding);
+        } catch (IllegalArgumentException error) {
+            this.lastErrorCode = 400;
+            throw error;
         }
         Request.Builder rb = getReqBuilder(method, url, headers);
         RequestBody requestBody = null;
@@ -114,16 +158,20 @@ public class Http {
         // so a bodyless POST/PUT/PATCH is sent with an empty body. The empty body
         // has no media type of its own, which leaves any Content-Type header as given.
         if (!method.equals("GET") && !method.equals("HEAD")
-                && (!data.isEmpty() || method.equals("POST") || method.equals("PUT") || method.equals("PATCH"))) {
-            MediaType mediaType = data.isEmpty()
-                    ? null
-                    : MediaType.parse(headers.optString("Content-Type", "application/x-www-form-urlencoded"));
-            requestBody = RequestBody.create(mediaType, data);
+                && (!requestData.isEmpty() || method.equals("POST") || method.equals("PUT") || method.equals("PATCH"))) {
+            MediaType mediaType = requestMediaType(rb.build().headers(), !requestData.isEmpty(), bodyEncoding);
+            try {
+                requestBody = createRequestBody(mediaType, requestData, bodyEncoding);
+            } catch (IllegalArgumentException error) {
+                this.lastErrorCode = 400;
+                throw error;
+            }
         }
         rb.method(method, requestBody);
         OkHttpClient client = HttpHelper.getOkHttpClient(timeout);
-        Response response = client.newCall(rb.build()).execute();
-        return getJsonFromResponse(response, dataType);
+        try (Response response = client.newCall(rb.build()).execute()) {
+            return getJsonFromResponse(response, dataType);
+        }
     }
 
     public int getLastErrorCode() {
