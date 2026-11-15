@@ -2717,6 +2717,23 @@ class MainActivity : BaseActivity(),
                 intent.putExtra("title", videoTitle) // fallback
                 // Try to add headers to unknown players as a fallback
                 headers?.let { intent.putExtra("headers", it) }
+                // Optional Watch queue contract: ordinary extras, never an overloaded title.
+                if (playerPackage == "ru.net.watch.tv") {
+                    val queue = state.playlist.filter { item ->
+                        val uri = item.url.toUri()
+                        item.url.length <= 8192 && item.url.none { it.isISOControl() } &&
+                            uri.scheme?.lowercase() in listOf("http", "https") &&
+                            !uri.host.isNullOrBlank() && uri.userInfo == null
+                    }.distinctBy { it.url }.take(100)
+                    val selected = queue.indexOfFirst { it.url == state.currentItem?.url }
+                    val encoded = JSONArray(queue.map { item ->
+                        JSONObject().put("url", item.url).put("title", item.title?.take(500) ?: "")
+                    }).toString()
+                    if (queue.size > 1 && selected >= 0 && encoded.toByteArray(Charsets.UTF_8).size <= 196608) {
+                        intent.putExtra("playlist", encoded)
+                        intent.putExtra("playlist_index", selected)
+                    }
+                }
                 // App playback position
                 when {
                     playerTimeCode == "continue" || playerTimeCode == "again" && position > 0 -> {
