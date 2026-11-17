@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build.VERSION
 import android.os.Bundle
+import android.os.Parcel
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import top.rootu.lampa.MainActivity.Companion.VIDEO_COMPLETED_DURATION_MAX_PERCENTAGE
@@ -32,20 +34,36 @@ object JustPlusPlayer {
     // Report callback extras: the launch's activity and card
     private const val REPORT_ACTIVITY_EXTRA = "lampa_activity"
     private const val REPORT_CARD_EXTRA = "lampa_card"
+    // The window of the playlist the player got: its first item, its size and the whole playlist's size
+    private const val REPORT_OFFSET_EXTRA = "lampa_offset"
+    private const val REPORT_COUNT_EXTRA = "lampa_count"
+    private const val REPORT_TOTAL_EXTRA = "lampa_total"
+    // Bytes of items one launch may carry: the intent reaches the player in a one-way Binder call, which
+    // gets half of the process's 1 MB buffer; past that the system kills the player before it starts (a
+    // long anime with every episode's links). A launch of 517 KB failed on Android 16 and one of 512 KB
+    // passed; the rest of the launch adds about 8 KB, and the half is shared with whatever else is in flight
+    private const val ITEMS_BUDGET = 400_000
 
     /** com.justplus.player.result as JSON: everything handleJustPlusReport needs, nothing else. */
     fun report(intent: Intent): JSONObject {
-        val positions = intent.getIntArrayExtra("positions_sec") ?: IntArray(0)
+        val window = intent.getIntArrayExtra("positions_sec") ?: IntArray(0)
+        // Back from the window the player got to the whole playlist: -1 = never opened. A report of
+        // another window (an old session through a callback a newer launch has updated) stays as it
+        // came, so handleJustPlusReport drops it by its size
+        val ours = window.size == intent.getIntExtra(REPORT_COUNT_EXTRA, window.size)
+        val offset = if (ours) intent.getIntExtra(REPORT_OFFSET_EXTRA, 0) else 0
+        val total = if (ours) intent.getIntExtra(REPORT_TOTAL_EXTRA, window.size) else window.size
+        val positions = IntArray(total) { window.getOrElse(it - offset) { -1 } }
         // Durations come per visit in history; the last known one of each item wins.
         val durations = IntArray(positions.size) { -1 }
         @Suppress("DEPRECATION")
         intent.getParcelableArrayExtra("history")?.forEach { visit ->
             val v = visit as? Bundle ?: return@forEach
-            val i = v.getInt("index", -1)
+            val i = v.getInt("index", -1).let { if (it < 0) it else it + offset }
             val d = v.getInt("duration_sec", -1)
             if (i in durations.indices && d > 0) durations[i] = d
         }
-        val index = intent.getIntExtra("index", -1)
+        val index = intent.getIntExtra("index", -1).let { if (it < 0) it else it + offset }
         val duration = intent.getIntExtra("duration_sec", -1)
         if (index in durations.indices && duration > 0) durations[index] = duration
         return JSONObject().apply {
@@ -153,35 +171,76 @@ object JustPlusPlayer {
             }
         }
 
+        val start = state.currentIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0))
+        val window = window(items, start)
+
         intent.apply {
             setPackage(playerPackage)
             putExtra("playlist", Bundle().apply {
                 putString("title", title)
                 logo?.let { putString("logo", it) }
                 background?.let { putString("background", it) }
-                putInt("start_index", state.currentIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0)))
+                putInt("start_index", start - window.first)
                 headers?.let { putStringArray("headers", it) }
                 // Lampa's "ask": the player asks Resume / Start over, only when there is something to resume
                 putBoolean("ask_resume", playerTimeCode == "ask" && position > 0)
-                putParcelableArray("items", items.toTypedArray())
+                putParcelableArray("items", items.slice(window).toTypedArray())
                 // A report every 2 minutes while playing, the cadence of Lampa's own player: the one on
                 // leaving can come too late to be kept (a task swiped from recents dies a second after it)
                 if (keepPlayerConnection) putInt("report_interval_sec", 120)
                 // Reports on every leave (Home included). Mutable, or the player's extras are dropped:
                 // the default below Android 12 and for targetSdk < 31, explicit from 31 on. One per activity
                 // and card: a new launch into the running player first reports the old session to the
-                // old callback, and a shared one would by then carry the new activity's key.
+                // old callback, and a shared one would by then carry the new activity's key. And per window:
+                // an old session's report must not be mapped back by a newer window.
                 putParcelable(
                     "result_callback", PendingIntent.getBroadcast(
-                        context, (activity + card?.id).hashCode(),
+                        context, (activity + card?.id + window.first).hashCode(),
                         Intent(context, PlayerReportReceiver::class.java)
                             .putExtra(REPORT_ACTIVITY_EXTRA, activity)
-                            .putExtra(REPORT_CARD_EXTRA, card?.id),
+                            .putExtra(REPORT_CARD_EXTRA, card?.id)
+                            .putExtra(REPORT_OFFSET_EXTRA, window.first)
+                        .putExtra(REPORT_COUNT_EXTRA, window.count())
+                            .putExtra(REPORT_TOTAL_EXTRA, items.size),
                         PendingIntent.FLAG_UPDATE_CURRENT or
                                 (if (VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                     )
                 )
             })
         }
+    }
+
+    /**
+     * The items around [start] that fit [ITEMS_BUDGET]: the whole playlist when it fits, else the next
+     * ones first (up to two thirds, as auto-next goes forward), then next and previous in turn.
+     */
+    private fun window(items: List<Bundle>, start: Int): IntRange {
+        if (items.isEmpty()) return 0 until 0
+        val sizes = items.map { item ->
+            val parcel = Parcel.obtain()
+            try {
+                parcel.writeBundle(item)
+                parcel.dataSize()
+            } finally {
+                parcel.recycle()
+            }
+        }
+        var first = start
+        var last = start
+        var used = sizes[start]
+        while (last < items.lastIndex && used + sizes[last + 1] <= ITEMS_BUDGET * 2 / 3) used += sizes[++last]
+        var grew = true
+        while (grew) {
+            grew = false
+            if (last < items.lastIndex && used + sizes[last + 1] <= ITEMS_BUDGET) {
+                used += sizes[++last]; grew = true
+            }
+            if (first > 0 && used + sizes[first - 1] <= ITEMS_BUDGET) {
+                used += sizes[--first]; grew = true
+            }
+        }
+        if (first > 0 || last < items.lastIndex)
+            Log.i("JustPlusPlayer", "Playlist cut to $first..$last of ${items.size} [$used bytes]")
+        return first..last
     }
 }
