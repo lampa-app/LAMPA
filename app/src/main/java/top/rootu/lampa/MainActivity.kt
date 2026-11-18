@@ -375,8 +375,12 @@ class MainActivity : BaseActivity(),
         // the initialization is proceeding or has already been completed.
         mXWalkInitializer?.initAsync()
         logDebug("onResume() browserInitComplete $browserInitComplete")
-        if (browserInitComplete)
+        if (browserInitComplete) {
             browser?.resumeTimers()
+            if (playerKeepConnection) {
+                browser?.evaluateJavascript("document.dispatchEvent(new Event('visibilitychange'))") {}
+            }
+        }
         logDebug("onResume() isSafeForUse ${browser.isSafeForUse()}")
         if (browser.isSafeForUse()) {
             lifecycleScope.launch {
