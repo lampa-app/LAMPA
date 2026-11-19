@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "*.psd"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "*.psd"
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR runs, but never cancel a build of main.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build debug APKs
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      mode: pr
+      artifact-name: ${{ github.event_name == 'pull_request' && 'pr-debug-apks' || 'main-debug-apks' }}
+      retention-days: 7
