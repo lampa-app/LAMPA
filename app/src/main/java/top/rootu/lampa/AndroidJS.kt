@@ -328,8 +328,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
 
     @JavascriptInterface
     @org.xwalk.core.JavascriptInterface
+    fun supportsHttpBodyEncoding(encoding: String): Boolean = encoding.equals("base64", ignoreCase = true)
+
+    @JavascriptInterface
+    @org.xwalk.core.JavascriptInterface
     fun httpReq(str: String, returnI: Int) {
-        debugLog(TAG, "httpReq JSON $str")
         try {
             val jsonObject = JSONObject(str)
             Http.disableH2(jsonObject.optBoolean("disableH2", false))
@@ -338,8 +341,11 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
             val url = jsonObject.optString("url").takeIf { it.isNotEmpty() }
                 ?: throw IllegalArgumentException("URL cannot be empty")
             val data = jsonObject.opt("post_data")
+            val bodyEncoding = jsonObject.optString("bodyEncoding").takeIf { it.isNotEmpty() }
+            if (bodyEncoding == null) debugLog(TAG, "httpReq JSON $str")
+            else debugLog(TAG, "httpReq $url ($bodyEncoding body)")
             val returnHeaders = jsonObject.optBoolean("returnHeaders", false)
-             // Optional dataType: "base64" forces binary-safe response encoding.
+            // Optional dataType: "base64" forces binary-safe response encoding.
             val dataType = jsonObject.optString("dataType").takeIf { it.isNotEmpty() }
             val timeout = jsonObject.optInt("timeout", 15000).coerceAtLeast(1000)
             // "method" is the common name for the verb; "type" is the older jQuery-style one Lampa sends.
@@ -351,17 +357,21 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 JSONObject(it.toString()) // Create a copy to avoid modifying the original
             } ?: JSONObject()
 
-            var contentType = jsonObject.optString("contentType")
+            var contentType = jsonObject.optString("contentType").ifEmpty {
+                if (bodyEncoding == null) "" else "application/octet-stream"
+            }
             var requestContent = ""
 
             if (data != null) {
                 if (data is String) {
                     requestContent = data.toString()
-                    contentType = try {
-                        JSONObject(requestContent)
-                        "application/json"
-                    } catch (_: JSONException) {
-                        "application/x-www-form-urlencoded"
+                    if (bodyEncoding == null) {
+                        contentType = try {
+                            JSONObject(requestContent)
+                            "application/json"
+                        } catch (_: JSONException) {
+                            "application/x-www-form-urlencoded"
+                        }
                     }
                 } else if (data is JSONObject) {
                     contentType = "application/json"
@@ -372,21 +382,20 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 requestContent = ""
             }
             // Ensure Content-Type header is properly set
-            if (requestContent.isNotEmpty()) {
+            if (requestContent.isNotEmpty() || bodyEncoding != null) {
                 if (!headers.has("Content-Type")) {
-                    if (headers.has("Content-type")) {
-                        contentType = headers.optString("Content-type", contentType)
-                        headers.remove("Content-type")
+                    val headerName = headers.keys().asSequence().firstOrNull {
+                        it.equals("Content-Type", ignoreCase = true)
                     }
-                    if (headers.has("content-type")) {
-                        contentType = headers.optString("content-type", contentType)
-                        headers.remove("content-type")
+                    if (headerName != null) {
+                        contentType = headers.optString(headerName, contentType)
+                        headers.remove(headerName)
                     }
                     headers.putSafe("Content-Type", contentType)
                 }
             }
             injectLampaClientHeaders(url, headers)
-            val finalRequestContent = requestContent
+            val finalRequestContent = if (bodyEncoding == null) requestContent else data
             // Without an explicit verb, the body decides between GET and POST.
             val method = requestedMethod.ifEmpty { if (requestContent.isEmpty()) "GET" else "POST" }
             val finalHeaders = headers
@@ -395,7 +404,7 @@ class AndroidJS(private val mainActivity: MainActivity, private val browser: Bro
                 override fun doInBackground(vararg params: Void?): String {
                     val http = Http()
                     return try {
-                        val responseJSON = http.Send(method, url, finalRequestContent, finalHeaders, timeout, dataType)
+                        val responseJSON = http.Send(method, url, finalRequestContent, finalHeaders, timeout, dataType, bodyEncoding)
                         reqResponse[returnI.toString()] = if (returnHeaders) {
                             responseJSON.toString()
                         } else {
