@@ -1302,18 +1302,37 @@ class MainActivity : BaseActivity(),
         // via the public Lampa.Search API. If a search screen is already open
         // (a repeated external query), close it first — Lampa.Search.open() is
         // not idempotent and would stack a new search over the previous one.
-        // runVoidJsFunc queues the call until the web app is ready, so a cold
-        // start is fine.
+        // runVoidJsFunc only waits for the page to load, not for the web app:
+        // on a cold start Lampa.Search.open() throws KEYBOARD_DOM_ERROR and
+        // leaves a dead search screen, and even after 'app ready' the first
+        // activity start closes it. So open only once an activity is running
+        // (Activity.push starts it in the same tick), else wait for its start.
+        // A single waiter opens the latest query, so a stale one can't win.
         intent.getStringExtra(SearchManager.QUERY)?.let { query ->
             if (query.isNotBlank()) {
-                val escaped = query.replace("\\", "\\\\").replace("'", "\\'")
-                val opener = "(function(q){" +
-                        "if(!window.Lampa||!Lampa.Search)return;" +
-                        "try{if(document.body&&document.body.classList" +
-                        ".contains('search--open'))Lampa.Search.close();}catch(e){}" +
-                        "Lampa.Search.open({input:q});" +
-                        "})"
-                runVoidJsFunc(opener, "'$escaped'")
+                val opener = """
+                    (function(q) {
+                        if (!window.Lampa) return;
+                        window._androidSearchQuery = q;
+                        var open = function() {
+                            try {
+                                if (document.body.classList.contains('search--open')) Lampa.Search.close();
+                            } catch (e) {}
+                            Lampa.Search.open({input: window._androidSearchQuery});
+                        };
+                        if (window.appready && Lampa.Activity.active()) return open();
+                        if (window._androidSearchWaiting) return;
+                        window._androidSearchWaiting = true;
+                        var onActivity = function(e) {
+                            if (e.type != 'start') return;
+                            Lampa.Listener.remove('activity', onActivity);
+                            window._androidSearchWaiting = false;
+                            open();
+                        };
+                        Lampa.Listener.follow('activity', onActivity);
+                    })
+                """.trimIndent()
+                runVoidJsFunc(opener, JSONObject.quote(query))
             }
         }
         // Fix initial focus
